@@ -1,7 +1,7 @@
-package org.mlanau.project.infrastructure.repository
+package org.mlanau.project.plant.infrastructure.repository
 
-import org.mlanau.project.domain.model.Plant
-import org.mlanau.project.domain.repository.PlantRepository
+import org.mlanau.project.plant.domain.model.Plant
+import org.mlanau.project.plant.domain.repository.PlantRepository
 
 class MockPlantRepository : PlantRepository {
     private val plants = mutableListOf(
@@ -16,7 +16,8 @@ class MockPlantRepository : PlantRepository {
     }
 
     override suspend fun save(plant: Plant) {
-        val newPlant = plant.copy(id = (plants.maxOfOrNull { it.id } ?: 0) + 1)
-        plants.add(newPlant)
+        val nextId = (plants.maxOfOrNull { it.id ?: 0 } ?: 0) + 1
+        val plantWithId = if (plant.id == null) plant.copy(id = nextId) else plant
+        plants.add(plantWithId)
     }
 }

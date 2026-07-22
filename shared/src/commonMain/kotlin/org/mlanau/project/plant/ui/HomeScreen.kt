@@ -1,4 +1,4 @@
-package org.mlanau.project.ui.home
+package org.mlanau.project.plant.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,21 +8,33 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.mlanau.project.application.HomeViewModel
-import org.mlanau.project.domain.model.Plant
+import org.jetbrains.compose.resources.stringResource
+import org.mlanau.project.plant.application.HomeViewModel
+import org.mlanau.project.plant.domain.model.Plant
+import plantitas_app.shared.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(viewModel: HomeViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    uiState.error?.let { errorRes ->
+        val errorMessage = stringResource(errorRes)
+        LaunchedEffect(errorRes) {
+            snackbarHostState.showSnackbar(errorMessage)
+            viewModel.clearError()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mis Plantitas") }
+                title = { Text(stringResource(Res.string.home_title)) }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
                 Text("+", style = MaterialTheme.typography.headlineSmall)
@@ -35,6 +47,13 @@ fun HomeScreen(viewModel: HomeViewModel) {
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
+            }
+        } else if (uiState.plants.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(Res.string.home_welcome))
             }
         } else {
             LazyColumn(
@@ -72,31 +91,31 @@ fun AddPlantDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva Planta") },
+        title = { Text(stringResource(Res.string.home_add_plant)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nombre") },
+                    label = { Text(stringResource(Res.string.home_plant_name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 TextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Descripción") },
+                    label = { Text(stringResource(Res.string.home_plant_description)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name, description) }) {
-                Text("Añadir")
+                Text(stringResource(Res.string.home_button_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(Res.string.home_button_cancel))
             }
         }
     )
@@ -115,11 +134,13 @@ fun PlantItem(plant: Plant) {
                 text = plant.name,
                 style = MaterialTheme.typography.titleMedium
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = plant.description,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            plant.description?.takeIf { it.isNotBlank() }?.let { description ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

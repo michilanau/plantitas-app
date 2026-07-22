@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Plantitas App</string>
+    <string name="home_title">Mis Plantitas</string>
+    <string name="home_welcome">¡Bienvenido a tu jardín digital!</string>
+    <string name="home_add_plant">Nueva Planta</string>
+    <string name="home_plant_name">Nombre</string>
+    <string name="home_plant_description">Descripción</string>
+    <string name="home_button_add">Añadir</string>
+    <string name="home_button_cancel">Cancelar</string>
+
+    <!-- Errores -->
+    <string name="error_load_plants">Error al cargar las plantas</string>
+    <string name="error_empty_name">El nombre de la planta no puede estar vacío</string>
+    <string name="error_unknown">Ha ocurrido un error inesperado</string>
+</resources>
