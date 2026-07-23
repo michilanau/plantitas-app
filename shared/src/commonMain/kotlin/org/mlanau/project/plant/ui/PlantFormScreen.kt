@@ -7,6 +7,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.application.HomeViewModel
 import org.mlanau.project.plant.domain.model.LightNeed
@@ -14,7 +22,7 @@ import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PotSize
 import plantitas_app.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlantFormScreen(
     viewModel: HomeViewModel,
@@ -28,8 +36,6 @@ fun PlantFormScreen(
     var selectedLightNeed by remember { mutableStateOf<LightNeed?>(initialPlant?.lightNeed) }
     var selectedPotSize by remember { mutableStateOf<PotSize?>(initialPlant?.potSize) }
 
-    var lightMenuExpanded by remember { mutableStateOf(false) }
-    var potMenuExpanded by remember { mutableStateOf(false) }
     var isDeleteDialogOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSaveSuccess) {
@@ -50,13 +56,17 @@ fun PlantFormScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.headlineSmall)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
                     if (initialPlant != null) {
                         IconButton(onClick = { isDeleteDialogOpen = true }) {
-                            Text("🗑️")
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Eliminar",
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -72,102 +82,101 @@ fun PlantFormScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ... resto del contenido ...
-            TextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(stringResource(Res.string.home_plant_name)) },
-                modifier = Modifier.fillMaxWidth(),
-                isError = uiState.saveError != null,
-                enabled = !uiState.isSaving
-            )
-
-            if (uiState.saveError != null) {
-                Text(
-                    text = stringResource(uiState.saveError!!),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+            // Name Field (Required)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("${stringResource(Res.string.home_plant_name)} *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = uiState.saveError != null,
+                    enabled = !uiState.isSaving,
+                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
                 )
+                if (uiState.saveError != null) {
+                    Text(
+                        text = stringResource(uiState.saveError!!),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
             }
 
-            TextField(
+            // Description Field
+            OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text(stringResource(Res.string.home_plant_description)) },
+                label = { Text("${stringResource(Res.string.home_plant_description)} (opcional)") },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSaving
+                enabled = !uiState.isSaving,
+                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
+                shape = MaterialTheme.shapes.medium
             )
 
-            TextField(
+            // Location Field
+            OutlinedTextField(
                 value = location,
                 onValueChange = { location = it },
-                label = { Text(stringResource(Res.string.home_plant_location)) },
+                label = { Text("${stringResource(Res.string.home_plant_location)} (opcional)") },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSaving
+                enabled = !uiState.isSaving,
+                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                shape = MaterialTheme.shapes.medium
             )
 
             // Light Need Selector
-            Box {
-                OutlinedTextField(
-                    value = selectedLightNeed?.let { getLightNeedString(it) } ?: "",
-                    onValueChange = {},
-                    label = { Text(stringResource(Res.string.home_plant_light)) },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { lightMenuExpanded = true }) {
-                            Text("▼")
-                        }
-                    }
-                )
-                DropdownMenu(
-                    expanded = lightMenuExpanded,
-                    onDismissRequest = { lightMenuExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    LightNeed.entries.forEach { need ->
-                        DropdownMenuItem(
-                            text = { Text(getLightNeedString(need)) },
-                            onClick = {
-                                selectedLightNeed = need
-                                lightMenuExpanded = false
-                            }
-                        )
-                    }
+            Text(
+                text = stringResource(Res.string.home_plant_light),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                LightNeed.entries.forEach { need ->
+                    val isSelected = selectedLightNeed == need
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedLightNeed = need },
+                        label = { Text(getLightNeedString(need)) },
+                        leadingIcon = if (isSelected) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                        } else null,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
             // Pot Size Selector
-            Box {
-                OutlinedTextField(
-                    value = selectedPotSize?.let { getPotSizeString(it) } ?: "",
-                    onValueChange = {},
-                    label = { Text(stringResource(Res.string.home_plant_pot)) },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { potMenuExpanded = true }) {
-                            Text("▼")
-                        }
-                    }
-                )
-                DropdownMenu(
-                    expanded = potMenuExpanded,
-                    onDismissRequest = { potMenuExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    PotSize.entries.forEach { size ->
-                        DropdownMenuItem(
-                            text = { Text(getPotSizeString(size)) },
-                            onClick = {
-                                selectedPotSize = size
-                                potMenuExpanded = false
-                            }
-                        )
-                    }
+            Text(
+                text = stringResource(Res.string.home_plant_pot),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PotSize.entries.forEach { size ->
+                    val isSelected = selectedPotSize == size
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedPotSize = size },
+                        label = { Text(getPotSizeString(size)) },
+                        leadingIcon = if (isSelected) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                        } else null
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
@@ -180,13 +189,20 @@ fun PlantFormScreen(
                         potSize = selectedPotSize
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSaving && name.isNotBlank()
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                enabled = !uiState.isSaving && name.isNotBlank(),
+                shape = MaterialTheme.shapes.medium
             ) {
                 if (uiState.isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
-                    Text(if (initialPlant == null) stringResource(Res.string.home_button_add) else "Guardar")
+                    Icon(Icons.Default.Done, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        if (initialPlant == null) stringResource(Res.string.home_button_add) 
+                        else "Guardar Cambios",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }
