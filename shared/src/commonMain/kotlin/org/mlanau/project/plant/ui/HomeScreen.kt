@@ -22,7 +22,9 @@ fun HomeScreen(viewModel: HomeViewModel) {
     HomeContent(
         uiState = uiState,
         onSavePlant = { id, name, description -> viewModel.onSavePlant(id, name, description) },
-        onClearError = { viewModel.clearError() }
+        onDeletePlant = { id -> viewModel.onDeletePlant(id) },
+        onClearError = { viewModel.clearError() },
+        onResetSaveState = { viewModel.resetSaveState() }
     )
 }
 
@@ -31,9 +33,12 @@ fun HomeScreen(viewModel: HomeViewModel) {
 fun HomeContent(
     uiState: HomeUiState,
     onSavePlant: (Int?, String, String?) -> Unit,
-    onClearError: () -> Unit
+    onDeletePlant: (Int) -> Unit,
+    onClearError: () -> Unit,
+    onResetSaveState: () -> Unit
 ) {
     var selectedPlant by remember { mutableStateOf<Plant?>(null) }
+    var plantToDelete by remember { mutableStateOf<Plant?>(null) }
     var isDialogOpen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -89,19 +94,54 @@ fun HomeContent(
                         onClick = {
                             selectedPlant = plant
                             isDialogOpen = true
-                        }
+                        },
+                        onDelete = { plantToDelete = plant }
                     )
                 }
             }
         }
 
         if (isDialogOpen) {
+            LaunchedEffect(uiState.isSaveSuccess) {
+                if (uiState.isSaveSuccess) {
+                    isDialogOpen = false
+                    onResetSaveState()
+                }
+            }
+
             PlantDialog(
                 initialPlant = selectedPlant,
-                onDismiss = { isDialogOpen = false },
+                error = uiState.saveError?.let { stringResource(it) },
+                isSaving = uiState.isSaving,
+                onDismiss = { 
+                    isDialogOpen = false
+                    onResetSaveState()
+                },
                 onConfirm = { name, desc ->
                     onSavePlant(selectedPlant?.id, name, desc)
-                    isDialogOpen = false
+                }
+            )
+        }
+
+        plantToDelete?.let { plant ->
+            AlertDialog(
+                onDismissRequest = { plantToDelete = null },
+                title = { Text("Eliminar planta") },
+                text = { Text("¿Estás seguro de que quieres eliminar '${plant.name}'?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            plant.id?.let { onDeletePlant(it) }
+                            plantToDelete = null
+                        }
+                    ) {
+                        Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { plantToDelete = null }) {
+                        Text("Cancelar")
+                    }
                 }
             )
         }
@@ -111,6 +151,8 @@ fun HomeContent(
 @Composable
 fun PlantDialog(
     initialPlant: Plant? = null,
+    error: String? = null,
+    isSaving: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
@@ -122,7 +164,7 @@ fun PlantDialog(
         title = { 
             Text(
                 if (initialPlant == null) stringResource(Res.string.home_add_plant) 
-                else "Editar Planta" // Podríamos añadir esto a strings.xml
+                else "Editar Planta"
             ) 
         },
         text = {
@@ -131,23 +173,43 @@ fun PlantDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(Res.string.home_plant_name)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = error != null,
+                    enabled = !isSaving
                 )
+                if (error != null) {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
                 TextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text(stringResource(Res.string.home_plant_description)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name, description) }) {
-                Text(if (initialPlant == null) stringResource(Res.string.home_button_add) else "Guardar")
+            TextButton(
+                onClick = { onConfirm(name, description) },
+                enabled = !isSaving
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                } else {
+                    Text(if (initialPlant == null) stringResource(Res.string.home_button_add) else "Guardar")
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isSaving
+            ) {
                 Text(stringResource(Res.string.home_button_cancel))
             }
         }
@@ -157,7 +219,8 @@ fun PlantDialog(
 @Composable
 fun PlantItem(
     plant: Plant,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -165,19 +228,27 @@ fun PlantItem(
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = plant.name,
-                style = MaterialTheme.typography.titleMedium
-            )
-            plant.description?.takeIf { it.isNotBlank() }?.let { description ->
-                Spacer(modifier = Modifier.height(4.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium
+                    text = plant.name,
+                    style = MaterialTheme.typography.titleMedium
                 )
+                plant.description?.takeIf { it.isNotBlank() }?.let { description ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            IconButton(onClick = onDelete) {
+                Text("🗑️") // Emoji como fallback si no hay iconos configurados
             }
         }
     }

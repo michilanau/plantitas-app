@@ -17,12 +17,16 @@ import plantitas_app.shared.generated.resources.error_unknown
 data class HomeUiState(
     val plants: List<Plant> = emptyList(),
     val isLoading: Boolean = false,
-    val error: StringResource? = null
+    val error: StringResource? = null,
+    val isSaving: Boolean = false,
+    val saveError: StringResource? = null,
+    val isSaveSuccess: Boolean = false
 )
 
 class HomeViewModel(
     private val findAllPlants: FindAllPlants,
-    private val savePlant: SavePlant
+    private val savePlant: SavePlant,
+    private val deletePlant: DeletePlant
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -52,16 +56,34 @@ class HomeViewModel(
 
     fun onSavePlant(id: Int?, name: String, description: String?) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, saveError = null, isSaveSuccess = false)
             val result = savePlant(id, name, description)
             result.onSuccess {
                 loadPlants()
+                _uiState.value = _uiState.value.copy(isSaving = false, isSaveSuccess = true)
             }
             result.onFailure { exception ->
                 val errorResource = when (exception) {
                     is EmptyPlantNameException -> Res.string.error_empty_name
                     else -> Res.string.error_unknown
                 }
-                _uiState.value = _uiState.value.copy(error = errorResource)
+                _uiState.value = _uiState.value.copy(isSaving = false, saveError = errorResource)
+            }
+        }
+    }
+
+    fun resetSaveState() {
+        _uiState.value = _uiState.value.copy(saveError = null, isSaveSuccess = false, isSaving = false)
+    }
+
+    fun onDeletePlant(id: Int) {
+        viewModelScope.launch {
+            val result = deletePlant(id)
+            result.onSuccess {
+                loadPlants()
+            }
+            result.onFailure {
+                _uiState.value = _uiState.value.copy(error = Res.string.error_unknown)
             }
         }
     }

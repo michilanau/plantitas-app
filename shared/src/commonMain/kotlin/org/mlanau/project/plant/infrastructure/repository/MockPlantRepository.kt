@@ -5,10 +5,8 @@ import org.mlanau.project.plant.domain.repository.PlantRepository
 
 class MockPlantRepository : PlantRepository {
     private val plants = mutableListOf(
-        Plant(1, "Monstera Deliciosa", "Planta tropical con hojas agujereadas."),
-        Plant(2, "Cactus de Asiento de Suegra", "Cactus globoso con espinas amarillas."),
-        Plant(3, "Poto", "Planta trepadora muy resistente y fácil de cuidar."),
-        Plant(4, "Lengua de suegra", "Ideal para purificar el aire y muy resistente.")
+        Plant(1, "Poto", "Planta trepadora muy resistente y fácil de cuidar."),
+        Plant(2, "Lengua de suegra", "Ideal para purificar el aire y muy resistente.")
     )
 
     override suspend fun findAll(): List<Plant> {
@@ -29,5 +27,9 @@ class MockPlantRepository : PlantRepository {
             val nextId = (plants.maxOfOrNull { it.id ?: 0 } ?: 0) + 1
             plants.add(plant.copy(id = nextId))
         }
+    }
+
+    override suspend fun delete(id: Int) {
+        plants.removeAll { it.id == id }
     }
 }

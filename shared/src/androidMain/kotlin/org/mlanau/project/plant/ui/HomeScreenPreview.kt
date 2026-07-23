@@ -9,7 +9,9 @@ fun HomeContentPreview() {
     HomeContent(
         uiState = PlantMocks.homeUiStateSuccess,
         onSavePlant = { _, _, _ -> },
-        onClearError = {}
+        onDeletePlant = {},
+        onClearError = {},
+        onResetSaveState = {}
     )
 }
 
@@ -19,6 +21,8 @@ fun HomeContentLoadingPreview() {
     HomeContent(
         uiState = PlantMocks.homeUiStateLoading,
         onSavePlant = { _, _, _ -> },
-        onClearError = {}
+        onDeletePlant = {},
+        onClearError = {},
+        onResetSaveState = {}
     )
 }
