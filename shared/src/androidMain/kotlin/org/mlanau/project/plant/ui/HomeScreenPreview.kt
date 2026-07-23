@@ -8,10 +8,8 @@ import androidx.compose.ui.tooling.preview.Preview
 fun HomeContentPreview() {
     HomeContent(
         uiState = PlantMocks.homeUiStateSuccess,
-        onSavePlant = { _, _, _ -> },
-        onDeletePlant = {},
         onClearError = {},
-        onResetSaveState = {}
+        onNavigateToPlantForm = {}
     )
 }
 
@@ -20,9 +18,7 @@ fun HomeContentPreview() {
 fun HomeContentLoadingPreview() {
     HomeContent(
         uiState = PlantMocks.homeUiStateLoading,
-        onSavePlant = { _, _, _ -> },
-        onDeletePlant = {},
         onClearError = {},
-        onResetSaveState = {}
+        onNavigateToPlantForm = {}
     )
 }

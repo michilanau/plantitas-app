@@ -16,15 +16,16 @@ import org.mlanau.project.plant.domain.model.Plant
 import plantitas_app.shared.generated.resources.*
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel) {
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    onNavigateToPlantForm: (Plant?) -> Unit
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     HomeContent(
         uiState = uiState,
-        onSavePlant = { id, name, description -> viewModel.onSavePlant(id, name, description) },
-        onDeletePlant = { id -> viewModel.onDeletePlant(id) },
         onClearError = { viewModel.clearError() },
-        onResetSaveState = { viewModel.resetSaveState() }
+        onNavigateToPlantForm = onNavigateToPlantForm
     )
 }
 
@@ -32,14 +33,9 @@ fun HomeScreen(viewModel: HomeViewModel) {
 @Composable
 fun HomeContent(
     uiState: HomeUiState,
-    onSavePlant: (Int?, String, String?) -> Unit,
-    onDeletePlant: (Int) -> Unit,
     onClearError: () -> Unit,
-    onResetSaveState: () -> Unit
+    onNavigateToPlantForm: (Plant?) -> Unit
 ) {
-    var selectedPlant by remember { mutableStateOf<Plant?>(null) }
-    var plantToDelete by remember { mutableStateOf<Plant?>(null) }
-    var isDialogOpen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     uiState.error?.let { errorRes ->
@@ -58,10 +54,7 @@ fun HomeContent(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { 
-                selectedPlant = null
-                isDialogOpen = true 
-            }) {
+            FloatingActionButton(onClick = { onNavigateToPlantForm(null) }) {
                 Text("+", style = MaterialTheme.typography.headlineSmall)
             }
         }
@@ -91,136 +84,18 @@ fun HomeContent(
                 items(uiState.plants) { plant ->
                     PlantItem(
                         plant = plant,
-                        onClick = {
-                            selectedPlant = plant
-                            isDialogOpen = true
-                        },
-                        onDelete = { plantToDelete = plant }
+                        onClick = { onNavigateToPlantForm(plant) }
                     )
                 }
             }
-        }
-
-        if (isDialogOpen) {
-            LaunchedEffect(uiState.isSaveSuccess) {
-                if (uiState.isSaveSuccess) {
-                    isDialogOpen = false
-                    onResetSaveState()
-                }
-            }
-
-            PlantDialog(
-                initialPlant = selectedPlant,
-                error = uiState.saveError?.let { stringResource(it) },
-                isSaving = uiState.isSaving,
-                onDismiss = { 
-                    isDialogOpen = false
-                    onResetSaveState()
-                },
-                onConfirm = { name, desc ->
-                    onSavePlant(selectedPlant?.id, name, desc)
-                }
-            )
-        }
-
-        plantToDelete?.let { plant ->
-            AlertDialog(
-                onDismissRequest = { plantToDelete = null },
-                title = { Text("Eliminar planta") },
-                text = { Text("¿Estás seguro de que quieres eliminar '${plant.name}'?") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            plant.id?.let { onDeletePlant(it) }
-                            plantToDelete = null
-                        }
-                    ) {
-                        Text("Eliminar", color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { plantToDelete = null }) {
-                        Text("Cancelar")
-                    }
-                }
-            )
         }
     }
 }
 
 @Composable
-fun PlantDialog(
-    initialPlant: Plant? = null,
-    error: String? = null,
-    isSaving: Boolean = false,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
-) {
-    var name by remember { mutableStateOf(initialPlant?.name ?: "") }
-    var description by remember { mutableStateOf(initialPlant?.description ?: "") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { 
-            Text(
-                if (initialPlant == null) stringResource(Res.string.home_add_plant) 
-                else "Editar Planta"
-            ) 
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(Res.string.home_plant_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = error != null,
-                    enabled = !isSaving
-                )
-                if (error != null) {
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                TextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(stringResource(Res.string.home_plant_description)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name, description) },
-                enabled = !isSaving
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
-                    Text(if (initialPlant == null) stringResource(Res.string.home_button_add) else "Guardar")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                enabled = !isSaving
-            ) {
-                Text(stringResource(Res.string.home_button_cancel))
-            }
-        }
-    )
-}
-
-@Composable
 fun PlantItem(
     plant: Plant,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -246,9 +121,14 @@ fun PlantItem(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
-            }
-            IconButton(onClick = onDelete) {
-                Text("🗑️") // Emoji como fallback si no hay iconos configurados
+                // Mostrar ubicación si existe
+                plant.location?.takeIf { it.isNotBlank() }?.let { location ->
+                    Text(
+                        text = "📍 $location",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
             }
         }
     }

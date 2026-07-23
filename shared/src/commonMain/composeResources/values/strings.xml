@@ -5,8 +5,22 @@
     <string name="home_add_plant">Nueva Planta</string>
     <string name="home_plant_name">Nombre</string>
     <string name="home_plant_description">Descripción</string>
+    <string name="home_plant_location">Ubicación</string>
+    <string name="home_plant_light">Luz</string>
+    <string name="home_plant_pot">Maceta</string>
     <string name="home_button_add">Añadir</string>
     <string name="home_button_cancel">Cancelar</string>
+
+    <!-- Light Needs -->
+    <string name="light_low">Baja</string>
+    <string name="light_medium">Media</string>
+    <string name="light_high">Alta</string>
+
+    <!-- Pot Sizes -->
+    <string name="pot_small">Pequeña</string>
+    <string name="pot_medium">Mediana</string>
+    <string name="pot_large">Grande</string>
+    <string name="pot_extra_large">Muy grande</string>
 
     <!-- Errores -->
     <string name="error_load_plants">Error al cargar las plantas</string>

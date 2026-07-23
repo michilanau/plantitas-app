@@ -54,10 +54,17 @@ class HomeViewModel(
         }
     }
 
-    fun onSavePlant(id: Int?, name: String, description: String?) {
+    fun onSavePlant(
+        id: Int?,
+        name: String,
+        description: String?,
+        location: String? = null,
+        lightNeed: org.mlanau.project.plant.domain.model.LightNeed? = null,
+        potSize: org.mlanau.project.plant.domain.model.PotSize? = null
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, saveError = null, isSaveSuccess = false)
-            val result = savePlant(id, name, description)
+            val result = savePlant(id, name, description, location, lightNeed, potSize)
             result.onSuccess {
                 loadPlants()
                 _uiState.value = _uiState.value.copy(isSaving = false, isSaveSuccess = true)

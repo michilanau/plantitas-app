@@ -1,15 +1,34 @@
 package org.mlanau.project
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlanau.project.plant.application.HomeViewModel
+import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.ui.HomeScreen
+import org.mlanau.project.plant.ui.PlantFormScreen
+
+sealed class Screen {
+    data object Home : Screen()
+    data class PlantForm(val plant: Plant? = null) : Screen()
+}
 
 @Composable
 fun App() {
     MaterialTheme {
+        var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
         val viewModel = koinViewModel<HomeViewModel>()
-        HomeScreen(viewModel)
+
+        when (val screen = currentScreen) {
+            is Screen.Home -> HomeScreen(
+                viewModel = viewModel,
+                onNavigateToPlantForm = { plant -> currentScreen = Screen.PlantForm(plant) }
+            )
+            is Screen.PlantForm -> PlantFormScreen(
+                viewModel = viewModel,
+                initialPlant = screen.plant,
+                onBack = { currentScreen = Screen.Home }
+            )
+        }
     }
 }
