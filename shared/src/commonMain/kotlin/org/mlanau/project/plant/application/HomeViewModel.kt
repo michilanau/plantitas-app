@@ -50,9 +50,9 @@ class HomeViewModel(
         }
     }
 
-    fun onAddPlant(name: String, description: String) {
+    fun onSavePlant(id: Int?, name: String, description: String?) {
         viewModelScope.launch {
-            val result = savePlant(name, description)
+            val result = savePlant(id, name, description)
             result.onSuccess {
                 loadPlants()
             }

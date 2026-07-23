@@ -1,5 +1,6 @@
 package org.mlanau.project.plant.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,22 +10,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mlanau.project.plant.application.HomeUiState
 import org.mlanau.project.plant.application.HomeViewModel
 import org.mlanau.project.plant.domain.model.Plant
 import plantitas_app.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(viewModel: HomeViewModel) {
     val uiState by viewModel.uiState.collectAsState()
-    var showDialog by remember { mutableStateOf(false) }
+
+    HomeContent(
+        uiState = uiState,
+        onSavePlant = { id, name, description -> viewModel.onSavePlant(id, name, description) },
+        onClearError = { viewModel.clearError() }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeContent(
+    uiState: HomeUiState,
+    onSavePlant: (Int?, String, String?) -> Unit,
+    onClearError: () -> Unit
+) {
+    var selectedPlant by remember { mutableStateOf<Plant?>(null) }
+    var isDialogOpen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     uiState.error?.let { errorRes ->
         val errorMessage = stringResource(errorRes)
         LaunchedEffect(errorRes) {
             snackbarHostState.showSnackbar(errorMessage)
-            viewModel.clearError()
+            onClearError()
         }
     }
 
@@ -36,7 +53,10 @@ fun HomeScreen(viewModel: HomeViewModel) {
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
+            FloatingActionButton(onClick = { 
+                selectedPlant = null
+                isDialogOpen = true 
+            }) {
                 Text("+", style = MaterialTheme.typography.headlineSmall)
             }
         }
@@ -64,17 +84,24 @@ fun HomeScreen(viewModel: HomeViewModel) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(uiState.plants) { plant ->
-                    PlantItem(plant)
+                    PlantItem(
+                        plant = plant,
+                        onClick = {
+                            selectedPlant = plant
+                            isDialogOpen = true
+                        }
+                    )
                 }
             }
         }
 
-        if (showDialog) {
-            AddPlantDialog(
-                onDismiss = { showDialog = false },
+        if (isDialogOpen) {
+            PlantDialog(
+                initialPlant = selectedPlant,
+                onDismiss = { isDialogOpen = false },
                 onConfirm = { name, desc ->
-                    viewModel.onAddPlant(name, desc)
-                    showDialog = false
+                    onSavePlant(selectedPlant?.id, name, desc)
+                    isDialogOpen = false
                 }
             )
         }
@@ -82,16 +109,22 @@ fun HomeScreen(viewModel: HomeViewModel) {
 }
 
 @Composable
-fun AddPlantDialog(
+fun PlantDialog(
+    initialPlant: Plant? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(initialPlant?.name ?: "") }
+    var description by remember { mutableStateOf(initialPlant?.description ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.home_add_plant)) },
+        title = { 
+            Text(
+                if (initialPlant == null) stringResource(Res.string.home_add_plant) 
+                else "Editar Planta" // Podríamos añadir esto a strings.xml
+            ) 
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
@@ -110,7 +143,7 @@ fun AddPlantDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name, description) }) {
-                Text(stringResource(Res.string.home_button_add))
+                Text(if (initialPlant == null) stringResource(Res.string.home_button_add) else "Guardar")
             }
         },
         dismissButton = {
@@ -122,9 +155,14 @@ fun AddPlantDialog(
 }
 
 @Composable
-fun PlantItem(plant: Plant) {
+fun PlantItem(
+    plant: Plant,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

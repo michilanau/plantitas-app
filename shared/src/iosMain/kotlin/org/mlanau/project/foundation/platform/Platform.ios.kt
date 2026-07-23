@@ -1,4 +1,4 @@
-package org.mlanau.project
+package org.mlanau.project.foundation.platform
 
 import platform.UIKit.UIDevice
 

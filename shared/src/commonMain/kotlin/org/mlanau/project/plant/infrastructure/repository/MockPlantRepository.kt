@@ -16,8 +16,18 @@ class MockPlantRepository : PlantRepository {
     }
 
     override suspend fun save(plant: Plant) {
-        val nextId = (plants.maxOfOrNull { it.id ?: 0 } ?: 0) + 1
-        val plantWithId = if (plant.id == null) plant.copy(id = nextId) else plant
-        plants.add(plantWithId)
+        if (plant.id != null) {
+            // Lógica de Update
+            val index = plants.indexOfFirst { it.id == plant.id }
+            if (index != -1) {
+                plants[index] = plant
+            } else {
+                plants.add(plant)
+            }
+        } else {
+            // Lógica de Insert
+            val nextId = (plants.maxOfOrNull { it.id ?: 0 } ?: 0) + 1
+            plants.add(plant.copy(id = nextId))
+        }
     }
 }
