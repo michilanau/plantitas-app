@@ -51,12 +51,12 @@ fun PlantFormScreen(
                 title = { 
                     Text(
                         if (initialPlant == null) stringResource(Res.string.home_add_plant)
-                        else "Editar Planta"
+                        else stringResource(Res.string.plant_form_edit_title)
                     ) 
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 actions = {
@@ -64,7 +64,7 @@ fun PlantFormScreen(
                         IconButton(onClick = { isDeleteDialogOpen = true }) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Eliminar",
+                                contentDescription = stringResource(Res.string.common_delete),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -109,7 +109,7 @@ fun PlantFormScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("${stringResource(Res.string.home_plant_description)} (opcional)") },
+                label = { Text("${stringResource(Res.string.home_plant_description)} ${stringResource(Res.string.common_optional)}") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSaving,
                 leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
@@ -120,7 +120,7 @@ fun PlantFormScreen(
             OutlinedTextField(
                 value = location,
                 onValueChange = { location = it },
-                label = { Text("${stringResource(Res.string.home_plant_location)} (opcional)") },
+                label = { Text("${stringResource(Res.string.home_plant_location)} ${stringResource(Res.string.common_optional)}") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSaving,
                 leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
@@ -200,7 +200,7 @@ fun PlantFormScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         if (initialPlant == null) stringResource(Res.string.home_button_add) 
-                        else "Guardar Cambios",
+                        else stringResource(Res.string.plant_form_save_changes),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -210,8 +210,8 @@ fun PlantFormScreen(
         if (isDeleteDialogOpen) {
             AlertDialog(
                 onDismissRequest = { isDeleteDialogOpen = false },
-                title = { Text("Eliminar planta") },
-                text = { Text("¿Estás seguro de que quieres eliminar '${initialPlant?.name}'?") },
+                title = { Text(stringResource(Res.string.plant_form_delete_dialog_title)) },
+                text = { Text(stringResource(Res.string.plant_form_delete_dialog_message, initialPlant?.name ?: "")) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -220,12 +220,12 @@ fun PlantFormScreen(
                             onBack()
                         }
                     ) {
-                        Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(Res.string.common_delete), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { isDeleteDialogOpen = false }) {
-                        Text("Cancelar")
+                        Text(stringResource(Res.string.common_cancel))
                     }
                 }
             )

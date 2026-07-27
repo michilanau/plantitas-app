@@ -1,0 +1,58 @@
+<resources>
+    <string name="app_name">Plantitas App</string>
+    <string name="home_title">My Plants</string>
+    <string name="home_welcome">Welcome to your digital garden!</string>
+    <string name="home_add_plant">New Plant</string>
+    <string name="home_add_plant_description">Add Plant</string>
+    <string name="home_plant_name">Name</string>
+    <string name="home_plant_description">Description</string>
+    <string name="home_plant_location">Location</string>
+    <string name="home_plant_light">Light</string>
+    <string name="home_plant_pot">Pot</string>
+    <string name="home_button_add">Add</string>
+    <string name="home_button_cancel">Cancel</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_optional">(optional)</string>
+
+    <!-- Light Needs -->
+    <string name="light_low">Low</string>
+    <string name="light_medium">Medium</string>
+    <string name="light_high">High</string>
+
+    <!-- Pot Sizes -->
+    <string name="pot_small">Small</string>
+    <string name="pot_medium">Medium</string>
+    <string name="pot_large">Large</string>
+    <string name="pot_extra_large">Extra large</string>
+
+    <!-- Errors -->
+    <string name="error_load_plants">Error loading plants</string>
+    <string name="error_empty_name">Plant name cannot be empty</string>
+    <string name="error_unknown">An unexpected error occurred</string>
+
+    <!-- Plant Form -->
+    <string name="plant_form_edit_title">Edit Plant</string>
+    <string name="plant_form_save_changes">Save Changes</string>
+    <string name="plant_form_delete_dialog_title">Delete plant</string>
+    <string name="plant_form_delete_dialog_message">Are you sure you want to delete '%1$s'?</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_change_theme_description">Change Theme</string>
+    <string name="settings_theme_section">Appearance</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_language_section">Language</string>
+    <string name="settings_language_es">Spanish</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_about_section">About</string>
+    <string name="settings_about_app">About the app</string>
+
+    <!-- About -->
+    <string name="about_title">About</string>
+    <string name="about_description">Plantitas App is your personal assistant for plant care. Organize your digital garden and never forget to water your green companions again.</string>
+    <string name="about_version">Version 1.0.0</string>
+</resources>

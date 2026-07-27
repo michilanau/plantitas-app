@@ -5,17 +5,25 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import com.russhwolf.settings.Settings
+import com.russhwolf.settings.ObservableSettings
 import org.mlanau.project.plant.application.HomeViewModel
 import org.mlanau.project.plant.application.FindAllPlants
 import org.mlanau.project.plant.application.SavePlant
 import org.mlanau.project.plant.application.DeletePlant
 import org.mlanau.project.plant.domain.repository.PlantRepository
 import org.mlanau.project.plant.infrastructure.repository.MockPlantRepository
+import org.mlanau.project.settings.application.SettingsViewModel
+import org.mlanau.project.settings.domain.repository.SettingsRepository
+import org.mlanau.project.settings.infrastructure.repository.PersistentSettingsRepository
 
 val appModule = module {
+    single { Settings() as ObservableSettings }
+    singleOf(::PersistentSettingsRepository) bind SettingsRepository::class
     singleOf(::MockPlantRepository) bind PlantRepository::class
     factoryOf(::FindAllPlants)
     factoryOf(::SavePlant)
     factoryOf(::DeletePlant)
     viewModel { HomeViewModel(get(), get(), get()) }
+    viewModel { SettingsViewModel(get()) }
 }

@@ -13,38 +13,40 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Yard
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.application.HomeUiState
 import org.mlanau.project.plant.application.HomeViewModel
 import org.mlanau.project.plant.domain.model.Plant
+import org.mlanau.project.plant.domain.model.LightNeed
+import org.mlanau.project.plant.domain.model.PotSize
 import plantitas_app.shared.generated.resources.*
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    isDarkMode: Boolean,
-    onToggleTheme: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onNavigateToPlantForm: (Plant?) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     HomeContent(
         uiState = uiState,
-        isDarkMode = isDarkMode,
-        onToggleTheme = onToggleTheme,
+        onNavigateToSettings = onNavigateToSettings,
         onClearError = { viewModel.clearError() },
         onNavigateToPlantForm = onNavigateToPlantForm
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HomeContent(
     uiState: HomeUiState,
-    isDarkMode: Boolean,
-    onToggleTheme: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onClearError: () -> Unit,
     onNavigateToPlantForm: (Plant?) -> Unit
 ) {
@@ -63,10 +65,10 @@ fun HomeContent(
             TopAppBar(
                 title = { Text(stringResource(Res.string.home_title)) },
                 actions = {
-                    IconButton(onClick = onToggleTheme) {
+                    IconButton(onClick = onNavigateToSettings) {
                         Icon(
-                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Cambiar Tema"
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(Res.string.settings_title)
                         )
                     }
                 }
@@ -79,7 +81,7 @@ fun HomeContent(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Añadir Planta")
+                Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.home_add_plant_description))
             }
         }
     ) { paddingValues ->
@@ -116,6 +118,7 @@ fun HomeContent(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PlantItem(
     plant: Plant,
@@ -168,50 +171,65 @@ fun PlantItem(
                     )
                 }
                 
-                if (plant.location?.isNotBlank() == true || plant.lightNeed != null) {
+                if (plant.location?.isNotBlank() == true || plant.lightNeed != null || plant.potSize != null) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         plant.location?.takeIf { it.isNotBlank() }?.let { location ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = location,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
+                            PlantAttribute(
+                                icon = Icons.Default.LocationOn,
+                                text = location
+                            )
                         }
                         
                         plant.lightNeed?.let { light ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = when(light) {
-                                        org.mlanau.project.plant.domain.model.LightNeed.LOW -> "🌑"
-                                        org.mlanau.project.plant.domain.model.LightNeed.MEDIUM -> "⛅"
-                                        org.mlanau.project.plant.domain.model.LightNeed.HIGH -> "☀️"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = light.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
+                            PlantAttribute(
+                                icon = Icons.Default.WbSunny,
+                                text = when(light) {
+                                    LightNeed.LOW -> stringResource(Res.string.light_low)
+                                    LightNeed.MEDIUM -> stringResource(Res.string.light_medium)
+                                    LightNeed.HIGH -> stringResource(Res.string.light_high)
+                                }
+                            )
+                        }
+
+                        plant.potSize?.let { size ->
+                            PlantAttribute(
+                                icon = Icons.Default.Yard,
+                                text = when(size) {
+                                    PotSize.SMALL -> stringResource(Res.string.pot_small)
+                                    PotSize.MEDIUM -> stringResource(Res.string.pot_medium)
+                                    PotSize.LARGE -> stringResource(Res.string.pot_large)
+                                    PotSize.EXTRA_LARGE -> stringResource(Res.string.pot_extra_large)
+                                }
+                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun PlantAttribute(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.secondary
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.secondary
+        )
     }
 }

@@ -3,6 +3,7 @@
     <string name="home_title">Mis Plantitas</string>
     <string name="home_welcome">¡Bienvenido a tu jardín digital!</string>
     <string name="home_add_plant">Nueva Planta</string>
+    <string name="home_add_plant_description">Añadir Planta</string>
     <string name="home_plant_name">Nombre</string>
     <string name="home_plant_description">Descripción</string>
     <string name="home_plant_location">Ubicación</string>
@@ -10,6 +11,12 @@
     <string name="home_plant_pot">Maceta</string>
     <string name="home_button_add">Añadir</string>
     <string name="home_button_cancel">Cancelar</string>
+
+    <!-- Common -->
+    <string name="common_back">Volver</string>
+    <string name="common_delete">Eliminar</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_optional">(opcional)</string>
 
     <!-- Light Needs -->
     <string name="light_low">Baja</string>
@@ -26,4 +33,26 @@
     <string name="error_load_plants">Error al cargar las plantas</string>
     <string name="error_empty_name">El nombre de la planta no puede estar vacío</string>
     <string name="error_unknown">Ha ocurrido un error inesperado</string>
+
+    <!-- Plant Form -->
+    <string name="plant_form_edit_title">Editar Planta</string>
+    <string name="plant_form_save_changes">Guardar Cambios</string>
+    <string name="plant_form_delete_dialog_title">Eliminar planta</string>
+    <string name="plant_form_delete_dialog_message">¿Estás seguro de que quieres eliminar '%1$s'?</string>
+
+    <!-- Configuración -->
+    <string name="settings_title">Configuración</string>
+    <string name="settings_change_theme_description">Cambiar Tema</string>
+    <string name="settings_theme_section">Apariencia</string>
+    <string name="settings_dark_mode">Modo Oscuro</string>
+    <string name="settings_language_section">Idioma</string>
+    <string name="settings_language_es">Español</string>
+    <string name="settings_language_en">Inglés</string>
+    <string name="settings_about_section">Acerca de</string>
+    <string name="settings_about_app">Sobre la aplicación</string>
+
+    <!-- Acerca de -->
+    <string name="about_title">Acerca de</string>
+    <string name="about_description">Plantitas App es tu asistente personal para el cuidado de tus plantas. Organiza tu jardín digital y no olvides nunca más regar a tus compañeras verdes.</string>
+    <string name="about_version">Versión 1.0.0</string>
 </resources>
