@@ -1,0 +1,23 @@
+CREATE TABLE plantEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    location TEXT,
+    lightNeed TEXT,
+    potSize TEXT
+);
+
+selectAll:
+SELECT * FROM plantEntity;
+
+insertPlant:
+INSERT INTO plantEntity(name, description, location, lightNeed, potSize)
+VALUES (?, ?, ?, ?, ?);
+
+updatePlant:
+UPDATE plantEntity
+SET name = ?, description = ?, location = ?, lightNeed = ?, potSize = ?
+WHERE id = ?;
+
+deletePlant:
+DELETE FROM plantEntity WHERE id = ?;
