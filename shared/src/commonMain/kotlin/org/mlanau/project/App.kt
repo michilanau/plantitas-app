@@ -4,15 +4,15 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import org.koin.compose.viewmodel.koinViewModel
-import org.mlanau.project.plant.application.HomeViewModel
+import org.mlanau.project.plant.presentation.home.HomeViewModel
 import org.mlanau.project.plant.domain.model.Plant
-import org.mlanau.project.plant.ui.HomeScreen
-import org.mlanau.project.plant.ui.PlantFormScreen
-import org.mlanau.project.settings.application.SettingsViewModel
-import org.mlanau.project.settings.ui.AboutScreen
-import org.mlanau.project.settings.ui.SettingsScreen
-import org.mlanau.project.ui.AppLocaleWrapper
-import org.mlanau.project.ui.theme.PlantitasTheme
+import org.mlanau.project.plant.presentation.home.HomeScreen
+import org.mlanau.project.plant.presentation.form.PlantFormScreen
+import org.mlanau.project.settings.presentation.SettingsViewModel
+import org.mlanau.project.settings.presentation.AboutScreen
+import org.mlanau.project.settings.presentation.SettingsScreen
+import org.mlanau.project.shared.ui.AppLocaleWrapper
+import org.mlanau.project.shared.ui.theme.PlantitasTheme
 
 sealed class Screen {
     data object Home : Screen()
