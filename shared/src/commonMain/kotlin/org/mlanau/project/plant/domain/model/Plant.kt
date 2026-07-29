@@ -1,6 +1,6 @@
 package org.mlanau.project.plant.domain.model
 
-import org.mlanau.project.plant.domain.error.EmptyPlantNameException
+import org.mlanau.project.plant.domain.exceptions.EmptyPlantNameException
 
 data class Plant(
     val id: Int? = null,

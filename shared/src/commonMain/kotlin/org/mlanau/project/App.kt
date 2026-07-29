@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlanau.project.plant.presentation.home.HomeViewModel
+import org.mlanau.project.plant.presentation.form.PlantFormViewModel
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.presentation.home.HomeScreen
 import org.mlanau.project.plant.presentation.form.PlantFormScreen
@@ -32,6 +33,7 @@ fun App() {
         PlantitasTheme(darkTheme = darkTheme) {
             var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
             val homeViewModel = koinViewModel<HomeViewModel>()
+            val plantFormViewModel = koinViewModel<PlantFormViewModel>()
 
             when (val screen = currentScreen) {
                 is Screen.Home -> HomeScreen(
@@ -40,7 +42,7 @@ fun App() {
                     onNavigateToPlantForm = { plant -> currentScreen = Screen.PlantForm(plant) }
                 )
                 is Screen.PlantForm -> PlantFormScreen(
-                    viewModel = homeViewModel,
+                    viewModel = plantFormViewModel,
                     initialPlant = screen.plant,
                     onBack = { currentScreen = Screen.Home }
                 )

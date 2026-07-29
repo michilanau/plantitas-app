@@ -12,6 +12,7 @@ import org.mlanau.project.plant.domain.repository.PlantRepository
 import org.mlanau.project.plant.infrastructure.persistence.PlantDb
 import org.mlanau.project.plant.infrastructure.persistence.SqlDelightPlantRepository
 import org.mlanau.project.plant.presentation.home.HomeViewModel
+import org.mlanau.project.plant.presentation.form.PlantFormViewModel
 import org.mlanau.project.shared.database.DatabaseDriverFactory
 
 val plantModule = module {
@@ -25,4 +26,5 @@ val plantModule = module {
     factoryOf(::SavePlant)
     factoryOf(::DeletePlant)
     viewModelOf(::HomeViewModel)
+    viewModelOf(::PlantFormViewModel)
 }

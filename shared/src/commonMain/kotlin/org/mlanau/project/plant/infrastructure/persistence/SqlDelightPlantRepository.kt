@@ -1,5 +1,11 @@
 package org.mlanau.project.plant.infrastructure.persistence
 
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PotSize
@@ -8,8 +14,10 @@ import org.mlanau.project.plant.domain.repository.PlantRepository
 class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
     private val queries = database.plantDbQueries
 
-    override suspend fun findAll(): List<Plant> {
-        return queries.selectAll().executeAsList().map { it.toDomain() }
+    override fun findAll(): Flow<List<Plant>> {
+        return queries.selectAll().asFlow().mapToList(Dispatchers.IO).map { list ->
+            list.map { it.toDomain() }
+        }
     }
 
     override suspend fun save(plant: Plant) {

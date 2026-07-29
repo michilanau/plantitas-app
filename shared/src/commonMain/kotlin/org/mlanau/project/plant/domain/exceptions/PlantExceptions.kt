@@ -1,4 +1,4 @@
-package org.mlanau.project.plant.domain.error
+package org.mlanau.project.plant.domain.exceptions
 
 sealed class DomainException(message: String) : Exception(message)
 

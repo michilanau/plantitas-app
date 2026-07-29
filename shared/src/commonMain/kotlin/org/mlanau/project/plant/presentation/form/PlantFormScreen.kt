@@ -10,13 +10,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import org.jetbrains.compose.resources.stringResource
-import org.mlanau.project.plant.presentation.home.HomeViewModel
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PotSize
@@ -25,7 +22,7 @@ import plantitas_app.shared.generated.resources.*
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlantFormScreen(
-    viewModel: HomeViewModel,
+    viewModel: PlantFormViewModel,
     initialPlant: Plant? = null,
     onBack: () -> Unit
 ) {
@@ -38,9 +35,9 @@ fun PlantFormScreen(
 
     var isDeleteDialogOpen by remember { mutableStateOf(false) }
 
-    LaunchedEffect(uiState.isSaveSuccess) {
-        if (uiState.isSaveSuccess) {
-            viewModel.resetSaveState()
+    LaunchedEffect(uiState.isSaveSuccess, uiState.isDeleteSuccess) {
+        if (uiState.isSaveSuccess || uiState.isDeleteSuccess) {
+            viewModel.resetState()
             onBack()
         }
     }
@@ -81,7 +78,6 @@ fun PlantFormScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ... resto del contenido ...
             // Name Field (Required)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
@@ -89,15 +85,15 @@ fun PlantFormScreen(
                     onValueChange = { name = it },
                     label = { Text("${stringResource(Res.string.home_plant_name)} *") },
                     modifier = Modifier.fillMaxWidth(),
-                    isError = uiState.saveError != null,
+                    isError = uiState.error != null,
                     enabled = !uiState.isSaving,
                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                     singleLine = true,
                     shape = MaterialTheme.shapes.medium
                 )
-                if (uiState.saveError != null) {
+                if (uiState.error != null) {
                     Text(
-                        text = stringResource(uiState.saveError!!),
+                        text = stringResource(uiState.error!!),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp)
@@ -217,7 +213,6 @@ fun PlantFormScreen(
                         onClick = {
                             initialPlant?.id?.let { viewModel.onDeletePlant(it) }
                             isDeleteDialogOpen = false
-                            onBack()
                         }
                     ) {
                         Text(stringResource(Res.string.common_delete), color = MaterialTheme.colorScheme.error)
