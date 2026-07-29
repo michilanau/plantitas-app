@@ -1,5 +1,8 @@
 package org.mlanau.project.plant.domain.model
 
+import kotlin.time.Clock
+import kotlin.time.Instant
+import kotlinx.datetime.*
 import org.mlanau.project.plant.domain.exceptions.EmptyPlantNameException
 
 data class Plant(
@@ -8,7 +11,8 @@ data class Plant(
     val description: String? = null,
     val location: String? = null,
     val lightNeed: LightNeed? = null,
-    val potSize: PotSize? = null
+    val potSize: PotSize? = null,
+    val createdAt: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 ) {
     init {
         if (name.isBlank()) {

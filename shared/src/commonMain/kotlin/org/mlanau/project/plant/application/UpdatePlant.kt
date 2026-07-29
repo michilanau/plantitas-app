@@ -1,20 +1,22 @@
 package org.mlanau.project.plant.application
 
+import kotlinx.datetime.LocalDateTime
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PotSize
 import org.mlanau.project.plant.domain.repository.PlantRepository
 
-class SavePlant(
+class UpdatePlant(
     private val repository: PlantRepository
 ) {
     suspend operator fun invoke(
-        id: Int? = null,
+        id: Int,
         name: String,
         description: String?,
         location: String? = null,
         lightNeed: LightNeed? = null,
-        potSize: PotSize? = null
+        potSize: PotSize? = null,
+        createdAt: LocalDateTime
     ): Result<Unit> {
         return runCatching {
             val plant = Plant(
@@ -23,7 +25,8 @@ class SavePlant(
                 description = description?.takeIf { it.isNotBlank() },
                 location = location?.takeIf { it.isNotBlank() },
                 lightNeed = lightNeed,
-                potSize = potSize
+                potSize = potSize,
+                createdAt = createdAt
             )
             repository.save(plant)
         }

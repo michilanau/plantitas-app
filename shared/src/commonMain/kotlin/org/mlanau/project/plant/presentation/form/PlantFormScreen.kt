@@ -182,7 +182,8 @@ fun PlantFormScreen(
                         description = description,
                         location = location,
                         lightNeed = selectedLightNeed,
-                        potSize = selectedPotSize
+                        potSize = selectedPotSize,
+                        createdAt = initialPlant?.createdAt
                     )
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),

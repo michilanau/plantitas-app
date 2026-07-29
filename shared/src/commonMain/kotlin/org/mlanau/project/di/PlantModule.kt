@@ -7,7 +7,8 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mlanau.project.plant.application.DeletePlant
 import org.mlanau.project.plant.application.FindAllPlants
-import org.mlanau.project.plant.application.SavePlant
+import org.mlanau.project.plant.application.CreatePlant
+import org.mlanau.project.plant.application.UpdatePlant
 import org.mlanau.project.plant.domain.repository.PlantRepository
 import org.mlanau.project.plant.infrastructure.persistence.PlantDb
 import org.mlanau.project.plant.infrastructure.persistence.SqlDelightPlantRepository
@@ -23,7 +24,8 @@ val plantModule = module {
 
     singleOf(::SqlDelightPlantRepository) bind PlantRepository::class
     factoryOf(::FindAllPlants)
-    factoryOf(::SavePlant)
+    factoryOf(::CreatePlant)
+    factoryOf(::UpdatePlant)
     factoryOf(::DeletePlant)
     viewModelOf(::HomeViewModel)
     viewModelOf(::PlantFormViewModel)

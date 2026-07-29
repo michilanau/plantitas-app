@@ -4,19 +4,20 @@ CREATE TABLE plantEntity (
     description TEXT,
     location TEXT,
     lightNeed TEXT,
-    potSize TEXT
+    potSize TEXT,
+    createdAt TEXT NOT NULL DEFAULT ""
 );
 
 selectAll:
 SELECT * FROM plantEntity;
 
 insertPlant:
-INSERT INTO plantEntity(name, description, location, lightNeed, potSize)
-VALUES (?, ?, ?, ?, ?);
+INSERT INTO plantEntity(name, description, location, lightNeed, potSize, createdAt)
+VALUES (?, ?, ?, ?, ?, ?);
 
 updatePlant:
 UPDATE plantEntity
-SET name = ?, description = ?, location = ?, lightNeed = ?, potSize = ?
+SET name = ?, description = ?, location = ?, lightNeed = ?, potSize = ?, createdAt = ?
 WHERE id = ?;
 
 deletePlant:

@@ -44,6 +44,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.koin.android)
             implementation(libs.sqldelight.android.driver)
+            implementation(libs.kotlinx.datetime)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -54,6 +55,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.compose.icons.extended)
+            implementation(libs.kotlinx.datetime)
             
             // Koin
             implementation(libs.koin.core)
@@ -70,6 +72,7 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.native.driver)
+            implementation(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

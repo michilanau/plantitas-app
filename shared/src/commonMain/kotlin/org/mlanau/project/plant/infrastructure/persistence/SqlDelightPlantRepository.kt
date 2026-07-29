@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.LocalDateTime
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PotSize
@@ -21,6 +22,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
     }
 
     override suspend fun save(plant: Plant) {
+        val createdAtIso = plant.createdAt.toString()
         if (plant.id != null) {
             queries.updatePlant(
                 name = plant.name,
@@ -28,6 +30,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 location = plant.location,
                 lightNeed = plant.lightNeed?.name,
                 potSize = plant.potSize?.name,
+                createdAt = createdAtIso,
                 id = plant.id.toLong()
             )
         } else {
@@ -36,7 +39,8 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 description = plant.description,
                 location = plant.location,
                 lightNeed = plant.lightNeed?.name,
-                potSize = plant.potSize?.name
+                potSize = plant.potSize?.name,
+                createdAt = createdAtIso
             )
         }
     }
@@ -52,7 +56,8 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
             description = description,
             location = location,
             lightNeed = lightNeed?.let { LightNeed.valueOf(it) },
-            potSize = potSize?.let { PotSize.valueOf(it) }
+            potSize = potSize?.let { PotSize.valueOf(it) },
+            createdAt = LocalDateTime.parse(createdAt)
         )
     }
 }
