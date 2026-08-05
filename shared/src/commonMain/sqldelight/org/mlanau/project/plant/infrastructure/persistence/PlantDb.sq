@@ -22,3 +22,74 @@ WHERE id = ?;
 
 deletePlant:
 DELETE FROM plantEntity WHERE id = ?;
+
+CREATE TABLE careRuleEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plantId INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    recurrenceType TEXT NOT NULL,
+    everyDays INTEGER,
+    startDate TEXT NOT NULL,
+    notificationTime TEXT NOT NULL,
+    endDate TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    amountMl INTEGER,
+    useFilteredWater INTEGER,
+    fertilizerName TEXT,
+    doseMl INTEGER,
+    dilutionRatio TEXT,
+    newPotSize TEXT,
+    substrateType TEXT,
+    FOREIGN KEY (plantId) REFERENCES plantEntity(id) ON DELETE CASCADE
+);
+
+CREATE TABLE careEventEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    careRuleId INTEGER NOT NULL,
+    plantId INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    scheduledAt TEXT NOT NULL,
+    status TEXT NOT NULL,
+    completedAt TEXT,
+    originalScheduledAt TEXT,
+    amountMl INTEGER,
+    useFilteredWater INTEGER,
+    fertilizerName TEXT,
+    doseMl INTEGER,
+    dilutionRatio TEXT,
+    newPotSize TEXT,
+    substrateType TEXT,
+    FOREIGN KEY (careRuleId) REFERENCES careRuleEntity(id) ON DELETE CASCADE,
+    FOREIGN KEY (plantId) REFERENCES plantEntity(id) ON DELETE CASCADE
+);
+
+selectCareRulesByPlantId:
+SELECT * FROM careRuleEntity WHERE plantId = ?;
+
+insertCareRule:
+INSERT INTO careRuleEntity(plantId, type, recurrenceType, everyDays, startDate, notificationTime, endDate, active, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCareRule:
+UPDATE careRuleEntity
+SET plantId = ?, type = ?, recurrenceType = ?, everyDays = ?, startDate = ?, notificationTime = ?, endDate = ?, active = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
+WHERE id = ?;
+
+deleteCareRule:
+DELETE FROM careRuleEntity WHERE id = ?;
+
+selectCareEventsInRange:
+SELECT * FROM careEventEntity WHERE scheduledAt BETWEEN ? AND ?;
+
+selectCareEventsByRuleId:
+SELECT * FROM careEventEntity WHERE careRuleId = ?;
+
+insertCareEvent:
+INSERT INTO careEventEntity(careRuleId, plantId, type, scheduledAt, status, completedAt, originalScheduledAt, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCareEventStatus:
+UPDATE careEventEntity SET status = ?, completedAt = ? WHERE id = ?;
+
+deleteCareEvent:
+DELETE FROM careEventEntity WHERE id = ?;

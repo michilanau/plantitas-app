@@ -8,9 +8,12 @@ import org.koin.dsl.module
 import org.mlanau.project.plant.application.DeletePlant
 import org.mlanau.project.plant.application.FindAllPlants
 import org.mlanau.project.plant.application.CreatePlant
+import org.mlanau.project.plant.application.GenerateCareEvents
 import org.mlanau.project.plant.application.UpdatePlant
+import org.mlanau.project.plant.domain.repository.CareRepository
 import org.mlanau.project.plant.domain.repository.PlantRepository
 import org.mlanau.project.plant.infrastructure.persistence.PlantDb
+import org.mlanau.project.plant.infrastructure.persistence.SqlDelightCareRepository
 import org.mlanau.project.plant.infrastructure.persistence.SqlDelightPlantRepository
 import org.mlanau.project.plant.presentation.home.HomeViewModel
 import org.mlanau.project.plant.presentation.form.PlantFormViewModel
@@ -23,10 +26,12 @@ val plantModule = module {
     }
 
     singleOf(::SqlDelightPlantRepository) bind PlantRepository::class
+    singleOf(::SqlDelightCareRepository) bind CareRepository::class
     factoryOf(::FindAllPlants)
     factoryOf(::CreatePlant)
     factoryOf(::UpdatePlant)
     factoryOf(::DeletePlant)
+    factoryOf(::GenerateCareEvents)
     viewModelOf(::HomeViewModel)
     viewModelOf(::PlantFormViewModel)
 }
