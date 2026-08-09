@@ -65,6 +65,9 @@ UPDATE plantEntity
 SET name = ?, description = ?, location = ?, lightNeed = ?, potSize = ?, createdAt = ?
 WHERE id = ?;
 
+selectPlantById:
+SELECT * FROM plantEntity WHERE id = ?;
+
 deletePlant:
 DELETE FROM plantEntity WHERE id = ?;
 
@@ -91,8 +94,17 @@ DELETE FROM careRuleEntity WHERE id = ?;
 selectCareEventsInRange:
 SELECT * FROM careEventEntity WHERE scheduledAt BETWEEN ? AND ?;
 
+selectCareEventsByPlantIdInRange:
+SELECT * FROM careEventEntity WHERE plantId = ? AND scheduledAt BETWEEN ? AND ?;
+
 selectCareEventsByRuleId:
 SELECT * FROM careEventEntity WHERE careRuleId = ?;
+
+selectNextCareEventByPlantId:
+SELECT * FROM careEventEntity
+WHERE plantId = ? AND status = 'PENDING' AND scheduledAt >= ?
+ORDER BY scheduledAt ASC
+LIMIT 1;
 
 insertCareEvent:
 INSERT INTO careEventEntity(careRuleId, plantId, type, scheduledAt, status, completedAt, originalScheduledAt, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)

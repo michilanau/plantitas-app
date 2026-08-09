@@ -28,6 +28,7 @@ import plantitas_app.shared.generated.resources.*
 fun HomeScreen(
     viewModel: HomeViewModel,
     onNavigateToSettings: () -> Unit,
+    onNavigateToPlantDetail: (Int) -> Unit,
     onNavigateToPlantForm: (Plant?) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -36,6 +37,7 @@ fun HomeScreen(
         uiState = uiState,
         onNavigateToSettings = onNavigateToSettings,
         onClearError = { viewModel.clearError() },
+        onNavigateToPlantDetail = onNavigateToPlantDetail,
         onNavigateToPlantForm = onNavigateToPlantForm
     )
 }
@@ -46,6 +48,7 @@ fun HomeContent(
     uiState: HomeUiState,
     onNavigateToSettings: () -> Unit,
     onClearError: () -> Unit,
+    onNavigateToPlantDetail: (Int) -> Unit,
     onNavigateToPlantForm: (Plant?) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -108,7 +111,7 @@ fun HomeContent(
                 items(uiState.plants) { plant ->
                     PlantItem(
                         plant = plant,
-                        onClick = { onNavigateToPlantForm(plant) }
+                        onClick = { plant.id?.let { onNavigateToPlantDetail(it) } }
                     )
                 }
             }

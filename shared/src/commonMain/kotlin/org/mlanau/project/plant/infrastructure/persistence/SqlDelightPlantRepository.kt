@@ -22,6 +22,10 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
         }
     }
 
+    override suspend fun findById(id: Int): Plant? {
+        return queries.selectPlantById(id.toLong()).executeAsOneOrNull()?.toDomain()
+    }
+
     override suspend fun save(plant: Plant): Int {
         val createdAtIso = plant.createdAt.toString()
         if (plant.id != null) {

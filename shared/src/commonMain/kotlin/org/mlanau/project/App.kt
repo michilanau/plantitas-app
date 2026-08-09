@@ -11,6 +11,8 @@ import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.presentation.home.HomeScreen
 import org.mlanau.project.plant.presentation.calendar.CalendarScreen
 import org.mlanau.project.plant.presentation.form.PlantFormScreen
+import org.mlanau.project.plant.presentation.detail.PlantDetailScreen
+import org.mlanau.project.plant.presentation.detail.PlantDetailViewModel
 import org.mlanau.project.settings.presentation.SettingsViewModel
 import org.mlanau.project.settings.presentation.AboutScreen
 import org.mlanau.project.settings.presentation.SettingsScreen
@@ -29,6 +31,7 @@ import plantitas_app.shared.generated.resources.*
 sealed class Screen {
     data object Home : Screen()
     data object Calendar : Screen()
+    data class PlantDetail(val plantId: Int) : Screen()
     data class PlantForm(val plant: Plant? = null) : Screen()
     data object Settings : Screen()
     data object About : Screen()
@@ -47,6 +50,7 @@ fun App() {
             val homeViewModel = koinViewModel<HomeViewModel>()
             val calendarViewModel = koinViewModel<CalendarViewModel>()
             val plantFormViewModel = koinViewModel<PlantFormViewModel>()
+            val plantDetailViewModel = koinViewModel<PlantDetailViewModel>()
 
             Scaffold(
                 bottomBar = {
@@ -76,7 +80,14 @@ fun App() {
                         is Screen.Home -> HomeScreen(
                             viewModel = homeViewModel,
                             onNavigateToSettings = { currentScreen = Screen.Settings },
+                            onNavigateToPlantDetail = { plantId -> currentScreen = Screen.PlantDetail(plantId) },
                             onNavigateToPlantForm = { plant -> currentScreen = Screen.PlantForm(plant) }
+                        )
+                        is Screen.PlantDetail -> PlantDetailScreen(
+                            viewModel = plantDetailViewModel,
+                            plantId = screen.plantId,
+                            onBack = { currentScreen = Screen.Home },
+                            onEdit = { plant -> currentScreen = Screen.PlantForm(plant) }
                         )
                         is Screen.Calendar -> CalendarScreen(
                             viewModel = calendarViewModel
@@ -84,7 +95,15 @@ fun App() {
                         is Screen.PlantForm -> PlantFormScreen(
                             viewModel = plantFormViewModel,
                             initialPlant = screen.plant,
-                            onBack = { currentScreen = Screen.Home }
+                            onBack = { 
+                                // If we came from detail, go back to detail. 
+                                // For simplicity, we can just go to home or detail if ID exists.
+                                if (screen.plant?.id != null) {
+                                    currentScreen = Screen.PlantDetail(screen.plant.id)
+                                } else {
+                                    currentScreen = Screen.Home 
+                                }
+                            }
                         )
                         is Screen.Settings -> SettingsScreen(
                             viewModel = settingsViewModel,

@@ -56,6 +56,10 @@
     <string name="about_description">Plantitas App es tu asistente personal para el cuidado de tus plantas. Organiza tu jardín digital y no olvides nunca más regar a tus compañeras verdes.</string>
     <string name="about_version">Versión 1.0.0</string>
 
+    <!-- Plant Detail -->
+    <string name="plant_detail_title">Detalle de la Planta</string>
+    <string name="plant_detail_next_care">Próximo Cuidado</string>
+
     <!-- Navigation -->
     <string name="nav_plants">Plantas</string>
     <string name="nav_calendar">Calendario</string>

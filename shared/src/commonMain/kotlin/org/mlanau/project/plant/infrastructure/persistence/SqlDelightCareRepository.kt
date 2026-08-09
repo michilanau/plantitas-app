@@ -2,6 +2,7 @@ package org.mlanau.project.plant.infrastructure.persistence
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -96,9 +97,21 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
         }
     }
 
+    override fun getEventsByPlantIdInRange(plantId: Int, from: Instant, to: Instant): Flow<List<CareEvent>> {
+        return queries.selectCareEventsByPlantIdInRange(plantId.toLong(), from.toString(), to.toString()).asFlow().mapToList(Dispatchers.IO).map { list ->
+            list.map { it.toDomain() }
+        }
+    }
+
     override fun getEventsByRuleId(ruleId: Int): Flow<List<CareEvent>> {
         return queries.selectCareEventsByRuleId(ruleId.toLong()).asFlow().mapToList(Dispatchers.IO).map { list ->
             list.map { it.toDomain() }
+        }
+    }
+
+    override fun findNextEventByPlantId(plantId: Int, from: Instant): Flow<CareEvent?> {
+        return queries.selectNextCareEventByPlantId(plantId.toLong(), from.toString()).asFlow().mapToOneOrNull(Dispatchers.IO).map { 
+            it?.toDomain()
         }
     }
 
