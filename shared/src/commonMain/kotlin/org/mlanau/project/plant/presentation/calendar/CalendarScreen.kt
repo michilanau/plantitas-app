@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import kotlin.time.Clock
 import kotlinx.datetime.*
+import org.mlanau.project.plant.application.CareEventWithPlantName
 import org.mlanau.project.plant.domain.model.*
 import org.jetbrains.compose.resources.stringResource
 import plantitas_app.shared.generated.resources.*
@@ -36,18 +37,18 @@ fun CalendarScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${getMonthName(viewMonth)} $viewYear")
                         Spacer(modifier = Modifier.weight(1f))
                         IconButton(onClick = { viewModel.onPreviousMonth() }) {
-                            Icon(Icons.Default.ChevronLeft, contentDescription = "Mes anterior")
+                            Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(Res.string.calendar_prev_month))
                         }
                         IconButton(onClick = { viewModel.resetToToday() }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Hoy")
+                            Icon(Icons.Default.DateRange, contentDescription = stringResource(Res.string.calendar_today))
                         }
                         IconButton(onClick = { viewModel.onNextMonth() }) {
-                            Icon(Icons.Default.ChevronRight, contentDescription = "Mes siguiente")
+                            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(Res.string.calendar_next_month))
                         }
                     }
                 }
@@ -66,8 +67,8 @@ fun CalendarScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             val timeZone = TimeZone.currentSystemDefault()
-            val selectedDateEvents = uiState.events.filter { 
-                it.event.scheduledAt.toLocalDateTime(timeZone).date == uiState.selectedDate 
+            val selectedDateEvents = uiState.events.filter {
+                it.event.scheduledAt.toLocalDateTime(timeZone).date == uiState.selectedDate
             }
 
             if (uiState.isLoading) {
@@ -76,7 +77,7 @@ fun CalendarScreen(
                 }
             } else if (selectedDateEvents.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text("No hay tareas para este día")
+                    Text(stringResource(Res.string.calendar_no_tasks))
                 }
             } else {
                 LazyColumn(
@@ -97,7 +98,7 @@ fun CalendarScreen(
 }
 
 @Composable
-fun CalendarGrid(
+private fun CalendarGrid(
     viewMonth: Month,
     viewYear: Int,
     selectedDate: LocalDate,
@@ -106,7 +107,7 @@ fun CalendarGrid(
 ) {
     val daysInMonth = getDaysInMonth(viewMonth, viewYear)
     val firstDayOfMonth = LocalDate(viewYear, viewMonth, 1)
-    val dayOfWeekOffset = (firstDayOfMonth.dayOfWeek.ordinal) % 7 
+    val dayOfWeekOffset = (firstDayOfMonth.dayOfWeek.ordinal) % 7
 
     Column(modifier = Modifier.padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -138,14 +139,14 @@ fun CalendarGrid(
                         val today = Clock.System.now().toLocalDateTime(timeZone).date
                         val isToday = date == today
                         val hasEvents = events.any { it.scheduledAt.toLocalDateTime(timeZone).date == date }
-                        
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .padding(2.dp)
                                 .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer 
+                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
                                     else if (isToday) MaterialTheme.colorScheme.surfaceVariant
                                     else Color.Transparent,
                                     shape = CircleShape
@@ -160,7 +161,6 @@ fun CalendarGrid(
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                 )
                                 if (hasEvents) {
-                                    val timeZone = TimeZone.currentSystemDefault()
                                     val eventColors = events.filter { it.scheduledAt.toLocalDateTime(timeZone).date == date }
                                         .map { getEventColor(it) }.distinct()
                                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -184,7 +184,7 @@ fun CalendarGrid(
     }
 }
 
-fun getDaysInMonth(month: Month, year: Int): Int {
+private fun getDaysInMonth(month: Month, year: Int): Int {
     return when (month) {
         Month.FEBRUARY -> if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) 29 else 28
         Month.APRIL, Month.JUNE, Month.SEPTEMBER, Month.NOVEMBER -> 30
@@ -192,23 +192,25 @@ fun getDaysInMonth(month: Month, year: Int): Int {
     }
 }
 
-fun getEventColor(event: CareEvent): Color = when (event) {
+private fun getEventColor(event: CareEvent): Color = when (event) {
     is WaterCareEvent -> Color(0xFF2196F3)
     is FertilizeCareEvent -> Color(0xFF4CAF50)
     is RepotCareEvent -> Color(0xFF795548)
 }
 
 @Composable
-fun EventItem(
-    eventWithPlant: CareEventWithPlant,
+private fun EventItem(
+    eventWithPlant: CareEventWithPlantName,
     onToggleStatus: () -> Unit
 ) {
     val event = eventWithPlant.event
+    val resolvedPlantName = eventWithPlant.plantName ?: stringResource(Res.string.calendar_unknown_plant)
+    
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onToggleStatus() },
         colors = CardDefaults.cardColors(
-            containerColor = if (event.status == CareEventStatus.DONE) 
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) 
+            containerColor = if (event.status == CareEventStatus.DONE)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 else MaterialTheme.colorScheme.surface
         )
     ) {
@@ -230,10 +232,10 @@ fun EventItem(
                         is WaterCareEvent -> stringResource(Res.string.care_type_water)
                         is FertilizeCareEvent -> stringResource(Res.string.care_type_fertilize)
                         is RepotCareEvent -> stringResource(Res.string.care_type_repot)
-                    }} - ${eventWithPlant.plantName}",
+                    }} - $resolvedPlantName",
                     style = MaterialTheme.typography.titleMedium,
-                    textDecoration = if (event.status == CareEventStatus.DONE) 
-                        androidx.compose.ui.text.style.TextDecoration.LineThrough 
+                    textDecoration = if (event.status == CareEventStatus.DONE)
+                        androidx.compose.ui.text.style.TextDecoration.LineThrough
                         else null
                 )
                 Text(
@@ -250,7 +252,7 @@ fun EventItem(
 }
 
 @Composable
-fun getMonthName(month: Month): String = when (month) {
+private fun getMonthName(month: Month): String = when (month) {
     Month.JANUARY -> stringResource(Res.string.month_january)
     Month.FEBRUARY -> stringResource(Res.string.month_february)
     Month.MARCH -> stringResource(Res.string.month_march)

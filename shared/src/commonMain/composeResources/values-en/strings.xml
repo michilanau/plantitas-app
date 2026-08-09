@@ -62,6 +62,11 @@
 
     <!-- Calendar -->
     <string name="calendar_title">Care Calendar</string>
+    <string name="calendar_unknown_plant">Unknown plant</string>
+    <string name="calendar_prev_month">Previous month</string>
+    <string name="calendar_next_month">Next month</string>
+    <string name="calendar_today">Today</string>
+    <string name="calendar_no_tasks">No tasks for this day</string>
 
     <!-- Care Rules -->
     <string name="care_rules_title">Care</string>
@@ -71,6 +76,19 @@
     <string name="care_recurrence_once">Once</string>
     <string name="care_recurrence_periodic">Every %1$d days</string>
     <string name="care_add_rule">Add care</string>
+    <string name="care_edit_rule">Edit care</string>
+    <string name="care_type_label">Care type</string>
+    <string name="care_start_date_label">Start date</string>
+    <string name="care_task_date_label">Task date</string>
+    <string name="care_time_label">Reminder time</string>
+    <string name="care_recurrence_label">Recurrence</string>
+    <string name="care_recurrence_periodic_label">Periodic</string>
+    <string name="care_every_days_label">Every how many days</string>
+    <string name="care_water_amount_label">Amount (ml)</string>
+    <string name="care_fertilizer_name_label">Fertilizer name</string>
+    <string name="care_fertilizer_default_name">Fertilizer</string>
+    <string name="care_repot_pot_size_label">New pot size</string>
+    <string name="common_confirm">Confirm</string>
 
     <!-- Months -->
     <string name="month_january">January</string>

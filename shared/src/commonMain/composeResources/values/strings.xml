@@ -62,6 +62,11 @@
 
     <!-- Calendar -->
     <string name="calendar_title">Calendario de Cuidados</string>
+    <string name="calendar_unknown_plant">Planta desconocida</string>
+    <string name="calendar_prev_month">Mes anterior</string>
+    <string name="calendar_next_month">Mes siguiente</string>
+    <string name="calendar_today">Hoy</string>
+    <string name="calendar_no_tasks">No hay tareas para este día</string>
 
     <!-- Care Rules -->
     <string name="care_rules_title">Cuidados</string>
@@ -71,6 +76,19 @@
     <string name="care_recurrence_once">Una vez</string>
     <string name="care_recurrence_periodic">Cada %1$d días</string>
     <string name="care_add_rule">Añadir cuidado</string>
+    <string name="care_edit_rule">Editar cuidado</string>
+    <string name="care_type_label">Tipo de cuidado</string>
+    <string name="care_start_date_label">Día de comienzo</string>
+    <string name="care_task_date_label">Día de la tarea</string>
+    <string name="care_time_label">Hora del recordatorio</string>
+    <string name="care_recurrence_label">Recurrencia</string>
+    <string name="care_recurrence_periodic_label">Periódico</string>
+    <string name="care_every_days_label">Cada cuántos días</string>
+    <string name="care_water_amount_label">Cantidad (ml)</string>
+    <string name="care_fertilizer_name_label">Nombre del fertilizante</string>
+    <string name="care_fertilizer_default_name">Abono</string>
+    <string name="care_repot_pot_size_label">Nuevo tamaño de maceta</string>
+    <string name="common_confirm">Confirmar</string>
 
     <!-- Months -->
     <string name="month_january">Enero</string>

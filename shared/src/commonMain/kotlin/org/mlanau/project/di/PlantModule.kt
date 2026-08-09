@@ -8,7 +8,12 @@ import org.koin.dsl.module
 import org.mlanau.project.plant.application.DeletePlant
 import org.mlanau.project.plant.application.FindAllPlants
 import org.mlanau.project.plant.application.CreatePlant
+import org.mlanau.project.plant.application.DeleteCareRule
 import org.mlanau.project.plant.application.GenerateCareEvents
+import org.mlanau.project.plant.application.GetCalendarEvents
+import org.mlanau.project.plant.application.GetCareRules
+import org.mlanau.project.plant.application.SaveCareRule
+import org.mlanau.project.plant.application.ToggleCareEventStatus
 import org.mlanau.project.plant.application.UpdatePlant
 import org.mlanau.project.plant.domain.repository.CareRepository
 import org.mlanau.project.plant.domain.repository.PlantRepository
@@ -21,7 +26,7 @@ import org.mlanau.project.plant.presentation.calendar.CalendarViewModel
 import org.mlanau.project.shared.database.DatabaseDriverFactory
 
 val plantModule = module {
-    single { 
+    single {
         val driver = get<DatabaseDriverFactory>().createDriver()
         driver.execute(null, "PRAGMA foreign_keys = ON;", 0)
         PlantDb(driver)
@@ -29,11 +34,22 @@ val plantModule = module {
 
     singleOf(::SqlDelightPlantRepository) bind PlantRepository::class
     singleOf(::SqlDelightCareRepository) bind CareRepository::class
+
+    // Plant use cases
     factoryOf(::FindAllPlants)
     factoryOf(::CreatePlant)
     factoryOf(::UpdatePlant)
     factoryOf(::DeletePlant)
+
+    // Care use cases
+    factoryOf(::GetCareRules)
+    factoryOf(::SaveCareRule)
+    factoryOf(::DeleteCareRule)
     factoryOf(::GenerateCareEvents)
+    factoryOf(::GetCalendarEvents)
+    factoryOf(::ToggleCareEventStatus)
+
+    // ViewModels
     viewModelOf(::HomeViewModel)
     viewModelOf(::PlantFormViewModel)
     viewModelOf(::CalendarViewModel)

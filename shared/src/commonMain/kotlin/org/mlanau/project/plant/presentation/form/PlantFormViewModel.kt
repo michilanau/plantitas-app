@@ -4,14 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.mlanau.project.plant.domain.exceptions.EmptyPlantNameException
 import org.mlanau.project.plant.domain.model.*
 import org.mlanau.project.plant.application.CreatePlant
 import org.mlanau.project.plant.application.UpdatePlant
 import org.mlanau.project.plant.application.DeletePlant
-import org.mlanau.project.plant.domain.repository.CareRepository
+import org.mlanau.project.plant.application.GetCareRules
+import org.mlanau.project.plant.application.SaveCareRule
+import org.mlanau.project.plant.application.DeleteCareRule
 import plantitas_app.shared.generated.resources.Res
 import plantitas_app.shared.generated.resources.error_empty_name
 import plantitas_app.shared.generated.resources.error_unknown
@@ -28,7 +29,9 @@ class PlantFormViewModel(
     private val createPlant: CreatePlant,
     private val updatePlant: UpdatePlant,
     private val deletePlant: DeletePlant,
-    private val careRepository: CareRepository
+    private val getCareRules: GetCareRules,
+    private val saveCareRule: SaveCareRule,
+    private val deleteCareRule: DeleteCareRule
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlantFormUiState())
@@ -36,7 +39,7 @@ class PlantFormViewModel(
 
     fun loadCareRules(plantId: Int) {
         viewModelScope.launch {
-            careRepository.getCareRules(plantId).collect { rules ->
+            getCareRules(plantId).collect { rules ->
                 _uiState.update { it.copy(careRules = rules) }
             }
         }
@@ -53,7 +56,7 @@ class PlantFormViewModel(
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, isSaveSuccess = false) }
-            
+
             val result = if (id == null) {
                 createPlant(name, description, location, lightNeed, potSize)
             } else {
@@ -61,15 +64,10 @@ class PlantFormViewModel(
             }
 
             result.onSuccess { savedPlantId ->
-                // Save care rules
+                // Delegate care rule persistence to the SaveCareRule use case,
+                // which handles plantId assignment for newly created plants.
                 _uiState.value.careRules.forEach { rule ->
-                    careRepository.saveCareRule(
-                        when (rule) {
-                            is WaterCareRule -> rule.copy(plantId = savedPlantId)
-                            is FertilizeCareRule -> rule.copy(plantId = savedPlantId)
-                            is RepotCareRule -> rule.copy(plantId = savedPlantId)
-                        }
-                    )
+                    saveCareRule(rule, savedPlantId)
                 }
                 _uiState.update { it.copy(isSaving = false, isSaveSuccess = true) }
             }
@@ -97,7 +95,7 @@ class PlantFormViewModel(
     fun removeCareRule(rule: CareRule) {
         _uiState.update { it.copy(careRules = it.careRules - rule) }
         viewModelScope.launch {
-            rule.id?.let { careRepository.deleteCareRule(it) }
+            rule.id?.let { deleteCareRule(it) }
         }
     }
 
