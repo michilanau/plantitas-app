@@ -2,19 +2,16 @@ package org.mlanau.project.plant.presentation.form
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.mlanau.project.plant.domain.exceptions.EmptyPlantNameException
-import org.mlanau.project.plant.domain.model.Plant
-import org.mlanau.project.plant.domain.model.LightNeed
-import org.mlanau.project.plant.domain.model.PotSize
+import org.mlanau.project.plant.domain.model.*
 import org.mlanau.project.plant.application.CreatePlant
 import org.mlanau.project.plant.application.UpdatePlant
 import org.mlanau.project.plant.application.DeletePlant
+import org.mlanau.project.plant.domain.repository.CareRepository
 import plantitas_app.shared.generated.resources.Res
 import plantitas_app.shared.generated.resources.error_empty_name
 import plantitas_app.shared.generated.resources.error_unknown
@@ -23,17 +20,27 @@ data class PlantFormUiState(
     val isSaving: Boolean = false,
     val error: StringResource? = null,
     val isSaveSuccess: Boolean = false,
-    val isDeleteSuccess: Boolean = false
+    val isDeleteSuccess: Boolean = false,
+    val careRules: List<CareRule> = emptyList()
 )
 
 class PlantFormViewModel(
     private val createPlant: CreatePlant,
     private val updatePlant: UpdatePlant,
-    private val deletePlant: DeletePlant
+    private val deletePlant: DeletePlant,
+    private val careRepository: CareRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlantFormUiState())
     val uiState: StateFlow<PlantFormUiState> = _uiState.asStateFlow()
+
+    fun loadCareRules(plantId: Int) {
+        viewModelScope.launch {
+            careRepository.getCareRules(plantId).collect { rules ->
+                _uiState.update { it.copy(careRules = rules) }
+            }
+        }
+    }
 
     fun onSavePlant(
         id: Int?,
@@ -42,10 +49,10 @@ class PlantFormViewModel(
         location: String? = null,
         lightNeed: LightNeed? = null,
         potSize: PotSize? = null,
-        createdAt: LocalDateTime? = null
+        createdAt: kotlin.time.Instant? = null
     ) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true, error = null, isSaveSuccess = false)
+            _uiState.update { it.copy(isSaving = true, error = null, isSaveSuccess = false) }
             
             val result = if (id == null) {
                 createPlant(name, description, location, lightNeed, potSize)
@@ -53,28 +60,56 @@ class PlantFormViewModel(
                 updatePlant(id, name, description, location, lightNeed, potSize, createdAt!!)
             }
 
-            result.onSuccess {
-                _uiState.value = _uiState.value.copy(isSaving = false, isSaveSuccess = true)
+            result.onSuccess { savedPlantId ->
+                // Save care rules
+                _uiState.value.careRules.forEach { rule ->
+                    careRepository.saveCareRule(
+                        when (rule) {
+                            is WaterCareRule -> rule.copy(plantId = savedPlantId)
+                            is FertilizeCareRule -> rule.copy(plantId = savedPlantId)
+                            is RepotCareRule -> rule.copy(plantId = savedPlantId)
+                        }
+                    )
+                }
+                _uiState.update { it.copy(isSaving = false, isSaveSuccess = true) }
             }
             result.onFailure { exception ->
                 val errorResource = when (exception) {
                     is EmptyPlantNameException -> Res.string.error_empty_name
                     else -> Res.string.error_unknown
                 }
-                _uiState.value = _uiState.value.copy(isSaving = false, error = errorResource)
+                _uiState.update { it.copy(isSaving = false, error = errorResource) }
             }
+        }
+    }
+
+    fun addCareRule(rule: CareRule) {
+        _uiState.update { it.copy(careRules = it.careRules + rule) }
+    }
+
+    fun updateCareRuleInList(oldRule: CareRule, newRule: CareRule) {
+        _uiState.update { state ->
+            val newList = state.careRules.map { if (it == oldRule) newRule else it }
+            state.copy(careRules = newList)
+        }
+    }
+
+    fun removeCareRule(rule: CareRule) {
+        _uiState.update { it.copy(careRules = it.careRules - rule) }
+        viewModelScope.launch {
+            rule.id?.let { careRepository.deleteCareRule(it) }
         }
     }
 
     fun onDeletePlant(id: Int) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            _uiState.update { it.copy(isSaving = true, error = null) }
             val result = deletePlant(id)
             result.onSuccess {
-                _uiState.value = _uiState.value.copy(isSaving = false, isDeleteSuccess = true)
+                _uiState.update { it.copy(isSaving = false, isDeleteSuccess = true) }
             }
             result.onFailure {
-                _uiState.value = _uiState.value.copy(isSaving = false, error = Res.string.error_unknown)
+                _uiState.update { it.copy(isSaving = false, error = Res.string.error_unknown) }
             }
         }
     }

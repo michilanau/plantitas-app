@@ -1,8 +1,7 @@
 package org.mlanau.project.plant.application
 
 import kotlin.time.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PotSize
@@ -17,7 +16,7 @@ class CreatePlant(
         location: String? = null,
         lightNeed: LightNeed? = null,
         potSize: PotSize? = null
-    ): Result<Unit> {
+    ): Result<Int> {
         return runCatching {
             val plant = Plant(
                 name = name,
@@ -25,7 +24,7 @@ class CreatePlant(
                 location = location?.takeIf { it.isNotBlank() },
                 lightNeed = lightNeed,
                 potSize = potSize,
-                createdAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                createdAt = Clock.System.now()
             )
             repository.save(plant)
         }

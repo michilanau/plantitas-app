@@ -11,6 +11,7 @@ import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PotSize
 import org.mlanau.project.plant.domain.repository.PlantRepository
+import kotlin.time.Instant
 
 class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
     private val queries = database.plantDbQueries
@@ -21,7 +22,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
         }
     }
 
-    override suspend fun save(plant: Plant) {
+    override suspend fun save(plant: Plant): Int {
         val createdAtIso = plant.createdAt.toString()
         if (plant.id != null) {
             queries.updatePlant(
@@ -33,6 +34,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 createdAt = createdAtIso,
                 id = plant.id.toLong()
             )
+            return plant.id
         } else {
             queries.insertPlant(
                 name = plant.name,
@@ -42,6 +44,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 potSize = plant.potSize?.name,
                 createdAt = createdAtIso
             )
+            return queries.lastInsertId().executeAsOne().toInt()
         }
     }
 
@@ -57,7 +60,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
             location = location,
             lightNeed = lightNeed?.let { LightNeed.valueOf(it) },
             potSize = potSize?.let { PotSize.valueOf(it) },
-            createdAt = LocalDateTime.parse(createdAt)
+            createdAt = Instant.parse(createdAt)
         )
     }
 }

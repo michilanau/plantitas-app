@@ -8,74 +8,73 @@ class GenerateCareEvents {
     fun generate(
         rules: List<CareRule>,
         persistedEvents: List<CareEvent>,
-        until: LocalDate
+        from: Instant,
+        until: Instant
     ): List<CareEvent> {
-        val allEvents = mutableListOf<CareEvent>()
+        val allEvents = persistedEvents.toMutableList()
 
         for (rule in rules) {
             if (!rule.active) continue
             
-            val virtualDates = computeDates(rule.recurrence, rule.startDate, rule.endDate, until)
+            val virtualInstants = computeInstantsInRange(rule, from, until)
             
-            for (date in virtualDates) {
-                val scheduledAt = LocalDateTime(date, rule.notificationTime)
-                
-                // Check if there's a persisted event for this rule and this slot
-                val existingEvent = persistedEvents.find { 
-                    it.careRuleId == rule.id && it.originalScheduledAt == scheduledAt 
+            for (instant in virtualInstants) {
+                // Check if there's already a persisted event for this specific rule and slot
+                val alreadyPersisted = persistedEvents.any { 
+                    it.careRuleId == rule.id && it.originalScheduledAt == instant 
                 }
                 
-                if (existingEvent != null) {
-                    allEvents.add(existingEvent)
-                } else {
-                    allEvents.add(createVirtualEvent(rule, scheduledAt))
+                if (!alreadyPersisted) {
+                    allEvents.add(createVirtualEvent(rule, instant))
                 }
             }
         }
-        
-        // Also add persisted events that are NOT linked to a rule's slot (e.g. historical or manually added)
-        // or events that were moved to a date outside the current recurrence calculation but still in range
-        val unlinkedPersistedEvents = persistedEvents.filter { persisted ->
-            val isLinked = rules.any { rule ->
-                // Check if this persisted event was originally from one of the rules in the range
-                // Note: This logic might need refinement depending on how we handle "moved" events
-                persisted.careRuleId == rule.id && persisted.originalScheduledAt != null
-            }
-            !isLinked
-        }
-        
-        allEvents.addAll(unlinkedPersistedEvents)
 
         return allEvents.sortedBy { it.scheduledAt }
     }
 
-    private fun computeDates(
-        recurrence: RecurrenceRule,
-        startDate: LocalDate,
-        endDate: LocalDate?,
-        until: LocalDate
-    ): List<LocalDate> {
-        val dates = mutableListOf<LocalDate>()
-        val finalUntil = if (endDate != null && endDate < until) endDate else until
+    private fun computeInstantsInRange(
+        rule: CareRule,
+        from: Instant,
+        until: Instant
+    ): List<Instant> {
+        val instants = mutableListOf<Instant>()
+        val recurrence = rule.recurrence
+        val startDate = rule.startDate
+        val endDate = rule.endDate
         
+        val finalUntil = if (endDate != null && endDate < until) endDate else until
+        if (startDate > finalUntil) return emptyList()
+
+        val timeZone = TimeZone.currentSystemDefault()
+
         when (recurrence) {
             is RecurrenceRule.Once -> {
-                if (startDate <= finalUntil) {
-                    dates.add(startDate)
+                if (startDate in from..finalUntil) {
+                    instants.add(startDate)
                 }
             }
             is RecurrenceRule.Periodic -> {
-                var current = startDate
+                val everyDays = recurrence.everyDays
+                
+                // Calculate days until 'from' to skip periods efficiently
+                val daysUntilFrom = startDate.daysUntil(from, timeZone)
+                val periodsToSkip = if (daysUntilFrom > 0) daysUntilFrom / everyDays else 0
+                
+                var current = startDate.plus(periodsToSkip * everyDays, DateTimeUnit.DAY, timeZone)
+                
                 while (current <= finalUntil) {
-                    dates.add(current)
-                    current = current.plus(recurrence.everyDays, DateTimeUnit.DAY)
+                    if (current >= from) {
+                        instants.add(current)
+                    }
+                    current = current.plus(everyDays, DateTimeUnit.DAY, timeZone)
                 }
             }
         }
-        return dates
+        return instants
     }
 
-    private fun createVirtualEvent(rule: CareRule, scheduledAt: LocalDateTime): CareEvent {
+    private fun createVirtualEvent(rule: CareRule, scheduledAt: Instant): CareEvent {
         return when (rule) {
             is WaterCareRule -> WaterCareEvent(
                 careRuleId = rule.id!!,

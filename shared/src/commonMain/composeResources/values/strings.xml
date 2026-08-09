@@ -55,4 +55,34 @@
     <string name="about_title">Acerca de</string>
     <string name="about_description">Plantitas App es tu asistente personal para el cuidado de tus plantas. Organiza tu jardín digital y no olvides nunca más regar a tus compañeras verdes.</string>
     <string name="about_version">Versión 1.0.0</string>
+
+    <!-- Navigation -->
+    <string name="nav_plants">Plantas</string>
+    <string name="nav_calendar">Calendario</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendario de Cuidados</string>
+
+    <!-- Care Rules -->
+    <string name="care_rules_title">Cuidados</string>
+    <string name="care_type_water">Riego</string>
+    <string name="care_type_fertilize">Abonado</string>
+    <string name="care_type_repot">Trasplante</string>
+    <string name="care_recurrence_once">Una vez</string>
+    <string name="care_recurrence_periodic">Cada %1$d días</string>
+    <string name="care_add_rule">Añadir cuidado</string>
+
+    <!-- Months -->
+    <string name="month_january">Enero</string>
+    <string name="month_february">Febrero</string>
+    <string name="month_march">Marzo</string>
+    <string name="month_april">Abril</string>
+    <string name="month_may">Mayo</string>
+    <string name="month_june">Junio</string>
+    <string name="month_july">Julio</string>
+    <string name="month_august">Agosto</string>
+    <string name="month_september">Septiembre</string>
+    <string name="month_october">Octubre</string>
+    <string name="month_november">Noviembre</string>
+    <string name="month_december">Diciembre</string>
 </resources>

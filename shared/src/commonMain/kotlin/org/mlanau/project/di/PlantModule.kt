@@ -17,11 +17,13 @@ import org.mlanau.project.plant.infrastructure.persistence.SqlDelightCareReposit
 import org.mlanau.project.plant.infrastructure.persistence.SqlDelightPlantRepository
 import org.mlanau.project.plant.presentation.home.HomeViewModel
 import org.mlanau.project.plant.presentation.form.PlantFormViewModel
+import org.mlanau.project.plant.presentation.calendar.CalendarViewModel
 import org.mlanau.project.shared.database.DatabaseDriverFactory
 
 val plantModule = module {
     single { 
         val driver = get<DatabaseDriverFactory>().createDriver()
+        driver.execute(null, "PRAGMA foreign_keys = ON;", 0)
         PlantDb(driver)
     }
 
@@ -34,4 +36,5 @@ val plantModule = module {
     factoryOf(::GenerateCareEvents)
     viewModelOf(::HomeViewModel)
     viewModelOf(::PlantFormViewModel)
+    viewModelOf(::CalendarViewModel)
 }

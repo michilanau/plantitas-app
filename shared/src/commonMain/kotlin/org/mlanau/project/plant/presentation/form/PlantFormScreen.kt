@@ -1,8 +1,10 @@
 package org.mlanau.project.plant.presentation.form
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -13,10 +15,18 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.text.font.FontWeight
+import kotlin.time.Clock
+import kotlin.time.Instant
+import kotlinx.datetime.*
 import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PotSize
+import org.mlanau.project.plant.domain.model.CareRule
+import org.mlanau.project.plant.domain.model.WaterCareRule
+import org.mlanau.project.plant.domain.model.FertilizeCareRule
+import org.mlanau.project.plant.domain.model.RepotCareRule
+import org.mlanau.project.plant.domain.model.RecurrenceRule
 import plantitas_app.shared.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -34,6 +44,12 @@ fun PlantFormScreen(
     var selectedPotSize by remember { mutableStateOf<PotSize?>(initialPlant?.potSize) }
 
     var isDeleteDialogOpen by remember { mutableStateOf(false) }
+    var isAddCareDialogOpen by remember { mutableStateOf(false) }
+    var ruleToEdit by remember { mutableStateOf<CareRule?>(null) }
+
+    LaunchedEffect(initialPlant) {
+        initialPlant?.id?.let { viewModel.loadCareRules(it) }
+    }
 
     LaunchedEffect(uiState.isSaveSuccess, uiState.isDeleteSuccess) {
         if (uiState.isSaveSuccess || uiState.isDeleteSuccess) {
@@ -172,6 +188,31 @@ fun PlantFormScreen(
                 }
             }
 
+            // Care Rules Section
+            Text(
+                text = stringResource(Res.string.care_rules_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            uiState.careRules.forEach { rule ->
+                CareRuleItem(
+                    rule = rule,
+                    onClick = { ruleToEdit = rule },
+                    onRemove = { viewModel.removeCareRule(rule) }
+                )
+            }
+
+            OutlinedButton(
+                onClick = { isAddCareDialogOpen = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(Res.string.care_add_rule))
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
@@ -226,6 +267,26 @@ fun PlantFormScreen(
                 }
             )
         }
+
+        if (isAddCareDialogOpen || ruleToEdit != null) {
+            CareRuleDialog(
+                plantId = initialPlant?.id ?: 0,
+                initialRule = ruleToEdit,
+                onDismiss = { 
+                    isAddCareDialogOpen = false
+                    ruleToEdit = null
+                },
+                onConfirm = { rule ->
+                    if (ruleToEdit != null) {
+                        viewModel.updateCareRuleInList(ruleToEdit!!, rule)
+                    } else {
+                        viewModel.addCareRule(rule)
+                    }
+                    isAddCareDialogOpen = false
+                    ruleToEdit = null
+                }
+            )
+        }
     }
 }
 
@@ -242,4 +303,298 @@ private fun getPotSizeString(size: PotSize): String = when (size) {
     PotSize.MEDIUM -> stringResource(Res.string.pot_medium)
     PotSize.LARGE -> stringResource(Res.string.pot_large)
     PotSize.EXTRA_LARGE -> stringResource(Res.string.pot_extra_large)
+}
+
+@Composable
+fun CareRuleItem(
+    rule: CareRule,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = when (rule) {
+                    is WaterCareRule -> Icons.Default.WaterDrop
+                    is FertilizeCareRule -> Icons.Default.Science
+                    is RepotCareRule -> Icons.Default.Yard
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = when (rule) {
+                        is WaterCareRule -> stringResource(Res.string.care_type_water)
+                        is FertilizeCareRule -> stringResource(Res.string.care_type_fertilize)
+                        is RepotCareRule -> stringResource(Res.string.care_type_repot)
+                    },
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = when (val rec = rule.recurrence) {
+                        is RecurrenceRule.Once -> stringResource(Res.string.care_recurrence_once)
+                        is RecurrenceRule.Periodic -> stringResource(Res.string.care_recurrence_periodic, rec.everyDays)
+                    },
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CareRuleDialog(
+    plantId: Int,
+    initialRule: CareRule? = null,
+    onDismiss: () -> Unit,
+    onConfirm: (CareRule) -> Unit
+) {
+    var type by remember { mutableStateOf(
+        when (initialRule) {
+            is WaterCareRule -> "WATER"
+            is FertilizeCareRule -> "FERTILIZE"
+            is RepotCareRule -> "REPOT"
+            null -> "WATER"
+        }
+    ) }
+    var recurrenceType by remember { mutableStateOf(
+        if (initialRule?.recurrence is RecurrenceRule.Once) "ONCE" else "PERIODIC"
+    ) }
+    var everyDays by remember { mutableStateOf(
+        (initialRule?.recurrence as? RecurrenceRule.Periodic)?.everyDays?.toString() ?: "7"
+    ) }
+    
+    val timeZone = remember { TimeZone.currentSystemDefault() }
+    val now = Clock.System.now().toLocalDateTime(timeZone)
+    
+    val initialLocalDateTime = remember(initialRule) {
+        initialRule?.startDate?.toLocalDateTime(timeZone) ?: now
+    }
+    
+    var hour by remember(initialLocalDateTime) { mutableStateOf(
+        initialLocalDateTime.hour.toString().padStart(2, '0')
+    ) }
+    var minute by remember(initialLocalDateTime) { mutableStateOf(
+        initialLocalDateTime.minute.toString().padStart(2, '0')
+    ) }
+
+    var startDate by remember(initialLocalDateTime) { mutableStateOf(initialLocalDateTime.date) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    // Specific fields
+    var amountMl by remember { mutableStateOf(
+        (initialRule as? WaterCareRule)?.amountMl?.toString() ?: ""
+    ) }
+    var fertilizerName by remember { mutableStateOf(
+        (initialRule as? FertilizeCareRule)?.fertilizerName ?: ""
+    ) }
+    var newPotSize by remember { mutableStateOf(
+        (initialRule as? RepotCareRule)?.newPotSize ?: PotSize.MEDIUM
+    ) }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = startDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { 
+                        startDate = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date
+                    }
+                    showDatePicker = false
+                }) { Text("Confirmar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = hour.toIntOrNull() ?: 10,
+            initialMinute = minute.toIntOrNull() ?: 0,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    hour = timePickerState.hour.toString().padStart(2, '0')
+                    minute = timePickerState.minute.toString().padStart(2, '0')
+                    showTimePicker = false
+                }) { Text("Confirmar") }
+            },
+            text = { TimePicker(state = timePickerState) }
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initialRule == null) stringResource(Res.string.care_add_rule) else "Editar cuidado") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Type Selector
+                Text("Tipo de cuidado", style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = type == "WATER", onClick = { type = "WATER" }, label = { Text(stringResource(Res.string.care_type_water)) })
+                    FilterChip(selected = type == "FERTILIZE", onClick = { type = "FERTILIZE" }, label = { Text(stringResource(Res.string.care_type_fertilize)) })
+                    FilterChip(selected = type == "REPOT", onClick = { type = "REPOT" }, label = { Text(stringResource(Res.string.care_type_repot)) })
+                }
+
+                // Field Selectors
+                ClickableField(
+                    value = startDate.toString(),
+                    label = if (recurrenceType == "ONCE") "Día de la tarea" else "Día de comienzo",
+                    icon = Icons.Default.DateRange,
+                    onClick = { showDatePicker = true }
+                )
+
+                ClickableField(
+                    value = "$hour:$minute",
+                    label = "Hora del recordatorio",
+                    icon = Icons.Default.Schedule,
+                    onClick = { showTimePicker = true }
+                )
+
+                // Recurrence Selector
+                Text("Recurrencia", style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = recurrenceType == "ONCE", onClick = { recurrenceType = "ONCE" }, label = { Text(stringResource(Res.string.care_recurrence_once)) })
+                    FilterChip(selected = recurrenceType == "PERIODIC", onClick = { recurrenceType = "PERIODIC" }, label = { Text("Periódico") })
+                }
+
+                if (recurrenceType == "PERIODIC") {
+                    OutlinedTextField(
+                        value = everyDays,
+                        onValueChange = { everyDays = it.filter { c -> c.isDigit() } },
+                        label = { Text("Cada cuántos días") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                }
+
+                // Specific fields based on type
+                when (type) {
+                    "WATER" -> {
+                        OutlinedTextField(
+                            value = amountMl,
+                            onValueChange = { amountMl = it.filter { c -> c.isDigit() } },
+                            label = { Text("Cantidad (ml)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                    }
+                    "FERTILIZE" -> {
+                        OutlinedTextField(
+                            value = fertilizerName,
+                            onValueChange = { fertilizerName = it },
+                            label = { Text("Nombre del fertilizante") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                    }
+                    "REPOT" -> {
+                        Text("Nuevo tamaño de maceta", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            PotSize.entries.forEach { size ->
+                                FilterChip(
+                                    selected = newPotSize == size,
+                                    onClick = { newPotSize = size },
+                                    label = { Text(getPotSizeString(size)) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val recurrence = if (recurrenceType == "ONCE") RecurrenceRule.Once else RecurrenceRule.Periodic(everyDays.toIntOrNull() ?: 7)
+                    
+                    val selectedHour = hour.toIntOrNull()?.coerceIn(0, 23) ?: 10
+                    val selectedMinute = minute.toIntOrNull()?.coerceIn(0, 59) ?: 0
+                    
+                    val startInstant = LocalDateTime(startDate, LocalTime(selectedHour, selectedMinute)).toInstant(timeZone)
+
+                    val rule = when (type) {
+                        "WATER" -> WaterCareRule(
+                            id = initialRule?.id,
+                            plantId = plantId,
+                            recurrence = recurrence,
+                            startDate = startInstant,
+                            amountMl = amountMl.toIntOrNull(),
+                            active = initialRule?.active ?: true
+                        )
+                        "FERTILIZE" -> FertilizeCareRule(
+                            id = initialRule?.id,
+                            plantId = plantId,
+                            recurrence = recurrence,
+                            startDate = startInstant,
+                            fertilizerName = fertilizerName.ifBlank { "Abono" },
+                            active = initialRule?.active ?: true
+                        )
+                        "REPOT" -> RepotCareRule(
+                            id = initialRule?.id,
+                            plantId = plantId,
+                            recurrence = recurrence,
+                            startDate = startInstant,
+                            newPotSize = newPotSize,
+                            active = initialRule?.active ?: true
+                        )
+                        else -> throw IllegalStateException()
+                    }
+                    onConfirm(rule)
+                }
+            ) {
+                Text(stringResource(Res.string.home_button_add))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.common_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+fun ClickableField(
+    value: String,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { },
+        readOnly = true,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        enabled = false,
+        colors = TextFieldDefaults.colors(
+            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            disabledIndicatorColor = MaterialTheme.colorScheme.outline
+        ),
+        shape = MaterialTheme.shapes.medium,
+        trailingIcon = { Icon(icon, contentDescription = null) }
+    )
 }

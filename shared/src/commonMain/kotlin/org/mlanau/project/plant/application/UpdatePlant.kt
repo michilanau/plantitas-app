@@ -1,6 +1,6 @@
 package org.mlanau.project.plant.application
 
-import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PotSize
@@ -16,8 +16,8 @@ class UpdatePlant(
         location: String? = null,
         lightNeed: LightNeed? = null,
         potSize: PotSize? = null,
-        createdAt: LocalDateTime
-    ): Result<Unit> {
+        createdAt: Instant
+    ): Result<Int> {
         return runCatching {
             val plant = Plant(
                 id = id,

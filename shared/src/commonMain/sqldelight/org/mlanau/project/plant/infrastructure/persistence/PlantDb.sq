@@ -1,3 +1,4 @@
+-- Tables
 CREATE TABLE plantEntity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -7,21 +8,6 @@ CREATE TABLE plantEntity (
     potSize TEXT,
     createdAt TEXT NOT NULL DEFAULT ""
 );
-
-selectAll:
-SELECT * FROM plantEntity;
-
-insertPlant:
-INSERT INTO plantEntity(name, description, location, lightNeed, potSize, createdAt)
-VALUES (?, ?, ?, ?, ?, ?);
-
-updatePlant:
-UPDATE plantEntity
-SET name = ?, description = ?, location = ?, lightNeed = ?, potSize = ?, createdAt = ?
-WHERE id = ?;
-
-deletePlant:
-DELETE FROM plantEntity WHERE id = ?;
 
 CREATE TABLE careRuleEntity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,8 +49,31 @@ CREATE TABLE careEventEntity (
     FOREIGN KEY (plantId) REFERENCES plantEntity(id) ON DELETE CASCADE
 );
 
+-- Plant Queries
+selectAll:
+SELECT * FROM plantEntity;
+
+insertPlant:
+INSERT INTO plantEntity(name, description, location, lightNeed, potSize, createdAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+lastInsertId:
+SELECT last_insert_rowid();
+
+updatePlant:
+UPDATE plantEntity
+SET name = ?, description = ?, location = ?, lightNeed = ?, potSize = ?, createdAt = ?
+WHERE id = ?;
+
+deletePlant:
+DELETE FROM plantEntity WHERE id = ?;
+
+-- Care Rule Queries
 selectCareRulesByPlantId:
 SELECT * FROM careRuleEntity WHERE plantId = ?;
+
+selectAllCareRules:
+SELECT * FROM careRuleEntity;
 
 insertCareRule:
 INSERT INTO careRuleEntity(plantId, type, recurrenceType, everyDays, startDate, notificationTime, endDate, active, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
@@ -78,6 +87,7 @@ WHERE id = ?;
 deleteCareRule:
 DELETE FROM careRuleEntity WHERE id = ?;
 
+-- Care Event Queries
 selectCareEventsInRange:
 SELECT * FROM careEventEntity WHERE scheduledAt BETWEEN ? AND ?;
 
