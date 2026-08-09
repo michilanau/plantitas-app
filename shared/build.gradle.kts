@@ -69,6 +69,14 @@ kotlin {
 
             // SQLDelight
             implementation(libs.sqldelight.coroutines.extensions)
+
+            // Coil
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor)
+
+            // Peekaboo
+            implementation(libs.peekaboo.ui)
+            implementation(libs.peekaboo.image.picker)
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.native.driver)

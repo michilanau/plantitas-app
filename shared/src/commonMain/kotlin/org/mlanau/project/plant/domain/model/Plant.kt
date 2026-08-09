@@ -11,6 +11,7 @@ data class Plant(
     val location: String? = null,
     val lightNeed: LightNeed? = null,
     val potSize: PotSize? = null,
+    val imageUrl: String? = null,
     val createdAt: Instant = Clock.System.now()
 ) {
     init {

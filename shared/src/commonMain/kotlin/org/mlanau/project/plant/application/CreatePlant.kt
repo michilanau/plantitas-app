@@ -15,7 +15,8 @@ class CreatePlant(
         description: String?,
         location: String? = null,
         lightNeed: LightNeed? = null,
-        potSize: PotSize? = null
+        potSize: PotSize? = null,
+        imageUrl: String? = null
     ): Result<Int> {
         return runCatching {
             val plant = Plant(
@@ -24,6 +25,7 @@ class CreatePlant(
                 location = location?.takeIf { it.isNotBlank() },
                 lightNeed = lightNeed,
                 potSize = potSize,
+                imageUrl = imageUrl?.takeIf { it.isNotBlank() },
                 createdAt = Clock.System.now()
             )
             repository.save(plant)

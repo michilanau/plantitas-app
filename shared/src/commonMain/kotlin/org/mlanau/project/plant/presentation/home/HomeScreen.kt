@@ -23,6 +23,8 @@ import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PotSize
 import plantitas_app.shared.generated.resources.*
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun HomeScreen(
@@ -140,15 +142,24 @@ fun PlantItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                modifier = Modifier.size(48.dp),
-                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.size(64.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "🌿",
-                        style = MaterialTheme.typography.headlineSmall
+                if (plant.imageUrl != null) {
+                    AsyncImage(
+                        model = plant.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
+                } else {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "🌿",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
                 }
             }
 

@@ -16,6 +16,7 @@
     <string name="common_back">Back</string>
     <string name="common_delete">Delete</string>
     <string name="common_cancel">Cancel</string>
+    <string name="common_add_image">Add image</string>
     <string name="common_optional">(optional)</string>
 
     <!-- Light Needs -->

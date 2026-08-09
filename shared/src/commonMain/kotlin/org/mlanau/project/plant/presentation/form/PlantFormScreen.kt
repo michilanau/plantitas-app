@@ -28,6 +28,9 @@ import org.mlanau.project.plant.domain.model.FertilizeCareRule
 import org.mlanau.project.plant.domain.model.RepotCareRule
 import org.mlanau.project.plant.domain.model.RecurrenceRule
 import plantitas_app.shared.generated.resources.*
+import coil3.compose.AsyncImage
+import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
+import com.preat.peekaboo.image.picker.SelectionMode
 
 /** Local enum used as the type discriminator inside [CareRuleDialog]. */
 private enum class CareType { WATER, FERTILIZE, REPOT }
@@ -45,6 +48,20 @@ fun PlantFormScreen(
     var location by remember { mutableStateOf(initialPlant?.location ?: "") }
     var selectedLightNeed by remember { mutableStateOf<LightNeed?>(initialPlant?.lightNeed) }
     var selectedPotSize by remember { mutableStateOf<PotSize?>(initialPlant?.potSize) }
+    var imageUrl by remember { mutableStateOf(initialPlant?.imageUrl) }
+    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+
+    val scope = rememberCoroutineScope()
+    val launcher = rememberImagePickerLauncher(
+        selectionMode = SelectionMode.Single,
+        scope = scope,
+        onResult = { byteArrays ->
+            byteArrays.firstOrNull()?.let {
+                imageBytes = it
+                imageUrl = null // Clear URL if a new image is picked
+            }
+        }
+    )
 
     var isDeleteDialogOpen by remember { mutableStateOf(false) }
     var isAddCareDialogOpen by remember { mutableStateOf(false) }
@@ -95,8 +112,78 @@ fun PlantFormScreen(
                 .padding(16.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Image Picker Section
+            Box(
+                modifier = Modifier
+                    .size(160.dp)
+                    .clickable { launcher.launch() },
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    if (imageBytes != null) {
+                        AsyncImage(
+                            model = imageBytes,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else if (imageUrl != null) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.AddAPhoto,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                stringResource(Res.string.common_add_image),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+                
+                if (imageBytes != null || imageUrl != null) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(4.dp)
+                            .size(32.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        tonalElevation = 4.dp
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.padding(6.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             // Name Field (Required)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
@@ -220,6 +307,9 @@ fun PlantFormScreen(
 
             Button(
                 onClick = {
+                    // For demo purposes, we encode the image to base64 to store it in the TEXT field
+                    val finalImageUrl = imageBytes?.let { "data:image/png;base64,${kotlin.io.encoding.Base64.encode(it)}" } ?: imageUrl
+                    
                     viewModel.onSavePlant(
                         id = initialPlant?.id,
                         name = name,
@@ -227,6 +317,7 @@ fun PlantFormScreen(
                         location = location,
                         lightNeed = selectedLightNeed,
                         potSize = selectedPotSize,
+                        imageUrl = finalImageUrl,
                         createdAt = initialPlant?.createdAt
                     )
                 },

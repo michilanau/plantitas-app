@@ -35,6 +35,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 location = plant.location,
                 lightNeed = plant.lightNeed?.name,
                 potSize = plant.potSize?.name,
+                imageUrl = plant.imageUrl,
                 createdAt = createdAtIso,
                 id = plant.id.toLong()
             )
@@ -46,6 +47,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 location = plant.location,
                 lightNeed = plant.lightNeed?.name,
                 potSize = plant.potSize?.name,
+                imageUrl = plant.imageUrl,
                 createdAt = createdAtIso
             )
             return queries.lastInsertId().executeAsOne().toInt()
@@ -64,6 +66,7 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
             location = location,
             lightNeed = lightNeed?.let { LightNeed.valueOf(it) },
             potSize = potSize?.let { PotSize.valueOf(it) },
+            imageUrl = imageUrl,
             createdAt = Instant.parse(createdAt)
         )
     }

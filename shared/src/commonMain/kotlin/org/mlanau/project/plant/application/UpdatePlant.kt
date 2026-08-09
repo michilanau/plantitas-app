@@ -16,6 +16,7 @@ class UpdatePlant(
         location: String? = null,
         lightNeed: LightNeed? = null,
         potSize: PotSize? = null,
+        imageUrl: String? = null,
         createdAt: Instant
     ): Result<Int> {
         return runCatching {
@@ -26,6 +27,7 @@ class UpdatePlant(
                 location = location?.takeIf { it.isNotBlank() },
                 lightNeed = lightNeed,
                 potSize = potSize,
+                imageUrl = imageUrl?.takeIf { it.isNotBlank() },
                 createdAt = createdAt
             )
             repository.save(plant)

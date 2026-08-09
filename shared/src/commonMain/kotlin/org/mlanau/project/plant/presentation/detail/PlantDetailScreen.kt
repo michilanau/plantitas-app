@@ -18,6 +18,8 @@ import kotlinx.datetime.*
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.graphics.vector.ImageVector
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -84,12 +86,21 @@ private fun PlantDetailContent(
     ) {
         // Header / Icon
         Surface(
-            modifier = Modifier.size(120.dp).align(Alignment.CenterHorizontally),
+            modifier = Modifier.fillMaxWidth().height(240.dp),
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.primaryContainer
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text("🌿", style = MaterialTheme.typography.displayLarge)
+            if (plant.imageUrl != null) {
+                AsyncImage(
+                    model = plant.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("🌿", style = MaterialTheme.typography.displayLarge)
+                }
             }
         }
 

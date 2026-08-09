@@ -52,15 +52,16 @@ class PlantFormViewModel(
         location: String? = null,
         lightNeed: LightNeed? = null,
         potSize: PotSize? = null,
+        imageUrl: String? = null,
         createdAt: kotlin.time.Instant? = null
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, isSaveSuccess = false) }
 
             val result = if (id == null) {
-                createPlant(name, description, location, lightNeed, potSize)
+                createPlant(name, description, location, lightNeed, potSize, imageUrl)
             } else {
-                updatePlant(id, name, description, location, lightNeed, potSize, createdAt!!)
+                updatePlant(id, name, description, location, lightNeed, potSize, imageUrl, createdAt!!)
             }
 
             result.onSuccess { savedPlantId ->
