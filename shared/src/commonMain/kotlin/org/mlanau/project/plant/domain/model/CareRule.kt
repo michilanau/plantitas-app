@@ -1,6 +1,7 @@
 package org.mlanau.project.plant.domain.model
 
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalTime
 import org.mlanau.project.plant.domain.exceptions.InvalidCareRuleDateRangeException
 import org.mlanau.project.plant.domain.exceptions.InvalidRecurrenceException
 
@@ -21,6 +22,8 @@ sealed class CareRule {
     abstract val startDate: Instant
     abstract val endDate: Instant?
     abstract val active: Boolean
+    abstract val notificationTime: LocalTime?
+    abstract val notificationsEnabled: Boolean
 
     init {
         if (endDate != null && endDate!! < startDate) throw InvalidCareRuleDateRangeException()
@@ -34,6 +37,8 @@ data class WaterCareRule(
     override val startDate: Instant,
     override val endDate: Instant? = null,
     override val active: Boolean = true,
+    override val notificationTime: LocalTime? = null,
+    override val notificationsEnabled: Boolean = true,
     val amountMl: Int? = null,
     val useFilteredWater: Boolean = false
 ) : CareRule()
@@ -45,6 +50,8 @@ data class FertilizeCareRule(
     override val startDate: Instant,
     override val endDate: Instant? = null,
     override val active: Boolean = true,
+    override val notificationTime: LocalTime? = null,
+    override val notificationsEnabled: Boolean = true,
     val fertilizerName: String,
     val doseMl: Int? = null,
     val dilutionRatio: String? = null
@@ -57,6 +64,8 @@ data class RepotCareRule(
     override val startDate: Instant,
     override val endDate: Instant? = null,
     override val active: Boolean = true,
+    override val notificationTime: LocalTime? = null,
+    override val notificationsEnabled: Boolean = true,
     val newPotSize: PotSize,
     val substrateType: String? = null
 ) : CareRule()

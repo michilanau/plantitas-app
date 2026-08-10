@@ -14,6 +14,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(libs.koin.android)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.kotlinx.datetime)
 
     // Force CameraX to a version that is 16 KB page size aligned
     implementation(libs.androidx.camera.core)

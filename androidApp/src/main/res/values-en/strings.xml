@@ -1,0 +1,7 @@
+<resources>
+    <string name="notification_title">Time to care for your plant!</string>
+    <string name="notification_water">It\'s time to water your %1$s</string>
+    <string name="notification_fertilize">It\'s time to fertilize your %1$s</string>
+    <string name="notification_repot">It\'s time to repot your %1$s</string>
+    <string name="notification_generic">Care reminder for %1$s</string>
+</resources>

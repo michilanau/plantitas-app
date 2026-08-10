@@ -7,7 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalTime
 import org.mlanau.project.plant.domain.model.*
 import org.mlanau.project.plant.domain.repository.CareRepository
 
@@ -46,7 +47,8 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
                 recurrenceType = recurrenceType,
                 everyDays = everyDays,
                 startDate = rule.startDate.toString(),
-                notificationTime = "",
+                notificationTime = rule.notificationTime?.toString(),
+                notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
                 endDate = rule.endDate?.toString(),
                 active = if (rule.active) 1 else 0,
                 amountMl = when (rule) {
@@ -69,7 +71,8 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
                 recurrenceType = recurrenceType,
                 everyDays = everyDays,
                 startDate = rule.startDate.toString(),
-                notificationTime = "",
+                notificationTime = rule.notificationTime?.toString(),
+                notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
                 endDate = rule.endDate?.toString(),
                 active = if (rule.active) 1 else 0,
                 amountMl = when (rule) {
@@ -151,6 +154,10 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
         queries.deleteCareEvent(id.toLong())
     }
 
+    override suspend fun deletePendingEventsByRuleId(ruleId: Int) {
+        queries.deletePendingCareEventsByRuleId(ruleId.toLong())
+    }
+
     private fun CareRuleEntity.toDomain(): CareRule {
         val recurrence = when (recurrenceType) {
             "ONCE" -> RecurrenceRule.Once
@@ -160,6 +167,8 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
         val startDate = Instant.parse(startDate)
         val endDate = endDate?.let { Instant.parse(it) }
         val active = active == 1L
+        val notificationTime = notificationTime?.let { if (it.isBlank()) null else LocalTime.parse(it) }
+        val notificationsEnabled = notificationsEnabled == 1L
 
         return when (type) {
             "WATER" -> WaterCareRule(
@@ -169,6 +178,8 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
                 startDate = startDate,
                 endDate = endDate,
                 active = active,
+                notificationTime = notificationTime,
+                notificationsEnabled = notificationsEnabled,
                 amountMl = amountMl?.toInt(),
                 useFilteredWater = useFilteredWater == 1L
             )
@@ -179,6 +190,8 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
                 startDate = startDate,
                 endDate = endDate,
                 active = active,
+                notificationTime = notificationTime,
+                notificationsEnabled = notificationsEnabled,
                 fertilizerName = fertilizerName!!,
                 doseMl = doseMl?.toInt(),
                 dilutionRatio = dilutionRatio
@@ -190,6 +203,8 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
                 startDate = startDate,
                 endDate = endDate,
                 active = active,
+                notificationTime = notificationTime,
+                notificationsEnabled = notificationsEnabled,
                 newPotSize = PotSize.valueOf(newPotSize!!),
                 substrateType = substrateType
             )

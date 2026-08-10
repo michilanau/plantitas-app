@@ -501,6 +501,7 @@ private fun CareRuleDialog(
     var amountMl by remember { mutableStateOf((initialRule as? WaterCareRule)?.amountMl?.toString() ?: "") }
     var fertilizerName by remember { mutableStateOf((initialRule as? FertilizeCareRule)?.fertilizerName ?: "") }
     var newPotSize by remember { mutableStateOf((initialRule as? RepotCareRule)?.newPotSize ?: PotSize.MEDIUM) }
+    var notificationsEnabled by remember { mutableStateOf(initialRule?.notificationsEnabled ?: true) }
 
     // Resource strings resolved at composition time
     val strConfirm = stringResource(Res.string.common_confirm)
@@ -590,6 +591,18 @@ private fun CareRuleDialog(
                     onClick = { showTimePicker = true }
                 )
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(stringResource(Res.string.care_notifications_enabled), style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = notificationsEnabled,
+                        onCheckedChange = { notificationsEnabled = it }
+                    )
+                }
+
                 // Recurrence Selector
                 Text(strRecurrenceLabel, style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -656,7 +669,8 @@ private fun CareRuleDialog(
                     val recurrence = if (isOnce) RecurrenceRule.Once else RecurrenceRule.Periodic(everyDays.toIntOrNull() ?: 7)
                     val selectedHour = hour.toIntOrNull()?.coerceIn(0, 23) ?: 10
                     val selectedMinute = minute.toIntOrNull()?.coerceIn(0, 59) ?: 0
-                    val startInstant = LocalDateTime(startDate, LocalTime(selectedHour, selectedMinute)).toInstant(timeZone)
+                    val notificationTime = LocalTime(selectedHour, selectedMinute)
+                    val startInstant = LocalDateTime(startDate, notificationTime).toInstant(timeZone)
 
                     val rule = when (type) {
                         CareType.WATER -> WaterCareRule(
@@ -664,6 +678,8 @@ private fun CareRuleDialog(
                             plantId = plantId,
                             recurrence = recurrence,
                             startDate = startInstant,
+                            notificationTime = notificationTime,
+                            notificationsEnabled = notificationsEnabled,
                             amountMl = amountMl.toIntOrNull(),
                             active = initialRule?.active ?: true
                         )
@@ -672,6 +688,8 @@ private fun CareRuleDialog(
                             plantId = plantId,
                             recurrence = recurrence,
                             startDate = startInstant,
+                            notificationTime = notificationTime,
+                            notificationsEnabled = notificationsEnabled,
                             fertilizerName = fertilizerName.ifBlank { strFertilizerDefault },
                             active = initialRule?.active ?: true
                         )
@@ -680,6 +698,8 @@ private fun CareRuleDialog(
                             plantId = plantId,
                             recurrence = recurrence,
                             startDate = startInstant,
+                            notificationTime = notificationTime,
+                            notificationsEnabled = notificationsEnabled,
                             newPotSize = newPotSize,
                             active = initialRule?.active ?: true
                         )

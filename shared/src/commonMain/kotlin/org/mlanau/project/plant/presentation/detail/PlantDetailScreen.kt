@@ -143,6 +143,23 @@ private fun PlantDetailContent(
             }
         }
 
+        // Description Section
+        plant.description?.takeIf { it.isNotBlank() }?.let {
+            Column {
+                Text(
+                    text = stringResource(Res.string.home_plant_description),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
         // Next Care Section
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -189,23 +206,6 @@ private fun PlantDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        }
-
-        // Description Section
-        plant.description?.takeIf { it.isNotBlank() }?.let {
-            Column {
-                Text(
-                    text = stringResource(Res.string.home_plant_description),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
             }
         }
     }

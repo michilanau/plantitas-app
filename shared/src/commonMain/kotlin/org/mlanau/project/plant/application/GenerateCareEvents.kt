@@ -19,9 +19,10 @@ class GenerateCareEvents {
             val virtualInstants = computeInstantsInRange(rule, from, until)
             
             for (instant in virtualInstants) {
-                // Check if there's already a persisted event for this specific rule and slot
+                // Check if there's already a persisted event for this specific rule and slot.
+                // We use a date-based check to avoid duplicates when the rule's time changes.
                 val alreadyPersisted = persistedEvents.any { 
-                    it.careRuleId == rule.id && it.originalScheduledAt == instant 
+                    it.careRuleId == rule.id && isSameSlot(it.originalScheduledAt ?: it.scheduledAt, instant)
                 }
                 
                 if (!alreadyPersisted) {
@@ -31,6 +32,13 @@ class GenerateCareEvents {
         }
 
         return allEvents.sortedBy { it.scheduledAt }
+    }
+
+    private fun isSameSlot(persistedInstant: Instant, virtualInstant: Instant): Boolean {
+        if (persistedInstant == virtualInstant) return true
+        
+        val timeZone = TimeZone.currentSystemDefault()
+        return persistedInstant.toLocalDateTime(timeZone).date == virtualInstant.toLocalDateTime(timeZone).date
     }
 
     private fun computeInstantsInRange(

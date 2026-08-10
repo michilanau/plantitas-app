@@ -90,6 +90,7 @@
     <string name="care_recurrence_periodic_label">Periódico</string>
     <string name="care_every_days_label">Cada cuántos días</string>
     <string name="care_water_amount_label">Cantidad (ml)</string>
+    <string name="care_notifications_enabled">Activar notificaciones</string>
     <string name="care_fertilizer_name_label">Nombre del fertilizante</string>
     <string name="care_fertilizer_default_name">Abono</string>
     <string name="care_repot_pot_size_label">Nuevo tamaño de maceta</string>

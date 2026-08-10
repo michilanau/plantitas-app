@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">plantitas-app</string>
+    <string name="app_name">Plantitas App</string>
+    <string name="notification_title">¡Hora de cuidar tu planta!</string>
+    <string name="notification_water">Toca regar tu %1$s</string>
+    <string name="notification_fertilize">Toca abonar tu %1$s</string>
+    <string name="notification_repot">Toca trasplantar tu %1$s</string>
+    <string name="notification_generic">Recordatorio de cuidado para %1$s</string>
 </resources>

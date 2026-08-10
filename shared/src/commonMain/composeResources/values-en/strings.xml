@@ -90,6 +90,7 @@
     <string name="care_recurrence_periodic_label">Periodic</string>
     <string name="care_every_days_label">Every how many days</string>
     <string name="care_water_amount_label">Amount (ml)</string>
+    <string name="care_notifications_enabled">Enable notifications</string>
     <string name="care_fertilizer_name_label">Fertilizer name</string>
     <string name="care_fertilizer_default_name">Fertilizer</string>
     <string name="care_repot_pot_size_label">New pot size</string>
