@@ -13,8 +13,17 @@ kotlin {
 dependencies {
     implementation(project(":shared"))
     implementation(libs.koin.android)
-
     implementation(libs.androidx.activity.compose)
+
+    // Force CameraX to a version that is 16 KB page size aligned
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
+    // Force ML Kit to versions that are 16 KB page size aligned
+    implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.mlkit.common)
 }
 
 android {
