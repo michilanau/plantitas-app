@@ -27,7 +27,7 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
         }
     }
 
-    override suspend fun saveCareRule(rule: CareRule) {
+    override suspend fun saveCareRule(rule: CareRule): Int {
         val type = when (rule) {
             is WaterCareRule -> "WATER"
             is FertilizeCareRule -> "FERTILIZE"
@@ -40,7 +40,7 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
         val everyDays = (rule.recurrence as? RecurrenceRule.Periodic)?.everyDays?.toLong()
         val ruleId = rule.id
 
-        if (ruleId != null) {
+        return if (ruleId != null) {
             queries.updateCareRule(
                 plantId = rule.plantId.toLong(),
                 type = type,
@@ -64,6 +64,7 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
                 substrateType = (rule as? RepotCareRule)?.substrateType,
                 id = ruleId.toLong()
             )
+            ruleId
         } else {
             queries.insertCareRule(
                 plantId = rule.plantId.toLong(),
@@ -87,6 +88,7 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
                 newPotSize = (rule as? RepotCareRule)?.newPotSize?.name,
                 substrateType = (rule as? RepotCareRule)?.substrateType
             )
+            queries.lastInsertId().executeAsOne().toInt()
         }
     }
 

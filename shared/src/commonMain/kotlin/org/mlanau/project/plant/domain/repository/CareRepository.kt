@@ -9,7 +9,7 @@ import org.mlanau.project.plant.domain.model.CareEventStatus
 interface CareRepository {
     fun getCareRules(plantId: Int): Flow<List<CareRule>>
     fun getAllCareRules(): Flow<List<CareRule>>
-    suspend fun saveCareRule(rule: CareRule)
+    suspend fun saveCareRule(rule: CareRule): Int
     suspend fun deleteCareRule(id: Int)
     
     fun getEventsInRange(from: Instant, to: Instant): Flow<List<CareEvent>>

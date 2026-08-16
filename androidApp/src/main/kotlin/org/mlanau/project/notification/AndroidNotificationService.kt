@@ -35,15 +35,17 @@ class AndroidNotificationService(
         val nextEvent = events.firstOrNull { it.scheduledAt > now }
 
         if (nextEvent != null) {
+            val ruleId = rule.id ?: return // Don't schedule if ID is missing (should be saved first)
+
             val intent = Intent(context, NotificationReceiver::class.java).apply {
-                putExtra("ruleId", rule.id)
+                putExtra("ruleId", ruleId)
                 putExtra("plantName", plantName)
                 putExtra("careType", rule::class.simpleName)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                rule.id ?: 0,
+                ruleId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -73,10 +75,11 @@ class AndroidNotificationService(
     }
 
     override fun cancelNotifications(rule: CareRule) {
+        val ruleId = rule.id ?: return
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            rule.id ?: 0,
+            ruleId,
             intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )

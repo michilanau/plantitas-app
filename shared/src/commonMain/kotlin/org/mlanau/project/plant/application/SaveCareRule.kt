@@ -26,15 +26,21 @@ class SaveCareRule(
                 is FertilizeCareRule -> rule.copy(plantId = plantId)
                 is RepotCareRule -> rule.copy(plantId = plantId)
             }
-            repository.saveCareRule(ruleWithPlantId)
+            val savedRuleId = repository.saveCareRule(ruleWithPlantId)
             
+            val ruleWithId = when (ruleWithPlantId) {
+                is WaterCareRule -> ruleWithPlantId.copy(id = savedRuleId)
+                is FertilizeCareRule -> ruleWithPlantId.copy(id = savedRuleId)
+                is RepotCareRule -> ruleWithPlantId.copy(id = savedRuleId)
+            }
+
             // Clean up pending events so they are re-generated with new rule parameters
-            rule.id?.let { repository.deletePendingEventsByRuleId(it) }
+            repository.deletePendingEventsByRuleId(savedRuleId)
             
             // Handle notifications
             val plant = plantRepository.findById(plantId)
             if (plant != null) {
-                notificationService.scheduleNextNotification(ruleWithPlantId, plant.name)
+                notificationService.scheduleNextNotification(ruleWithId, plant.name)
             }
             Result.success(Unit)
         }.getOrElse { Result.failure(it) }
