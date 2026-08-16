@@ -1,6 +1,7 @@
 package org.mlanau.project.plant.presentation.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,6 +17,8 @@ import org.mlanau.project.plant.domain.model.*
 import plantitas_app.shared.generated.resources.*
 import kotlinx.datetime.*
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
+import org.mlanau.project.plant.presentation.component.CareEventActionDialog
+import org.mlanau.project.plant.presentation.component.FullScreenImageDialog
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.graphics.vector.ImageVector
 import coil3.compose.AsyncImage
@@ -30,6 +33,10 @@ fun PlantDetailScreen(
     onEdit: (Plant) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    var showEventOptions by remember { mutableStateOf<CareEvent?>(null) }
+    var showReschedulePicker by remember { mutableStateOf<CareEvent?>(null) }
+    var showFullScreenImage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(plantId) {
         viewModel.loadPlant(plantId)
@@ -63,9 +70,61 @@ fun PlantDetailScreen(
                 PlantDetailContent(
                     plant = plant,
                     nextEvent = uiState.nextEvent,
+                    careRules = uiState.careRules,
+                    onShowOptions = { showEventOptions = it },
+                    onImageClick = { showFullScreenImage = it },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
+        }
+    }
+
+    if (showFullScreenImage != null) {
+        FullScreenImageDialog(
+            imageUrl = showFullScreenImage!!,
+            onDismissRequest = { showFullScreenImage = null }
+        )
+    }
+
+    if (showEventOptions != null) {
+        CareEventActionDialog(
+            event = showEventOptions!!,
+            onDismissRequest = { showEventOptions = null },
+            onToggleStatus = { viewModel.toggleEventStatus(it) },
+            onSkip = { viewModel.skipEvent(it) },
+            onReschedule = { 
+                showReschedulePicker = it
+            },
+            onDelete = { viewModel.deleteEvent(it) },
+            onResetStatus = { viewModel.resetEventStatus(it) }
+        )
+    }
+
+    if (showReschedulePicker != null) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = showReschedulePicker!!.scheduledAt.toEpochMilliseconds()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showReschedulePicker = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val newDate = Instant.fromEpochMilliseconds(millis)
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                        viewModel.rescheduleEvent(showReschedulePicker!!, newDate)
+                    }
+                    showReschedulePicker = null
+                }) {
+                    Text(stringResource(Res.string.common_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReschedulePicker = null }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
@@ -75,6 +134,9 @@ fun PlantDetailScreen(
 private fun PlantDetailContent(
     plant: Plant,
     nextEvent: CareEvent?,
+    careRules: List<CareRule>,
+    onShowOptions: (CareEvent) -> Unit,
+    onImageClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -84,9 +146,14 @@ private fun PlantDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header / Icon
+        // Header
         Surface(
-            modifier = Modifier.fillMaxWidth().height(240.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .clickable(enabled = plant.imageUrl != null) {
+                    plant.imageUrl?.let { onImageClick(it) }
+                },
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.primaryContainer
         ) {
@@ -143,7 +210,7 @@ private fun PlantDetailContent(
             }
         }
 
-        // Description Section
+        // Description
         plant.description?.takeIf { it.isNotBlank() }?.let {
             Column {
                 Text(
@@ -160,17 +227,72 @@ private fun PlantDetailContent(
             }
         }
 
+        // Configured Care Rules Section
+        if (careRules.isNotEmpty()) {
+            Column {
+                Text(
+                    text = stringResource(Res.string.care_rules_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                careRules.forEach { rule ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val icon = when (rule) {
+                                is WaterCareRule -> Icons.Default.WaterDrop
+                                is FertilizeCareRule -> Icons.Default.Science
+                                is RepotCareRule -> Icons.Default.HomeRepairService
+                            }
+                            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = when (rule) {
+                                        is WaterCareRule -> stringResource(Res.string.care_type_water)
+                                        is FertilizeCareRule -> stringResource(Res.string.care_type_fertilize)
+                                        is RepotCareRule -> stringResource(Res.string.care_type_repot)
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                )
+                                Text(
+                                    text = when (val rec = rule.recurrence) {
+                                        is RecurrenceRule.Once -> stringResource(Res.string.care_recurrence_once)
+                                        is RecurrenceRule.Periodic -> stringResource(Res.string.care_recurrence_periodic, rec.everyDays)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Next Care Section
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clickable(enabled = nextEvent != null) { nextEvent?.let { onShowOptions(it) } },
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = stringResource(Res.string.plant_detail_next_care),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(Res.string.plant_detail_next_care),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (nextEvent != null) {
+                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 if (nextEvent != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

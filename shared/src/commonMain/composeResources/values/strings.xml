@@ -2,6 +2,7 @@
     <string name="app_name">Plantitas App</string>
     <string name="home_title">Mis Plantitas</string>
     <string name="home_welcome">¡Bienvenido a tu jardín digital!</string>
+    <string name="home_empty_description">Parece que aún no tienes ninguna planta. ¡Empieza añadiendo la primera!</string>
     <string name="home_add_plant">Nueva Planta</string>
     <string name="home_add_plant_description">Añadir Planta</string>
     <string name="home_plant_name">Nombre</string>
@@ -40,6 +41,8 @@
     <string name="plant_form_save_changes">Guardar Cambios</string>
     <string name="plant_form_delete_dialog_title">Eliminar planta</string>
     <string name="plant_form_delete_dialog_message">¿Estás seguro de que quieres eliminar '%1$s'?</string>
+    <string name="plant_form_cancel_dialog_title">Descartar cambios</string>
+    <string name="plant_form_cancel_dialog_message">Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?</string>
 
     <!-- Configuración -->
     <string name="settings_title">Configuración</string>
@@ -95,6 +98,14 @@
     <string name="care_fertilizer_default_name">Abono</string>
     <string name="care_repot_pot_size_label">Nuevo tamaño de maceta</string>
     <string name="common_confirm">Confirmar</string>
+    <string name="common_discard">Descartar</string>
+    <string name="care_action_done">Marcar como hecho</string>
+    <string name="care_action_reset">Restablecer a pendiente</string>
+    <string name="care_action_skip">Saltar</string>
+    <string name="care_action_delete">Eliminar evento</string>
+    <string name="care_action_view_plant">Ver planta</string>
+    <string name="care_action_reschedule">Reprogramar</string>
+    <string name="care_dialog_reschedule_title">Reprogramar tarea</string>
 
     <!-- Months -->
     <string name="month_january">Enero</string>

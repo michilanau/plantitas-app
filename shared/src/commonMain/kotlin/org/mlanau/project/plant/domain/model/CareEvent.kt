@@ -1,6 +1,6 @@
 package org.mlanau.project.plant.domain.model
 
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 enum class CareEventStatus { PENDING, DONE, SKIPPED }
 

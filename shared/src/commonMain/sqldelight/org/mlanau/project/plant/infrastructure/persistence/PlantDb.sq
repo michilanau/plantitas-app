@@ -115,6 +115,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 updateCareEventStatus:
 UPDATE careEventEntity SET status = ?, completedAt = ? WHERE id = ?;
 
+updateCareEvent:
+UPDATE careEventEntity
+SET scheduledAt = ?, status = ?, completedAt = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
+WHERE id = ?;
+
 deleteCareEvent:
 DELETE FROM careEventEntity WHERE id = ?;
 

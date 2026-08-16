@@ -2,6 +2,7 @@
     <string name="app_name">Plantitas App</string>
     <string name="home_title">My Plants</string>
     <string name="home_welcome">Welcome to your digital garden!</string>
+    <string name="home_empty_description">It seems you don't have any plants yet. Start by adding your first one!</string>
     <string name="home_add_plant">New Plant</string>
     <string name="home_add_plant_description">Add Plant</string>
     <string name="home_plant_name">Name</string>
@@ -40,6 +41,8 @@
     <string name="plant_form_save_changes">Save Changes</string>
     <string name="plant_form_delete_dialog_title">Delete plant</string>
     <string name="plant_form_delete_dialog_message">Are you sure you want to delete '%1$s'?</string>
+    <string name="plant_form_cancel_dialog_title">Discard changes</string>
+    <string name="plant_form_cancel_dialog_message">You have unsaved changes. Are you sure you want to leave?</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -95,6 +98,14 @@
     <string name="care_fertilizer_default_name">Fertilizer</string>
     <string name="care_repot_pot_size_label">New pot size</string>
     <string name="common_confirm">Confirm</string>
+    <string name="common_discard">Discard</string>
+    <string name="care_action_done">Mark as done</string>
+    <string name="care_action_reset">Reset to pending</string>
+    <string name="care_action_skip">Skip</string>
+    <string name="care_action_delete">Delete event</string>
+    <string name="care_action_view_plant">View plant</string>
+    <string name="care_action_reschedule">Reschedule</string>
+    <string name="care_dialog_reschedule_title">Reschedule task</string>
 
     <!-- Months -->
     <string name="month_january">January</string>

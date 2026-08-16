@@ -6,6 +6,8 @@ import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mlanau.project.plant.application.DeletePlant
+import org.mlanau.project.plant.application.DeleteCareEvent
+import org.mlanau.project.plant.application.ResetCareEventStatus
 import org.mlanau.project.plant.application.FindAllPlants
 import org.mlanau.project.plant.application.FindPlantById
 import org.mlanau.project.plant.application.CreatePlant
@@ -15,6 +17,8 @@ import org.mlanau.project.plant.application.GetCalendarEvents
 import org.mlanau.project.plant.application.GetCareRules
 import org.mlanau.project.plant.application.GetNextCareEvent
 import org.mlanau.project.plant.application.SaveCareRule
+import org.mlanau.project.plant.application.SkipCareEvent
+import org.mlanau.project.plant.application.RescheduleCareEvent
 import org.mlanau.project.plant.application.ToggleCareEventStatus
 import org.mlanau.project.plant.application.UpdatePlant
 import org.mlanau.project.plant.domain.repository.CareRepository
@@ -53,6 +57,10 @@ val plantModule = module {
     factoryOf(::GetCalendarEvents)
     factoryOf(::GetNextCareEvent)
     factoryOf(::ToggleCareEventStatus)
+    factoryOf(::SkipCareEvent)
+    factoryOf(::RescheduleCareEvent)
+    factoryOf(::DeleteCareEvent)
+    factoryOf(::ResetCareEventStatus)
 
     // ViewModels
     viewModelOf(::HomeViewModel)

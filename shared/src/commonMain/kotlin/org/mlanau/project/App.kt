@@ -18,6 +18,7 @@ import org.mlanau.project.settings.presentation.AboutScreen
 import org.mlanau.project.settings.presentation.SettingsScreen
 import org.mlanau.project.shared.ui.AppLocaleWrapper
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
+import org.mlanau.project.shared.platform.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
@@ -46,7 +47,29 @@ fun App() {
 
     AppLocaleWrapper(languageCode = settingsState.languageCode) {
         PlantitasTheme(darkTheme = darkTheme) {
-            var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
+            var navigationStack by remember { mutableStateOf(listOf<Screen>(Screen.Home)) }
+            val currentScreen = navigationStack.last()
+
+            fun navigateTo(screen: Screen) {
+                if (screen is Screen.Home || screen is Screen.Calendar) {
+                    navigationStack = listOf(screen)
+                } else {
+                    navigationStack = navigationStack + screen
+                }
+            }
+
+            fun goBack() {
+                if (navigationStack.size > 1) {
+                    navigationStack = navigationStack.dropLast(1)
+                } else if (currentScreen is Screen.Calendar) {
+                    navigateTo(Screen.Home)
+                }
+            }
+
+            BackHandler(enabled = navigationStack.size > 1 || currentScreen is Screen.Calendar) {
+                goBack()
+            }
+
             val homeViewModel = koinViewModel<HomeViewModel>()
             val calendarViewModel = koinViewModel<CalendarViewModel>()
             val plantFormViewModel = koinViewModel<PlantFormViewModel>()
@@ -60,14 +83,14 @@ fun App() {
                                 icon = { Icon(Icons.Default.Home, contentDescription = null) },
                                 label = { Text(stringResource(Res.string.nav_plants)) },
                                 selected = currentScreen is Screen.Home,
-                                onClick = { currentScreen = Screen.Home }
+                                onClick = { navigateTo(Screen.Home) }
                             )
                             NavigationBarItem(
                                 icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
                                 label = { Text(stringResource(Res.string.nav_calendar)) },
                                 selected = currentScreen is Screen.Calendar,
                                 onClick = { 
-                                    currentScreen = Screen.Calendar
+                                    navigateTo(Screen.Calendar)
                                     calendarViewModel.resetToToday()
                                 }
                             )
@@ -79,39 +102,32 @@ fun App() {
                     when (val screen = currentScreen) {
                         is Screen.Home -> HomeScreen(
                             viewModel = homeViewModel,
-                            onNavigateToSettings = { currentScreen = Screen.Settings },
-                            onNavigateToPlantDetail = { plantId -> currentScreen = Screen.PlantDetail(plantId) },
-                            onNavigateToPlantForm = { plant -> currentScreen = Screen.PlantForm(plant) }
+                            onNavigateToSettings = { navigateTo(Screen.Settings) },
+                            onNavigateToPlantDetail = { plantId -> navigateTo(Screen.PlantDetail(plantId)) },
+                            onNavigateToPlantForm = { plant -> navigateTo(Screen.PlantForm(plant)) }
                         )
                         is Screen.PlantDetail -> PlantDetailScreen(
                             viewModel = plantDetailViewModel,
                             plantId = screen.plantId,
-                            onBack = { currentScreen = Screen.Home },
-                            onEdit = { plant -> currentScreen = Screen.PlantForm(plant) }
+                            onBack = { goBack() },
+                            onEdit = { plant -> navigateTo(Screen.PlantForm(plant)) }
                         )
                         is Screen.Calendar -> CalendarScreen(
-                            viewModel = calendarViewModel
+                            viewModel = calendarViewModel,
+                            onNavigateToPlantDetail = { plantId -> navigateTo(Screen.PlantDetail(plantId)) }
                         )
                         is Screen.PlantForm -> PlantFormScreen(
                             viewModel = plantFormViewModel,
                             initialPlant = screen.plant,
-                            onBack = { 
-                                // If we came from detail, go back to detail. 
-                                // For simplicity, we can just go to home or detail if ID exists.
-                                if (screen.plant?.id != null) {
-                                    currentScreen = Screen.PlantDetail(screen.plant.id)
-                                } else {
-                                    currentScreen = Screen.Home 
-                                }
-                            }
+                            onBack = { goBack() }
                         )
                         is Screen.Settings -> SettingsScreen(
                             viewModel = settingsViewModel,
-                            onBack = { currentScreen = Screen.Home },
-                            onNavigateToAbout = { currentScreen = Screen.About }
+                            onBack = { goBack() },
+                            onNavigateToAbout = { navigateTo(Screen.About) }
                         )
                         is Screen.About -> AboutScreen(
-                            onBack = { currentScreen = Screen.Settings }
+                            onBack = { goBack() }
                         )
                     }
                 }

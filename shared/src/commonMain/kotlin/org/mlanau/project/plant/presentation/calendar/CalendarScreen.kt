@@ -15,9 +15,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import kotlin.time.Clock
 import kotlinx.datetime.*
 import org.mlanau.project.plant.application.CareEventWithPlantName
@@ -25,14 +24,20 @@ import org.mlanau.project.plant.domain.model.*
 import org.jetbrains.compose.resources.stringResource
 import plantitas_app.shared.generated.resources.*
 
+import org.mlanau.project.plant.presentation.component.CareEventActionDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
-    viewModel: CalendarViewModel
+    viewModel: CalendarViewModel,
+    onNavigateToPlantDetail: (Int) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val viewMonth = uiState.viewMonth
     val viewYear = uiState.viewYear
+    
+    var showEventOptions by remember { mutableStateOf<CareEvent?>(null) }
+    var showReschedulePicker by remember { mutableStateOf<CareEvent?>(null) }
 
     Scaffold(
         topBar = {
@@ -88,11 +93,54 @@ fun CalendarScreen(
                     items(selectedDateEvents) { eventWithPlant ->
                         EventItem(
                             eventWithPlant = eventWithPlant,
-                            onToggleStatus = { viewModel.toggleEventStatus(eventWithPlant.event) }
+                            onToggleStatus = { viewModel.toggleEventStatus(eventWithPlant.event) },
+                            onShowOptions = { showEventOptions = eventWithPlant.event },
+                            onClick = { onNavigateToPlantDetail(eventWithPlant.event.plantId) }
                         )
                     }
                 }
             }
+        }
+    }
+
+    if (showEventOptions != null) {
+        CareEventActionDialog(
+            event = showEventOptions!!,
+            onDismissRequest = { showEventOptions = null },
+            onToggleStatus = { viewModel.toggleEventStatus(it) },
+            onSkip = { viewModel.skipEvent(it) },
+            onReschedule = { showReschedulePicker = it },
+            onDelete = { viewModel.onDeleteEvent(it) },
+            onResetStatus = { viewModel.onResetEventStatus(it) },
+            onViewPlant = { onNavigateToPlantDetail(it) }
+        )
+    }
+
+    if (showReschedulePicker != null) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = showReschedulePicker!!.scheduledAt.toEpochMilliseconds()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showReschedulePicker = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val newDate = Instant.fromEpochMilliseconds(millis)
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                        viewModel.rescheduleEvent(showReschedulePicker!!, newDate)
+                    }
+                    showReschedulePicker = null
+                }) {
+                    Text(stringResource(Res.string.common_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReschedulePicker = null }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
@@ -201,16 +249,20 @@ private fun getEventColor(event: CareEvent): Color = when (event) {
 @Composable
 private fun EventItem(
     eventWithPlant: CareEventWithPlantName,
-    onToggleStatus: () -> Unit
+    onToggleStatus: () -> Unit,
+    onShowOptions: () -> Unit,
+    onClick: () -> Unit
 ) {
     val event = eventWithPlant.event
     val resolvedPlantName = eventWithPlant.plantName ?: stringResource(Res.string.calendar_unknown_plant)
     
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onToggleStatus() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         colors = CardDefaults.cardColors(
             containerColor = if (event.status == CareEventStatus.DONE)
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                else if (event.status == CareEventStatus.SKIPPED)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 else MaterialTheme.colorScheme.surface
         )
     ) {
@@ -236,10 +288,12 @@ private fun EventItem(
                     style = MaterialTheme.typography.titleMedium,
                     textDecoration = if (event.status == CareEventStatus.DONE)
                         androidx.compose.ui.text.style.TextDecoration.LineThrough
+                        else if (event.status == CareEventStatus.SKIPPED)
+                        androidx.compose.ui.text.style.TextDecoration.LineThrough
                         else null
                 )
                 Text(
-                    text = "${localDateTime.time.hour}:${localDateTime.time.minute.toString().padStart(2, '0')}",
+                    text = "${localDateTime.time.hour}:${localDateTime.time.minute.toString().padStart(2, '0')}${if (event.status == CareEventStatus.SKIPPED) " (Saltado)" else ""}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -247,6 +301,9 @@ private fun EventItem(
                 checked = event.status == CareEventStatus.DONE,
                 onCheckedChange = { onToggleStatus() }
             )
+            IconButton(onClick = onShowOptions) {
+                Icon(Icons.Default.MoreVert, contentDescription = null)
+            }
         }
     }
 }

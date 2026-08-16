@@ -1,5 +1,6 @@
 package org.mlanau.project.shared.platform
 
+import androidx.compose.runtime.Composable
 import platform.UIKit.UIDevice
 
 class IOSPlatform: Platform {
@@ -7,3 +8,8 @@ class IOSPlatform: Platform {
 }
 
 actual fun getPlatform(): Platform = IOSPlatform()
+
+@Composable
+actual fun BackHandler(enabled: Boolean, onBack: () -> Unit) {
+    // No-op for iOS as it doesn't have a system back button like Android
+}

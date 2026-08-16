@@ -14,7 +14,13 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
@@ -50,6 +56,19 @@ fun PlantFormScreen(
     var selectedPotSize by remember { mutableStateOf<PotSize?>(initialPlant?.potSize) }
     var imageUrl by remember { mutableStateOf(initialPlant?.imageUrl) }
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+
+    val focusManager = LocalFocusManager.current
+    
+    val hasChanges = remember(name, description, location, selectedLightNeed, selectedPotSize, imageBytes) {
+        name != (initialPlant?.name ?: "") ||
+        description != (initialPlant?.description ?: "") ||
+        location != (initialPlant?.location ?: "") ||
+        selectedLightNeed != initialPlant?.lightNeed ||
+        selectedPotSize != initialPlant?.potSize ||
+        imageBytes != null
+    }
+
+    var showCancelConfirmation by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val launcher = rememberImagePickerLauncher(
@@ -88,7 +107,9 @@ fun PlantFormScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = {
+                        if (hasChanges) showCancelConfirmation = true else onBack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
                     }
                 },
@@ -104,6 +125,47 @@ fun PlantFormScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            Surface(
+                tonalElevation = 8.dp,
+                shadowElevation = 8.dp
+            ) {
+                Button(
+                    onClick = {
+                        val finalImageUrl = imageBytes?.let { "data:image/png;base64,${kotlin.io.encoding.Base64.encode(it)}" } ?: imageUrl
+                        
+                        viewModel.onSavePlant(
+                            id = initialPlant?.id,
+                            name = name,
+                            description = description,
+                            location = location,
+                            lightNeed = selectedLightNeed,
+                            potSize = selectedPotSize,
+                            imageUrl = finalImageUrl,
+                            createdAt = initialPlant?.createdAt
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(56.dp),
+                    enabled = !uiState.isSaving && name.isNotBlank(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Icon(Icons.Default.Done, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (initialPlant == null) stringResource(Res.string.home_button_add)
+                            else stringResource(Res.string.plant_form_save_changes),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -195,7 +257,14 @@ fun PlantFormScreen(
                     enabled = !uiState.isSaving,
                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                     singleLine = true,
-                    shape = MaterialTheme.shapes.medium
+                    shape = MaterialTheme.shapes.medium,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    )
                 )
                 if (uiState.error != null) {
                     Text(
@@ -215,7 +284,14 @@ fun PlantFormScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSaving,
                 leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
-                shape = MaterialTheme.shapes.medium
+                shape = MaterialTheme.shapes.medium,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                )
             )
 
             // Location Field
@@ -226,7 +302,14 @@ fun PlantFormScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSaving,
                 leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-                shape = MaterialTheme.shapes.medium
+                shape = MaterialTheme.shapes.medium,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() }
+                )
             )
 
             // Light Need Selector
@@ -304,39 +387,24 @@ fun PlantFormScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
 
-            Button(
-                onClick = {
-                    // For demo purposes, we encode the image to base64 to store it in the TEXT field
-                    val finalImageUrl = imageBytes?.let { "data:image/png;base64,${kotlin.io.encoding.Base64.encode(it)}" } ?: imageUrl
-                    
-                    viewModel.onSavePlant(
-                        id = initialPlant?.id,
-                        name = name,
-                        description = description,
-                        location = location,
-                        lightNeed = selectedLightNeed,
-                        potSize = selectedPotSize,
-                        imageUrl = finalImageUrl,
-                        createdAt = initialPlant?.createdAt
-                    )
+        if (showCancelConfirmation) {
+            AlertDialog(
+                onDismissRequest = { showCancelConfirmation = false },
+                title = { Text(stringResource(Res.string.plant_form_cancel_dialog_title)) },
+                text = { Text(stringResource(Res.string.plant_form_cancel_dialog_message)) },
+                confirmButton = {
+                    TextButton(onClick = onBack) {
+                        Text(stringResource(Res.string.common_discard), color = MaterialTheme.colorScheme.error)
+                    }
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                enabled = !uiState.isSaving && name.isNotBlank(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Icon(Icons.Default.Done, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (initialPlant == null) stringResource(Res.string.home_button_add)
-                        else stringResource(Res.string.plant_form_save_changes),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                dismissButton = {
+                    TextButton(onClick = { showCancelConfirmation = false }) {
+                        Text(stringResource(Res.string.common_cancel))
+                    }
                 }
-            }
+            )
         }
 
         if (isDeleteDialogOpen) {
@@ -645,7 +713,8 @@ private fun CareRuleDialog(
                             onValueChange = { fertilizerName = it },
                             label = { Text(strFertilizerName) },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
+                            shape = MaterialTheme.shapes.medium,
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                         )
                     }
                     CareType.REPOT -> {

@@ -124,26 +124,47 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
             is FertilizeCareEvent -> "FERTILIZE"
             is RepotCareEvent -> "REPOT"
         }
-        queries.insertCareEvent(
-            careRuleId = event.careRuleId.toLong(),
-            plantId = event.plantId.toLong(),
-            type = type,
-            scheduledAt = event.scheduledAt.toString(),
-            status = event.status.name,
-            completedAt = event.completedAt?.toString(),
-            originalScheduledAt = event.originalScheduledAt?.toString(),
-            amountMl = when (event) {
-                is WaterCareEvent -> event.amountMl?.toLong()
-                is FertilizeCareEvent -> event.doseMl?.toLong()
-                else -> null
-            },
-            useFilteredWater = if (event is WaterCareEvent) (if (event.useFilteredWater) 1L else 0L) else null,
-            fertilizerName = (event as? FertilizeCareEvent)?.fertilizerName,
-            doseMl = (event as? FertilizeCareEvent)?.doseMl?.toLong(),
-            dilutionRatio = (event as? FertilizeCareEvent)?.dilutionRatio,
-            newPotSize = (event as? RepotCareEvent)?.newPotSize?.name,
-            substrateType = (event as? RepotCareEvent)?.substrateType
-        )
+        val eventId = event.id
+        if (eventId != null) {
+            queries.updateCareEvent(
+                scheduledAt = event.scheduledAt.toString(),
+                status = event.status.name,
+                completedAt = event.completedAt?.toString(),
+                amountMl = when (event) {
+                    is WaterCareEvent -> event.amountMl?.toLong()
+                    is FertilizeCareEvent -> event.doseMl?.toLong()
+                    else -> null
+                },
+                useFilteredWater = if (event is WaterCareEvent) (if (event.useFilteredWater) 1L else 0L) else null,
+                fertilizerName = (event as? FertilizeCareEvent)?.fertilizerName,
+                doseMl = (event as? FertilizeCareEvent)?.doseMl?.toLong(),
+                dilutionRatio = (event as? FertilizeCareEvent)?.dilutionRatio,
+                newPotSize = (event as? RepotCareEvent)?.newPotSize?.name,
+                substrateType = (event as? RepotCareEvent)?.substrateType,
+                id = eventId.toLong()
+            )
+        } else {
+            queries.insertCareEvent(
+                careRuleId = event.careRuleId.toLong(),
+                plantId = event.plantId.toLong(),
+                type = type,
+                scheduledAt = event.scheduledAt.toString(),
+                status = event.status.name,
+                completedAt = event.completedAt?.toString(),
+                originalScheduledAt = event.originalScheduledAt?.toString(),
+                amountMl = when (event) {
+                    is WaterCareEvent -> event.amountMl?.toLong()
+                    is FertilizeCareEvent -> event.doseMl?.toLong()
+                    else -> null
+                },
+                useFilteredWater = if (event is WaterCareEvent) (if (event.useFilteredWater) 1L else 0L) else null,
+                fertilizerName = (event as? FertilizeCareEvent)?.fertilizerName,
+                doseMl = (event as? FertilizeCareEvent)?.doseMl?.toLong(),
+                dilutionRatio = (event as? FertilizeCareEvent)?.dilutionRatio,
+                newPotSize = (event as? RepotCareEvent)?.newPotSize?.name,
+                substrateType = (event as? RepotCareEvent)?.substrateType
+            )
+        }
     }
 
     override suspend fun updateEventStatus(eventId: Int, status: CareEventStatus, completedAt: Instant?) {

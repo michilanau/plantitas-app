@@ -9,6 +9,10 @@ import kotlinx.datetime.*
 import org.mlanau.project.plant.application.CareEventWithPlantName
 import org.mlanau.project.plant.application.GetCalendarEvents
 import org.mlanau.project.plant.application.ToggleCareEventStatus
+import org.mlanau.project.plant.application.SkipCareEvent
+import org.mlanau.project.plant.application.RescheduleCareEvent
+import org.mlanau.project.plant.application.DeleteCareEvent
+import org.mlanau.project.plant.application.ResetCareEventStatus
 import org.mlanau.project.plant.domain.model.*
 
 data class CalendarUiState(
@@ -21,7 +25,11 @@ data class CalendarUiState(
 
 class CalendarViewModel(
     private val getCalendarEvents: GetCalendarEvents,
-    private val toggleCareEventStatus: ToggleCareEventStatus
+    private val toggleCareEventStatus: ToggleCareEventStatus,
+    private val skipCareEvent: SkipCareEvent,
+    private val rescheduleCareEvent: RescheduleCareEvent,
+    private val deleteCareEvent: DeleteCareEvent,
+    private val resetCareEventStatus: ResetCareEventStatus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalendarUiState())
@@ -83,6 +91,33 @@ class CalendarViewModel(
     fun toggleEventStatus(event: CareEvent) {
         viewModelScope.launch {
             toggleCareEventStatus(event)
+        }
+    }
+
+    fun skipEvent(event: CareEvent) {
+        viewModelScope.launch {
+            skipCareEvent(event)
+        }
+    }
+
+    fun onDeleteEvent(event: CareEvent) {
+        viewModelScope.launch {
+            event.id?.let { deleteCareEvent(it) }
+        }
+    }
+
+    fun onResetEventStatus(event: CareEvent) {
+        viewModelScope.launch {
+            resetCareEventStatus(event)
+        }
+    }
+
+    fun rescheduleEvent(event: CareEvent, newDate: LocalDate) {
+        viewModelScope.launch {
+            val timeZone = TimeZone.currentSystemDefault()
+            val currentDateTime = event.scheduledAt.toLocalDateTime(timeZone)
+            val newInstant = LocalDateTime(newDate, currentDateTime.time).toInstant(timeZone)
+            rescheduleCareEvent(event, newInstant)
         }
     }
 }
