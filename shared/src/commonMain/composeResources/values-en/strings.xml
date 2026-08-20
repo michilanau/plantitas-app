@@ -100,12 +100,34 @@
     <string name="common_confirm">Confirm</string>
     <string name="common_discard">Discard</string>
     <string name="care_action_done">Mark as done</string>
-    <string name="care_action_reset">Reset to pending</string>
     <string name="care_action_skip">Skip</string>
-    <string name="care_action_delete">Delete event</string>
     <string name="care_action_view_plant">View plant</string>
-    <string name="care_action_reschedule">Reschedule</string>
-    <string name="care_dialog_reschedule_title">Reschedule task</string>
+    <string name="care_action_undo">Undo</string>
+    <string name="care_occurrence_options_title">Task options</string>
+    <string name="care_log_options_title">Log options</string>
+
+    <!-- Log care -->
+    <string name="care_log_action">Log care</string>
+    <string name="care_log_dialog_title">Log care</string>
+    <string name="care_log_plant_label">Plant</string>
+    <string name="care_log_date_label">What day did you do it?</string>
+    <string name="care_log_note_label">Note (optional)</string>
+    <string name="care_log_future_error">You can't log a care in the future</string>
+    <string name="care_log_saved">Care logged</string>
+    <string name="care_log_undone">Log undone</string>
+
+    <!-- Care status -->
+    <string name="care_overdue_label">Overdue</string>
+    <string name="care_never_done">No care logged yet</string>
+    <string name="care_days_without_care">%1$d days without %2$s</string>
+    <string name="care_verb_water">watering</string>
+    <string name="care_verb_fertilize">fertilizing</string>
+    <string name="care_verb_repot">repotting</string>
+    <string name="plant_detail_no_upcoming_care">No care scheduled</string>
+
+    <!-- History -->
+    <string name="care_history_title">History</string>
+    <string name="care_history_empty">No care logged yet</string>
 
     <!-- Months -->
     <string name="month_january">January</string>
@@ -120,4 +142,16 @@
     <string name="month_october">October</string>
     <string name="month_november">November</string>
     <string name="month_december">December</string>
+
+    <!-- Care reminder notifications: shared between the Android and iOS schedulers so the copy
+         only lives in one place. -->
+    <string name="notification_title">Time to care for your plant!</string>
+    <string name="notification_water">Tap to water your %1$s</string>
+    <string name="notification_fertilize">Tap to fertilize your %1$s</string>
+    <string name="notification_repot">Tap to repot your %1$s</string>
+    <!-- Shown instead of the ones above once there's at least one logged care for the (plant,
+         type): %2$d is the days since that log, measured at the instant the reminder fires. -->
+    <string name="notification_water_overdue">Your %1$s has gone %2$d days without water</string>
+    <string name="notification_fertilize_overdue">Your %1$s has gone %2$d days without fertilizer</string>
+    <string name="notification_repot_overdue">Your %1$s has been waiting %2$d days to be repotted</string>
 </resources>

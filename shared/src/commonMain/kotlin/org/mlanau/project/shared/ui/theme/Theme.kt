@@ -4,8 +4,41 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+
+/**
+ * The theme deliberately has no dependency on the domain layer: it only exposes color tokens.
+ * Mapping a domain type (e.g. [org.mlanau.project.plant.domain.model.CareDetails]) to one of these
+ * colors lives in `plant/presentation/component/CareEventColor.kt`, next to the other presentation
+ * mapping helpers.
+ */
+data class CareColors(
+    val water: Color,
+    val fertilize: Color,
+    val repot: Color,
+    /** Shared across all three types for an overdue occurrence — distinguishing overdue is a
+     * status, not a task type, so it deliberately doesn't get its own per-type variants. */
+    val overdue: Color
+)
+
+val LightCareColors = CareColors(
+    water = Color(0xFF1976D2),
+    fertilize = Color(0xFF388E3C),
+    repot = Color(0xFF795548),
+    overdue = Color(0xFFB00020)
+)
+
+val DarkCareColors = CareColors(
+    water = Color(0xFF64B5F6),
+    fertilize = Color(0xFF81C784),
+    repot = Color(0xFFD7CCC8),
+    overdue = Color(0xFFEF9A9A)
+)
+
+val LocalCareColors = staticCompositionLocalOf { LightCareColors }
 
 // Definición de colores inspirados en plantas (Verdes y naturales)
 private val LightColors = lightColorScheme(
@@ -51,10 +84,15 @@ fun PlantitasTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColors else LightColors
+    val careColors = if (darkTheme) DarkCareColors else LightCareColors
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        shapes = Shapes,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalCareColors provides careColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            shapes = Shapes,
+            content = content
+        )
+    }
 }

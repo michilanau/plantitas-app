@@ -15,6 +15,8 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.androidx.activity.compose)
     implementation(libs.kotlinx.datetime)
+    // AndroidCareNotificationScheduler resolves shared notification copy via Res.string.* / getString.
+    implementation(libs.compose.components.resources)
 
     // Force CameraX to a version that is 16 KB page size aligned
     implementation(libs.androidx.camera.core)

@@ -1,14 +1,15 @@
 package org.mlanau.project.plant.application
 
 import kotlin.time.Clock
-import kotlin.time.Instant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.Plant
+import org.mlanau.project.plant.domain.model.PlantId
 import org.mlanau.project.plant.domain.model.PotSize
 import org.mlanau.project.plant.domain.repository.PlantRepository
 
 class CreatePlant(
-    private val repository: PlantRepository
+    private val repository: PlantRepository,
+    private val clock: Clock = Clock.System
 ) {
     suspend operator fun invoke(
         name: String,
@@ -17,16 +18,16 @@ class CreatePlant(
         lightNeed: LightNeed? = null,
         potSize: PotSize? = null,
         imageUrl: String? = null
-    ): Result<Int> {
-        return runCatching {
-            val plant = Plant(
+    ): Result<PlantId> {
+        return runCatchingDomainErrors {
+            val plant = Plant.create(
                 name = name,
-                description = description?.takeIf { it.isNotBlank() },
-                location = location?.takeIf { it.isNotBlank() },
+                description = description,
+                location = location,
                 lightNeed = lightNeed,
                 potSize = potSize,
-                imageUrl = imageUrl?.takeIf { it.isNotBlank() },
-                createdAt = Clock.System.now()
+                imageUrl = imageUrl,
+                createdAt = clock.now()
             )
             repository.save(plant)
         }

@@ -6,8 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.LocalDateTime
 import org.mlanau.project.plant.domain.model.Plant
+import org.mlanau.project.plant.domain.model.PlantId
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PotSize
 import org.mlanau.project.plant.domain.repository.PlantRepository
@@ -22,13 +22,14 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
         }
     }
 
-    override suspend fun findById(id: Int): Plant? {
-        return queries.selectPlantById(id.toLong()).executeAsOneOrNull()?.toDomain()
+    override suspend fun findById(id: PlantId): Plant? {
+        return queries.selectPlantById(id.value.toLong()).executeAsOneOrNull()?.toDomain()
     }
 
-    override suspend fun save(plant: Plant): Int {
+    override suspend fun save(plant: Plant): PlantId {
         val createdAtIso = plant.createdAt.toString()
-        if (plant.id != null) {
+        val id = plant.id
+        if (id != null) {
             queries.updatePlant(
                 name = plant.name,
                 description = plant.description,
@@ -37,9 +38,9 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 potSize = plant.potSize?.name,
                 imageUrl = plant.imageUrl,
                 createdAt = createdAtIso,
-                id = plant.id.toLong()
+                id = id.value.toLong()
             )
-            return plant.id
+            return id
         } else {
             queries.insertPlant(
                 name = plant.name,
@@ -50,17 +51,17 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
                 imageUrl = plant.imageUrl,
                 createdAt = createdAtIso
             )
-            return queries.lastInsertId().executeAsOne().toInt()
+            return PlantId(queries.lastInsertId().executeAsOne().toInt())
         }
     }
 
-    override suspend fun delete(id: Int) {
-        queries.deletePlant(id.toLong())
+    override suspend fun delete(id: PlantId) {
+        queries.deletePlant(id.value.toLong())
     }
 
     private fun PlantEntity.toDomain(): Plant {
         return Plant(
-            id = id.toInt(),
+            id = PlantId(id.toInt()),
             name = name,
             description = description,
             location = location,

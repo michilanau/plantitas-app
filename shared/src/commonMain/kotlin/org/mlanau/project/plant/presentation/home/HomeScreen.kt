@@ -26,13 +26,14 @@ import org.mlanau.project.plant.domain.model.PotSize
 import plantitas_app.shared.generated.resources.*
 import coil3.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import org.mlanau.project.plant.presentation.localizedMessage
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToPlantDetail: (Int) -> Unit,
-    onNavigateToPlantForm: (Plant?) -> Unit
+    onNavigateToPlantForm: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -52,13 +53,13 @@ fun HomeContent(
     onNavigateToSettings: () -> Unit,
     onClearError: () -> Unit,
     onNavigateToPlantDetail: (Int) -> Unit,
-    onNavigateToPlantForm: (Plant?) -> Unit
+    onNavigateToPlantForm: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
-    uiState.error?.let { errorRes ->
-        val errorMessage = stringResource(errorRes)
-        LaunchedEffect(errorRes) {
+    uiState.error?.let { error ->
+        val errorMessage = error.localizedMessage()
+        LaunchedEffect(error) {
             snackbarHostState.showSnackbar(errorMessage)
             onClearError()
         }
@@ -81,7 +82,7 @@ fun HomeContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onNavigateToPlantForm(null) },
+                onClick = { onNavigateToPlantForm() },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -124,7 +125,7 @@ fun HomeContent(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
-                    onClick = { onNavigateToPlantForm(null) },
+                    onClick = { onNavigateToPlantForm() },
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
@@ -143,7 +144,7 @@ fun HomeContent(
                 items(uiState.plants) { plant ->
                     PlantItem(
                         plant = plant,
-                        onClick = { plant.id?.let { onNavigateToPlantDetail(it) } }
+                        onClick = { plant.id?.let { onNavigateToPlantDetail(it.value) } }
                     )
                 }
             }

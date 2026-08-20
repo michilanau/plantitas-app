@@ -6,6 +6,14 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.kotlinSerialization)
+}
+
+compose.resources {
+    // AndroidCareNotificationScheduler lives in :androidApp (it needs that module's own R class
+    // and MainActivity — see its class doc) but still resolves shared notification copy from here,
+    // so the generated Res accessor needs to be visible outside this module.
+    publicResClass = true
 }
 
 kotlin {
@@ -54,6 +62,8 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.androidx.navigation.compose)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.compose.icons.extended)
             implementation(libs.kotlinx.datetime)
             
@@ -70,9 +80,8 @@ kotlin {
             // SQLDelight
             implementation(libs.sqldelight.coroutines.extensions)
 
-            // Coil
+            // Coil (compose-only: every image is local, there's no network image loading)
             implementation(libs.coil.compose)
-            implementation(libs.coil.network.ktor)
 
             // Peekaboo
             implementation(libs.peekaboo.ui)
@@ -86,6 +95,13 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.koin.test)
         }
+        getByName("androidHostTest") {
+            dependencies {
+                // Konsist parses .kt source files directly (JVM-only, no Kotlin/Native artifact),
+                // so the architecture tests live in this JVM-only test source set.
+                implementation(libs.konsist)
+            }
+        }
     }
 }
 
@@ -96,6 +112,17 @@ sqldelight {
     databases {
         create("PlantDb") {
             packageName.set("org.mlanau.project.plant.infrastructure.persistence")
+            verifyMigrations.set(true)
+            // Must live inside the sqldelight source folder (not build/): VerifyMigrationTask looks
+            // for the versioned .db snapshot among the .sq/.sqm source folders, not in build outputs.
+            // This snapshot is meant to be checked into version control alongside the migrations.
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+            // Pre-release policy: the app isn't published yet, so the schema lives entirely in
+            // PlantDb.sq and there are no .sqm migrations. Edit PlantDb.sq directly and clear the
+            // local database (reinstall / adb shell pm clear) after a schema change instead of
+            // writing a migration. Once the app ships, switch back to adding a numbered .sqm (with
+            // its checked-in schema snapshot) for every schema change, since real installs will need
+            // to upgrade in place.
         }
     }
 }

@@ -3,55 +3,70 @@ package org.mlanau.project.plant.presentation.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlin.time.Clock
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
-import org.mlanau.project.plant.application.CareEventWithPlantName
-import org.mlanau.project.plant.application.GetCalendarEvents
-import org.mlanau.project.plant.application.ToggleCareEventStatus
-import org.mlanau.project.plant.application.SkipCareEvent
-import org.mlanau.project.plant.application.RescheduleCareEvent
-import org.mlanau.project.plant.application.DeleteCareEvent
-import org.mlanau.project.plant.application.ResetCareEventStatus
-import org.mlanau.project.plant.domain.model.*
+import org.mlanau.project.plant.application.CalendarEntry
+import org.mlanau.project.plant.application.DismissCareOccurrence
+import org.mlanau.project.plant.application.GetCalendarEntries
+import org.mlanau.project.plant.application.LogCare
+import org.mlanau.project.plant.application.UndoCareLog
+import org.mlanau.project.plant.domain.model.CareLog
+import org.mlanau.project.plant.domain.service.CareOccurrence
+import org.mlanau.project.plant.presentation.UiError
+import org.mlanau.project.plant.presentation.toUiError
+import org.mlanau.project.shared.time.SystemTimeZoneProvider
+import org.mlanau.project.shared.time.TimeZoneProvider
 
 data class CalendarUiState(
-    val selectedDate: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
-    val viewMonth: Month = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).month,
-    val viewYear: Int = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year,
-    val events: List<CareEventWithPlantName> = emptyList(),
-    val isLoading: Boolean = false
+    val selectedDate: LocalDate,
+    val viewMonth: Month,
+    val viewYear: Int,
+    val entries: List<CalendarEntry> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: UiError? = null
 )
 
 class CalendarViewModel(
-    private val getCalendarEvents: GetCalendarEvents,
-    private val toggleCareEventStatus: ToggleCareEventStatus,
-    private val skipCareEvent: SkipCareEvent,
-    private val rescheduleCareEvent: RescheduleCareEvent,
-    private val deleteCareEvent: DeleteCareEvent,
-    private val resetCareEventStatus: ResetCareEventStatus
+    private val getCalendarEntries: GetCalendarEntries,
+    private val logCare: LogCare,
+    private val dismissCareOccurrence: DismissCareOccurrence,
+    private val undoCareLog: UndoCareLog,
+    private val clock: Clock = Clock.System,
+    private val timeZoneProvider: TimeZoneProvider = SystemTimeZoneProvider
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(CalendarUiState())
+    private fun today(): LocalDateTime = clock.now().toLocalDateTime(timeZoneProvider())
+
+    private val _uiState = MutableStateFlow(today().let {
+        CalendarUiState(selectedDate = it.date, viewMonth = it.month, viewYear = it.year)
+    })
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
+    private var loadEntriesJob: Job? = null
+
     init {
-        loadEventsForView()
+        loadEntriesForView()
     }
 
-    private fun loadEventsForView() {
-        viewModelScope.launch {
+    private fun loadEntriesForView() {
+        // Cancel the previous collector before starting a new one, otherwise switching months
+        // repeatedly leaves every earlier collect() running forever, each still overwriting
+        // uiState.entries with its own (increasingly stale) month range.
+        loadEntriesJob?.cancel()
+        loadEntriesJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
             val fromLocalDate = LocalDate(_uiState.value.viewYear, _uiState.value.viewMonth, 1).minus(7, DateTimeUnit.DAY)
             val toLocalDate = LocalDate(_uiState.value.viewYear, _uiState.value.viewMonth, 1).plus(1, DateTimeUnit.MONTH).plus(7, DateTimeUnit.DAY)
 
-            val timeZone = TimeZone.currentSystemDefault()
+            val timeZone = timeZoneProvider()
             val fromInstant = fromLocalDate.atStartOfDayIn(timeZone)
             val toInstant = toLocalDate.atTime(LocalTime(23, 59, 59)).toInstant(timeZone)
 
-            getCalendarEvents(fromInstant, toInstant).collect { events ->
-                _uiState.update { it.copy(events = events, isLoading = false) }
+            getCalendarEntries(fromInstant, toInstant).collect { entries ->
+                _uiState.update { it.copy(entries = entries, isLoading = false) }
             }
         }
     }
@@ -65,7 +80,7 @@ class CalendarViewModel(
             val currentView = LocalDate(it.viewYear, it.viewMonth, 1).minus(1, DateTimeUnit.MONTH)
             it.copy(viewMonth = currentView.month, viewYear = currentView.year)
         }
-        loadEventsForView()
+        loadEntriesForView()
     }
 
     fun onNextMonth() {
@@ -73,11 +88,11 @@ class CalendarViewModel(
             val currentView = LocalDate(it.viewYear, it.viewMonth, 1).plus(1, DateTimeUnit.MONTH)
             it.copy(viewMonth = currentView.month, viewYear = currentView.year)
         }
-        loadEventsForView()
+        loadEntriesForView()
     }
 
     fun resetToToday() {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = today()
         _uiState.update {
             it.copy(
                 selectedDate = now.date,
@@ -85,39 +100,32 @@ class CalendarViewModel(
                 viewYear = now.year
             )
         }
-        loadEventsForView()
+        loadEntriesForView()
     }
 
-    fun toggleEventStatus(event: CareEvent) {
+    private fun <T> Result<T>.publishErrorIfAny() {
+        onFailure { exception -> _uiState.update { it.copy(error = exception.toUiError()) } }
+    }
+
+    fun onMarkDone(occurrence: CareOccurrence) {
         viewModelScope.launch {
-            toggleCareEventStatus(event)
+            logCare(occurrence).publishErrorIfAny()
         }
     }
 
-    fun skipEvent(event: CareEvent) {
+    fun onDismissOccurrence(occurrence: CareOccurrence) {
         viewModelScope.launch {
-            skipCareEvent(event)
+            dismissCareOccurrence(occurrence).publishErrorIfAny()
         }
     }
 
-    fun onDeleteEvent(event: CareEvent) {
+    fun onUndoLog(log: CareLog) {
         viewModelScope.launch {
-            event.id?.let { deleteCareEvent(it) }
+            log.id?.let { undoCareLog(it).publishErrorIfAny() }
         }
     }
 
-    fun onResetEventStatus(event: CareEvent) {
-        viewModelScope.launch {
-            resetCareEventStatus(event)
-        }
-    }
-
-    fun rescheduleEvent(event: CareEvent, newDate: LocalDate) {
-        viewModelScope.launch {
-            val timeZone = TimeZone.currentSystemDefault()
-            val currentDateTime = event.scheduledAt.toLocalDateTime(timeZone)
-            val newInstant = LocalDateTime(newDate, currentDateTime.time).toInstant(timeZone)
-            rescheduleCareEvent(event, newInstant)
-        }
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }

@@ -21,52 +21,31 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import kotlin.time.Clock
-import kotlin.time.Instant
-import kotlinx.datetime.*
 import org.jetbrains.compose.resources.stringResource
-import org.mlanau.project.plant.domain.model.LightNeed
-import org.mlanau.project.plant.domain.model.Plant
-import org.mlanau.project.plant.domain.model.PotSize
+import org.mlanau.project.plant.presentation.localizedMessage
 import org.mlanau.project.plant.domain.model.CareRule
-import org.mlanau.project.plant.domain.model.WaterCareRule
-import org.mlanau.project.plant.domain.model.FertilizeCareRule
-import org.mlanau.project.plant.domain.model.RepotCareRule
-import org.mlanau.project.plant.domain.model.RecurrenceRule
+import org.mlanau.project.plant.domain.model.LightNeed
+import org.mlanau.project.plant.domain.model.PlantId
+import org.mlanau.project.plant.domain.model.PotSize
+import org.mlanau.project.plant.presentation.component.CareRuleDialog
+import org.mlanau.project.plant.presentation.component.CareRuleItem
+import org.mlanau.project.plant.presentation.component.getLightNeedString
+import org.mlanau.project.plant.presentation.component.getPotSizeString
 import plantitas_app.shared.generated.resources.*
 import coil3.compose.AsyncImage
 import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
 import com.preat.peekaboo.image.picker.SelectionMode
 
-/** Local enum used as the type discriminator inside [CareRuleDialog]. */
-private enum class CareType { WATER, FERTILIZE, REPOT }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlantFormScreen(
     viewModel: PlantFormViewModel,
-    initialPlant: Plant? = null,
+    plantId: Int? = null,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var name by remember { mutableStateOf(initialPlant?.name ?: "") }
-    var description by remember { mutableStateOf(initialPlant?.description ?: "") }
-    var location by remember { mutableStateOf(initialPlant?.location ?: "") }
-    var selectedLightNeed by remember { mutableStateOf<LightNeed?>(initialPlant?.lightNeed) }
-    var selectedPotSize by remember { mutableStateOf<PotSize?>(initialPlant?.potSize) }
-    var imageUrl by remember { mutableStateOf(initialPlant?.imageUrl) }
-    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
 
     val focusManager = LocalFocusManager.current
-    
-    val hasChanges = remember(name, description, location, selectedLightNeed, selectedPotSize, imageBytes) {
-        name != (initialPlant?.name ?: "") ||
-        description != (initialPlant?.description ?: "") ||
-        location != (initialPlant?.location ?: "") ||
-        selectedLightNeed != initialPlant?.lightNeed ||
-        selectedPotSize != initialPlant?.potSize ||
-        imageBytes != null
-    }
 
     var showCancelConfirmation by remember { mutableStateOf(false) }
 
@@ -75,10 +54,7 @@ fun PlantFormScreen(
         selectionMode = SelectionMode.Single,
         scope = scope,
         onResult = { byteArrays ->
-            byteArrays.firstOrNull()?.let {
-                imageBytes = it
-                imageUrl = null // Clear URL if a new image is picked
-            }
+            byteArrays.firstOrNull()?.let { viewModel.onImagePicked(it) }
         }
     )
 
@@ -86,8 +62,8 @@ fun PlantFormScreen(
     var isAddCareDialogOpen by remember { mutableStateOf(false) }
     var ruleToEdit by remember { mutableStateOf<CareRule?>(null) }
 
-    LaunchedEffect(initialPlant) {
-        initialPlant?.id?.let { viewModel.loadCareRules(it) }
+    LaunchedEffect(plantId) {
+        viewModel.loadPlant(plantId)
     }
 
     LaunchedEffect(uiState.isSaveSuccess, uiState.isDeleteSuccess) {
@@ -102,19 +78,19 @@ fun PlantFormScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (initialPlant == null) stringResource(Res.string.home_add_plant)
+                        if (plantId == null) stringResource(Res.string.home_add_plant)
                         else stringResource(Res.string.plant_form_edit_title)
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (hasChanges) showCancelConfirmation = true else onBack()
+                        if (uiState.hasChanges) showCancelConfirmation = true else onBack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 actions = {
-                    if (initialPlant != null) {
+                    if (plantId != null) {
                         IconButton(onClick = { isDeleteDialogOpen = true }) {
                             Icon(
                                 Icons.Default.Delete,
@@ -132,25 +108,12 @@ fun PlantFormScreen(
                 shadowElevation = 8.dp
             ) {
                 Button(
-                    onClick = {
-                        val finalImageUrl = imageBytes?.let { "data:image/png;base64,${kotlin.io.encoding.Base64.encode(it)}" } ?: imageUrl
-                        
-                        viewModel.onSavePlant(
-                            id = initialPlant?.id,
-                            name = name,
-                            description = description,
-                            location = location,
-                            lightNeed = selectedLightNeed,
-                            potSize = selectedPotSize,
-                            imageUrl = finalImageUrl,
-                            createdAt = initialPlant?.createdAt
-                        )
-                    },
+                    onClick = { viewModel.onSavePlant() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
                         .height(56.dp),
-                    enabled = !uiState.isSaving && name.isNotBlank(),
+                    enabled = !uiState.isSaving && uiState.name.isNotBlank(),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     if (uiState.isSaving) {
@@ -159,7 +122,7 @@ fun PlantFormScreen(
                         Icon(Icons.Default.Done, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            if (initialPlant == null) stringResource(Res.string.home_button_add)
+                            if (plantId == null) stringResource(Res.string.home_button_add)
                             else stringResource(Res.string.plant_form_save_changes),
                             style = MaterialTheme.typography.titleMedium
                         )
@@ -168,6 +131,12 @@ fun PlantFormScreen(
             }
         }
     ) { paddingValues ->
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -189,16 +158,16 @@ fun PlantFormScreen(
                     shape = MaterialTheme.shapes.large,
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
-                    if (imageBytes != null) {
+                    if (uiState.imageBytes != null) {
                         AsyncImage(
-                            model = imageBytes,
+                            model = uiState.imageBytes,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
-                    } else if (imageUrl != null) {
+                    } else if (uiState.imageUrl != null) {
                         AsyncImage(
-                            model = imageUrl,
+                            model = uiState.imageUrl,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -223,8 +192,8 @@ fun PlantFormScreen(
                         }
                     }
                 }
-                
-                if (imageBytes != null || imageUrl != null) {
+
+                if (uiState.imageBytes != null || uiState.imageUrl != null) {
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -249,8 +218,8 @@ fun PlantFormScreen(
             // Name Field (Required)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    value = uiState.name,
+                    onValueChange = { viewModel.onNameChanged(it) },
                     label = { Text("${stringResource(Res.string.home_plant_name)} *") },
                     modifier = Modifier.fillMaxWidth(),
                     isError = uiState.error != null,
@@ -268,7 +237,7 @@ fun PlantFormScreen(
                 )
                 if (uiState.error != null) {
                     Text(
-                        text = stringResource(uiState.error!!),
+                        text = uiState.error!!.localizedMessage(),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp)
@@ -278,8 +247,8 @@ fun PlantFormScreen(
 
             // Description Field
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = uiState.description,
+                onValueChange = { viewModel.onDescriptionChanged(it) },
                 label = { Text("${stringResource(Res.string.home_plant_description)} ${stringResource(Res.string.common_optional)}") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSaving,
@@ -296,8 +265,8 @@ fun PlantFormScreen(
 
             // Location Field
             OutlinedTextField(
-                value = location,
-                onValueChange = { location = it },
+                value = uiState.location,
+                onValueChange = { viewModel.onLocationChanged(it) },
                 label = { Text("${stringResource(Res.string.home_plant_location)} ${stringResource(Res.string.common_optional)}") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSaving,
@@ -324,10 +293,10 @@ fun PlantFormScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LightNeed.entries.forEach { need ->
-                    val isSelected = selectedLightNeed == need
+                    val isSelected = uiState.lightNeed == need
                     FilterChip(
                         selected = isSelected,
-                        onClick = { selectedLightNeed = need },
+                        onClick = { viewModel.onLightNeedSelected(need) },
                         label = { Text(getLightNeedString(need)) },
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
@@ -349,10 +318,10 @@ fun PlantFormScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 PotSize.entries.forEach { size ->
-                    val isSelected = selectedPotSize == size
+                    val isSelected = uiState.potSize == size
                     FilterChip(
                         selected = isSelected,
-                        onClick = { selectedPotSize = size },
+                        onClick = { viewModel.onPotSizeSelected(size) },
                         label = { Text(getPotSizeString(size)) },
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
@@ -411,11 +380,11 @@ fun PlantFormScreen(
             AlertDialog(
                 onDismissRequest = { isDeleteDialogOpen = false },
                 title = { Text(stringResource(Res.string.plant_form_delete_dialog_title)) },
-                text = { Text(stringResource(Res.string.plant_form_delete_dialog_message, initialPlant?.name ?: "")) },
+                text = { Text(stringResource(Res.string.plant_form_delete_dialog_message, uiState.plant?.name ?: "")) },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            initialPlant?.id?.let { viewModel.onDeletePlant(it) }
+                            viewModel.onDeletePlant()
                             isDeleteDialogOpen = false
                         }
                     ) {
@@ -432,7 +401,7 @@ fun PlantFormScreen(
 
         if (isAddCareDialogOpen || ruleToEdit != null) {
             CareRuleDialog(
-                plantId = initialPlant?.id ?: 0,
+                plantId = uiState.plant?.id ?: PlantId(0),
                 initialRule = ruleToEdit,
                 onDismiss = {
                     isAddCareDialogOpen = false
@@ -450,364 +419,4 @@ fun PlantFormScreen(
             )
         }
     }
-}
-
-@Composable
-private fun getLightNeedString(need: LightNeed): String = when (need) {
-    LightNeed.LOW -> stringResource(Res.string.light_low)
-    LightNeed.MEDIUM -> stringResource(Res.string.light_medium)
-    LightNeed.HIGH -> stringResource(Res.string.light_high)
-}
-
-@Composable
-private fun getPotSizeString(size: PotSize): String = when (size) {
-    PotSize.SMALL -> stringResource(Res.string.pot_small)
-    PotSize.MEDIUM -> stringResource(Res.string.pot_medium)
-    PotSize.LARGE -> stringResource(Res.string.pot_large)
-    PotSize.EXTRA_LARGE -> stringResource(Res.string.pot_extra_large)
-}
-
-@Composable
-private fun CareRuleItem(
-    rule: CareRule,
-    onClick: () -> Unit,
-    onRemove: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = when (rule) {
-                    is WaterCareRule -> Icons.Default.WaterDrop
-                    is FertilizeCareRule -> Icons.Default.Science
-                    is RepotCareRule -> Icons.Default.Yard
-                },
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = when (rule) {
-                        is WaterCareRule -> stringResource(Res.string.care_type_water)
-                        is FertilizeCareRule -> stringResource(Res.string.care_type_fertilize)
-                        is RepotCareRule -> stringResource(Res.string.care_type_repot)
-                    },
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Text(
-                    text = when (val rec = rule.recurrence) {
-                        is RecurrenceRule.Once -> stringResource(Res.string.care_recurrence_once)
-                        is RecurrenceRule.Periodic -> stringResource(Res.string.care_recurrence_periodic, rec.everyDays)
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CareRuleDialog(
-    plantId: Int,
-    initialRule: CareRule? = null,
-    onDismiss: () -> Unit,
-    onConfirm: (CareRule) -> Unit
-) {
-    // Use a typed enum instead of raw String as discriminator
-    var type by remember {
-        mutableStateOf(
-            when (initialRule) {
-                is WaterCareRule -> CareType.WATER
-                is FertilizeCareRule -> CareType.FERTILIZE
-                is RepotCareRule -> CareType.REPOT
-                null -> CareType.WATER
-            }
-        )
-    }
-    var recurrenceType by remember {
-        mutableStateOf(
-            if (initialRule?.recurrence is RecurrenceRule.Once) RecurrenceRule.Once::class else RecurrenceRule.Periodic::class
-        )
-    }
-    val isOnce = recurrenceType == RecurrenceRule.Once::class
-
-    var everyDays by remember {
-        mutableStateOf(
-            (initialRule?.recurrence as? RecurrenceRule.Periodic)?.everyDays?.toString() ?: "7"
-        )
-    }
-
-    val timeZone = remember { TimeZone.currentSystemDefault() }
-    val now = Clock.System.now().toLocalDateTime(timeZone)
-
-    val initialLocalDateTime = remember(initialRule) {
-        initialRule?.startDate?.toLocalDateTime(timeZone) ?: now
-    }
-
-    var hour by remember(initialLocalDateTime) {
-        mutableStateOf(initialLocalDateTime.hour.toString().padStart(2, '0'))
-    }
-    var minute by remember(initialLocalDateTime) {
-        mutableStateOf(initialLocalDateTime.minute.toString().padStart(2, '0'))
-    }
-
-    var startDate by remember(initialLocalDateTime) { mutableStateOf(initialLocalDateTime.date) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    // Specific fields
-    var amountMl by remember { mutableStateOf((initialRule as? WaterCareRule)?.amountMl?.toString() ?: "") }
-    var fertilizerName by remember { mutableStateOf((initialRule as? FertilizeCareRule)?.fertilizerName ?: "") }
-    var newPotSize by remember { mutableStateOf((initialRule as? RepotCareRule)?.newPotSize ?: PotSize.MEDIUM) }
-    var notificationsEnabled by remember { mutableStateOf(initialRule?.notificationsEnabled ?: true) }
-
-    // Resource strings resolved at composition time
-    val strConfirm = stringResource(Res.string.common_confirm)
-    val strCancel = stringResource(Res.string.common_cancel)
-    val strAddRule = stringResource(Res.string.care_add_rule)
-    val strEditRule = stringResource(Res.string.care_edit_rule)
-    val strTypeLabel = stringResource(Res.string.care_type_label)
-    val strStartDateLabel = stringResource(Res.string.care_start_date_label)
-    val strTaskDateLabel = stringResource(Res.string.care_task_date_label)
-    val strTimeLabel = stringResource(Res.string.care_time_label)
-    val strRecurrenceLabel = stringResource(Res.string.care_recurrence_label)
-    val strPeriodic = stringResource(Res.string.care_recurrence_periodic_label)
-    val strEveryDays = stringResource(Res.string.care_every_days_label)
-    val strAmountMl = stringResource(Res.string.care_water_amount_label)
-    val strFertilizerName = stringResource(Res.string.care_fertilizer_name_label)
-    val strFertilizerDefault = stringResource(Res.string.care_fertilizer_default_name)
-    val strRepotPotSize = stringResource(Res.string.care_repot_pot_size_label)
-    val strWater = stringResource(Res.string.care_type_water)
-    val strFertilize = stringResource(Res.string.care_type_fertilize)
-    val strRepot = stringResource(Res.string.care_type_repot)
-    val strOnce = stringResource(Res.string.care_recurrence_once)
-    val strAdd = stringResource(Res.string.home_button_add)
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = startDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        startDate = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date
-                    }
-                    showDatePicker = false
-                }) { Text(strConfirm) }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        val timePickerState = rememberTimePickerState(
-            initialHour = hour.toIntOrNull() ?: 10,
-            initialMinute = minute.toIntOrNull() ?: 0,
-            is24Hour = true
-        )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    hour = timePickerState.hour.toString().padStart(2, '0')
-                    minute = timePickerState.minute.toString().padStart(2, '0')
-                    showTimePicker = false
-                }) { Text(strConfirm) }
-            },
-            text = { TimePicker(state = timePickerState) }
-        )
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (initialRule == null) strAddRule else strEditRule) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Type Selector
-                Text(strTypeLabel, style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = type == CareType.WATER, onClick = { type = CareType.WATER }, label = { Text(strWater) })
-                    FilterChip(selected = type == CareType.FERTILIZE, onClick = { type = CareType.FERTILIZE }, label = { Text(strFertilize) })
-                    FilterChip(selected = type == CareType.REPOT, onClick = { type = CareType.REPOT }, label = { Text(strRepot) })
-                }
-
-                // Date / Time fields
-                ClickableField(
-                    value = startDate.toString(),
-                    label = if (isOnce) strTaskDateLabel else strStartDateLabel,
-                    icon = Icons.Default.DateRange,
-                    onClick = { showDatePicker = true }
-                )
-
-                ClickableField(
-                    value = "$hour:$minute",
-                    label = strTimeLabel,
-                    icon = Icons.Default.Schedule,
-                    onClick = { showTimePicker = true }
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(stringResource(Res.string.care_notifications_enabled), style = MaterialTheme.typography.bodyMedium)
-                    Switch(
-                        checked = notificationsEnabled,
-                        onCheckedChange = { notificationsEnabled = it }
-                    )
-                }
-
-                // Recurrence Selector
-                Text(strRecurrenceLabel, style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = isOnce,
-                        onClick = { recurrenceType = RecurrenceRule.Once::class },
-                        label = { Text(strOnce) }
-                    )
-                    FilterChip(
-                        selected = !isOnce,
-                        onClick = { recurrenceType = RecurrenceRule.Periodic::class },
-                        label = { Text(strPeriodic) }
-                    )
-                }
-
-                if (!isOnce) {
-                    OutlinedTextField(
-                        value = everyDays,
-                        onValueChange = { everyDays = it.filter { c -> c.isDigit() } },
-                        label = { Text(strEveryDays) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    )
-                }
-
-                // Specific fields based on type
-                when (type) {
-                    CareType.WATER -> {
-                        OutlinedTextField(
-                            value = amountMl,
-                            onValueChange = { amountMl = it.filter { c -> c.isDigit() } },
-                            label = { Text(strAmountMl) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
-                        )
-                    }
-                    CareType.FERTILIZE -> {
-                        OutlinedTextField(
-                            value = fertilizerName,
-                            onValueChange = { fertilizerName = it },
-                            label = { Text(strFertilizerName) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-                        )
-                    }
-                    CareType.REPOT -> {
-                        Text(strRepotPotSize, style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PotSize.entries.forEach { size ->
-                                FilterChip(
-                                    selected = newPotSize == size,
-                                    onClick = { newPotSize = size },
-                                    label = { Text(getPotSizeString(size)) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val recurrence = if (isOnce) RecurrenceRule.Once else RecurrenceRule.Periodic(everyDays.toIntOrNull() ?: 7)
-                    val selectedHour = hour.toIntOrNull()?.coerceIn(0, 23) ?: 10
-                    val selectedMinute = minute.toIntOrNull()?.coerceIn(0, 59) ?: 0
-                    val notificationTime = LocalTime(selectedHour, selectedMinute)
-                    val startInstant = LocalDateTime(startDate, notificationTime).toInstant(timeZone)
-
-                    val rule = when (type) {
-                        CareType.WATER -> WaterCareRule(
-                            id = initialRule?.id,
-                            plantId = plantId,
-                            recurrence = recurrence,
-                            startDate = startInstant,
-                            notificationTime = notificationTime,
-                            notificationsEnabled = notificationsEnabled,
-                            amountMl = amountMl.toIntOrNull(),
-                            active = initialRule?.active ?: true
-                        )
-                        CareType.FERTILIZE -> FertilizeCareRule(
-                            id = initialRule?.id,
-                            plantId = plantId,
-                            recurrence = recurrence,
-                            startDate = startInstant,
-                            notificationTime = notificationTime,
-                            notificationsEnabled = notificationsEnabled,
-                            fertilizerName = fertilizerName.ifBlank { strFertilizerDefault },
-                            active = initialRule?.active ?: true
-                        )
-                        CareType.REPOT -> RepotCareRule(
-                            id = initialRule?.id,
-                            plantId = plantId,
-                            recurrence = recurrence,
-                            startDate = startInstant,
-                            notificationTime = notificationTime,
-                            notificationsEnabled = notificationsEnabled,
-                            newPotSize = newPotSize,
-                            active = initialRule?.active ?: true
-                        )
-                    }
-                    onConfirm(rule)
-                }
-            ) {
-                Text(strAdd)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(strCancel)
-            }
-        }
-    )
-}
-
-@Composable
-private fun ClickableField(
-    value: String,
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = { },
-        readOnly = true,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        enabled = false,
-        colors = TextFieldDefaults.colors(
-            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            disabledIndicatorColor = MaterialTheme.colorScheme.outline
-        ),
-        shape = MaterialTheme.shapes.medium,
-        trailingIcon = { Icon(icon, contentDescription = null) }
-    )
 }

@@ -2,21 +2,21 @@ package org.mlanau.project.plant.infrastructure.persistence
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalTime
 import org.mlanau.project.plant.domain.model.*
 import org.mlanau.project.plant.domain.repository.CareRepository
+import org.mlanau.project.plant.domain.service.CareAnchorKey
 
 class SqlDelightCareRepository(database: PlantDb) : CareRepository {
     private val queries = database.plantDbQueries
 
-    override fun getCareRules(plantId: Int): Flow<List<CareRule>> {
-        return queries.selectCareRulesByPlantId(plantId.toLong()).asFlow().mapToList(Dispatchers.IO).map { list ->
+    override fun getCareRules(plantId: PlantId): Flow<List<CareRule>> {
+        return queries.selectCareRulesByPlantId(plantId.value.toLong()).asFlow().mapToList(Dispatchers.IO).map { list ->
             list.map { it.toDomain() }
         }
     }
@@ -27,12 +27,11 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
         }
     }
 
-    override suspend fun saveCareRule(rule: CareRule): Int {
-        val type = when (rule) {
-            is WaterCareRule -> "WATER"
-            is FertilizeCareRule -> "FERTILIZE"
-            is RepotCareRule -> "REPOT"
-        }
+    override suspend fun getCareRule(id: CareRuleId): CareRule? {
+        return queries.selectCareRuleById(id.value.toLong()).executeAsOneOrNull()?.toDomain()
+    }
+
+    override suspend fun saveCareRule(rule: CareRule): CareRuleId {
         val recurrenceType = when (rule.recurrence) {
             is RecurrenceRule.Once -> "ONCE"
             is RecurrenceRule.Periodic -> "PERIODIC"
@@ -42,143 +41,119 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
 
         return if (ruleId != null) {
             queries.updateCareRule(
-                plantId = rule.plantId.toLong(),
-                type = type,
+                plantId = rule.plantId.value.toLong(),
+                type = rule.details.typeColumn(),
                 recurrenceType = recurrenceType,
                 everyDays = everyDays,
-                startDate = rule.startDate.toString(),
+                startDate = rule.startDate.toDbString(),
                 notificationTime = rule.notificationTime?.toString(),
                 notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
-                endDate = rule.endDate?.toString(),
+                endDate = rule.endDate?.toDbString(),
                 active = if (rule.active) 1 else 0,
-                amountMl = when (rule) {
-                    is WaterCareRule -> rule.amountMl?.toLong()
-                    is FertilizeCareRule -> rule.doseMl?.toLong()
-                    else -> null
-                },
-                useFilteredWater = if (rule is WaterCareRule) (if (rule.useFilteredWater) 1L else 0L) else null,
-                fertilizerName = (rule as? FertilizeCareRule)?.fertilizerName,
-                doseMl = (rule as? FertilizeCareRule)?.doseMl?.toLong(),
-                dilutionRatio = (rule as? FertilizeCareRule)?.dilutionRatio,
-                newPotSize = (rule as? RepotCareRule)?.newPotSize?.name,
-                substrateType = (rule as? RepotCareRule)?.substrateType,
-                id = ruleId.toLong()
+                dismissedBefore = rule.dismissedBefore?.toDbString(),
+                amountMl = rule.details.amountMlColumn(),
+                useFilteredWater = rule.details.useFilteredWaterColumn(),
+                fertilizerName = rule.details.fertilizerNameColumn(),
+                doseMl = rule.details.doseMlColumn(),
+                dilutionRatio = rule.details.dilutionRatioColumn(),
+                newPotSize = rule.details.newPotSizeColumn(),
+                substrateType = rule.details.substrateTypeColumn(),
+                id = ruleId.value.toLong()
             )
             ruleId
         } else {
             queries.insertCareRule(
-                plantId = rule.plantId.toLong(),
-                type = type,
+                plantId = rule.plantId.value.toLong(),
+                type = rule.details.typeColumn(),
                 recurrenceType = recurrenceType,
                 everyDays = everyDays,
-                startDate = rule.startDate.toString(),
+                startDate = rule.startDate.toDbString(),
                 notificationTime = rule.notificationTime?.toString(),
                 notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
-                endDate = rule.endDate?.toString(),
+                endDate = rule.endDate?.toDbString(),
                 active = if (rule.active) 1 else 0,
-                amountMl = when (rule) {
-                    is WaterCareRule -> rule.amountMl?.toLong()
-                    is FertilizeCareRule -> rule.doseMl?.toLong()
-                    else -> null
-                },
-                useFilteredWater = if (rule is WaterCareRule) (if (rule.useFilteredWater) 1L else 0L) else null,
-                fertilizerName = (rule as? FertilizeCareRule)?.fertilizerName,
-                doseMl = (rule as? FertilizeCareRule)?.doseMl?.toLong(),
-                dilutionRatio = (rule as? FertilizeCareRule)?.dilutionRatio,
-                newPotSize = (rule as? RepotCareRule)?.newPotSize?.name,
-                substrateType = (rule as? RepotCareRule)?.substrateType
+                dismissedBefore = rule.dismissedBefore?.toDbString(),
+                amountMl = rule.details.amountMlColumn(),
+                useFilteredWater = rule.details.useFilteredWaterColumn(),
+                fertilizerName = rule.details.fertilizerNameColumn(),
+                doseMl = rule.details.doseMlColumn(),
+                dilutionRatio = rule.details.dilutionRatioColumn(),
+                newPotSize = rule.details.newPotSizeColumn(),
+                substrateType = rule.details.substrateTypeColumn()
             )
-            queries.lastInsertId().executeAsOne().toInt()
+            CareRuleId(queries.lastInsertId().executeAsOne().toInt())
         }
     }
 
-    override suspend fun deleteCareRule(id: Int) {
-        queries.deleteCareRule(id.toLong())
+    override suspend fun updateDismissedBefore(id: CareRuleId, instant: Instant) {
+        queries.updateCareRuleDismissedBefore(dismissedBefore = instant.toDbString(), id = id.value.toLong())
     }
 
-    override fun getEventsInRange(from: Instant, to: Instant): Flow<List<CareEvent>> {
-        return queries.selectCareEventsInRange(from.toString(), to.toString()).asFlow().mapToList(Dispatchers.IO).map { list ->
+    override suspend fun deleteCareRule(id: CareRuleId) {
+        queries.deleteCareRule(id.value.toLong())
+    }
+
+    // --- CareLog surface
+
+    override fun getCareLogs(plantId: PlantId): Flow<List<CareLog>> {
+        return queries.selectCareLogsByPlantId(plantId.value.toLong()).asFlow().mapToList(Dispatchers.IO).map { list ->
             list.map { it.toDomain() }
         }
     }
 
-    override fun getEventsByPlantIdInRange(plantId: Int, from: Instant, to: Instant): Flow<List<CareEvent>> {
-        return queries.selectCareEventsByPlantIdInRange(plantId.toLong(), from.toString(), to.toString()).asFlow().mapToList(Dispatchers.IO).map { list ->
+    override fun getCareLogsInRange(from: Instant, to: Instant): Flow<List<CareLog>> {
+        return queries.selectCareLogsInRange(from.toDbString(), to.toDbString()).asFlow().mapToList(Dispatchers.IO).map { list ->
             list.map { it.toDomain() }
         }
     }
 
-    override fun getEventsByRuleId(ruleId: Int): Flow<List<CareEvent>> {
-        return queries.selectCareEventsByRuleId(ruleId.toLong()).asFlow().mapToList(Dispatchers.IO).map { list ->
-            list.map { it.toDomain() }
+    override suspend fun getCareLog(id: CareLogId): CareLog? {
+        return queries.selectCareLogById(id.value.toLong()).executeAsOneOrNull()?.toDomain()
+    }
+
+    override suspend fun saveCareLog(log: CareLog): CareLog {
+        // Logs are append-only: there's no update path, since editing "when did I actually water
+        // it" is done by undoing (deleting) and logging again, which is also what keeps the anchor
+        // recomputation (MAX(performedAt)) simple — there's never a case where an existing row's
+        // performedAt needs to be reconciled against a new value.
+        queries.insertCareLog(
+            plantId = log.plantId.value.toLong(),
+            careRuleId = log.careRuleId?.value?.toLong(),
+            type = log.details.typeColumn(),
+            performedAt = log.performedAt.toDbString(),
+            scheduledAt = log.scheduledAt?.toDbString(),
+            note = log.note,
+            amountMl = log.details.amountMlColumn(),
+            useFilteredWater = log.details.useFilteredWaterColumn(),
+            fertilizerName = log.details.fertilizerNameColumn(),
+            doseMl = log.details.doseMlColumn(),
+            dilutionRatio = log.details.dilutionRatioColumn(),
+            newPotSize = log.details.newPotSizeColumn(),
+            substrateType = log.details.substrateTypeColumn()
+        )
+        return log.withId(CareLogId(queries.lastInsertId().executeAsOne().toInt()))
+    }
+
+    override suspend fun deleteCareLog(id: CareLogId) {
+        queries.deleteCareLog(id.value.toLong())
+    }
+
+    override fun getLastCareByPlantAndType(): Flow<Map<CareAnchorKey, Instant>> {
+        return queries.selectLastCareByPlantAndType().asFlow().mapToList(Dispatchers.IO).map { rows ->
+            rows.mapNotNull { row ->
+                val lastPerformedAt = row.lastPerformedAt ?: return@mapNotNull null
+                CareAnchorKey(PlantId(row.plantId.toInt()), CareType.valueOf(row.type)) to Instant.parse(lastPerformedAt)
+            }.toMap()
         }
     }
 
-    override fun findNextEventByPlantId(plantId: Int, from: Instant): Flow<CareEvent?> {
-        return queries.selectNextCareEventByPlantId(plantId.toLong(), from.toString()).asFlow().mapToOneOrNull(Dispatchers.IO).map { 
-            it?.toDomain()
+    override fun getLastCareByTypeForPlant(plantId: PlantId): Flow<Map<CareType, Instant>> {
+        return queries.selectLastCareByTypeForPlant(plantId.value.toLong()).asFlow().mapToList(Dispatchers.IO).map { rows ->
+            rows.mapNotNull { row ->
+                val lastPerformedAt = row.lastPerformedAt ?: return@mapNotNull null
+                CareType.valueOf(row.type) to Instant.parse(lastPerformedAt)
+            }.toMap()
         }
-    }
-
-    override suspend fun saveCareEvent(event: CareEvent) {
-        val type = when (event) {
-            is WaterCareEvent -> "WATER"
-            is FertilizeCareEvent -> "FERTILIZE"
-            is RepotCareEvent -> "REPOT"
-        }
-        val eventId = event.id
-        if (eventId != null) {
-            queries.updateCareEvent(
-                scheduledAt = event.scheduledAt.toString(),
-                status = event.status.name,
-                completedAt = event.completedAt?.toString(),
-                amountMl = when (event) {
-                    is WaterCareEvent -> event.amountMl?.toLong()
-                    is FertilizeCareEvent -> event.doseMl?.toLong()
-                    else -> null
-                },
-                useFilteredWater = if (event is WaterCareEvent) (if (event.useFilteredWater) 1L else 0L) else null,
-                fertilizerName = (event as? FertilizeCareEvent)?.fertilizerName,
-                doseMl = (event as? FertilizeCareEvent)?.doseMl?.toLong(),
-                dilutionRatio = (event as? FertilizeCareEvent)?.dilutionRatio,
-                newPotSize = (event as? RepotCareEvent)?.newPotSize?.name,
-                substrateType = (event as? RepotCareEvent)?.substrateType,
-                id = eventId.toLong()
-            )
-        } else {
-            queries.insertCareEvent(
-                careRuleId = event.careRuleId.toLong(),
-                plantId = event.plantId.toLong(),
-                type = type,
-                scheduledAt = event.scheduledAt.toString(),
-                status = event.status.name,
-                completedAt = event.completedAt?.toString(),
-                originalScheduledAt = event.originalScheduledAt?.toString(),
-                amountMl = when (event) {
-                    is WaterCareEvent -> event.amountMl?.toLong()
-                    is FertilizeCareEvent -> event.doseMl?.toLong()
-                    else -> null
-                },
-                useFilteredWater = if (event is WaterCareEvent) (if (event.useFilteredWater) 1L else 0L) else null,
-                fertilizerName = (event as? FertilizeCareEvent)?.fertilizerName,
-                doseMl = (event as? FertilizeCareEvent)?.doseMl?.toLong(),
-                dilutionRatio = (event as? FertilizeCareEvent)?.dilutionRatio,
-                newPotSize = (event as? RepotCareEvent)?.newPotSize?.name,
-                substrateType = (event as? RepotCareEvent)?.substrateType
-            )
-        }
-    }
-
-    override suspend fun updateEventStatus(eventId: Int, status: CareEventStatus, completedAt: Instant?) {
-        queries.updateCareEventStatus(status.name, completedAt?.toString(), eventId.toLong())
-    }
-
-    override suspend fun deleteCareEvent(id: Int) {
-        queries.deleteCareEvent(id.toLong())
-    }
-
-    override suspend fun deletePendingEventsByRuleId(ruleId: Int) {
-        queries.deletePendingCareEventsByRuleId(ruleId.toLong())
     }
 
     private fun CareRuleEntity.toDomain(): CareRule {
@@ -187,96 +162,56 @@ class SqlDelightCareRepository(database: PlantDb) : CareRepository {
             "PERIODIC" -> RecurrenceRule.Periodic(everyDays!!.toInt())
             else -> throw IllegalStateException("Unknown recurrence type: $recurrenceType")
         }
-        val startDate = Instant.parse(startDate)
-        val endDate = endDate?.let { Instant.parse(it) }
-        val active = active == 1L
-        val notificationTime = notificationTime?.let { if (it.isBlank()) null else LocalTime.parse(it) }
-        val notificationsEnabled = notificationsEnabled == 1L
-
-        return when (type) {
-            "WATER" -> WaterCareRule(
-                id = id.toInt(),
-                plantId = plantId.toInt(),
-                recurrence = recurrence,
-                startDate = startDate,
-                endDate = endDate,
-                active = active,
-                notificationTime = notificationTime,
-                notificationsEnabled = notificationsEnabled,
-                amountMl = amountMl?.toInt(),
-                useFilteredWater = useFilteredWater == 1L
-            )
-            "FERTILIZE" -> FertilizeCareRule(
-                id = id.toInt(),
-                plantId = plantId.toInt(),
-                recurrence = recurrence,
-                startDate = startDate,
-                endDate = endDate,
-                active = active,
-                notificationTime = notificationTime,
-                notificationsEnabled = notificationsEnabled,
-                fertilizerName = fertilizerName!!,
-                doseMl = doseMl?.toInt(),
-                dilutionRatio = dilutionRatio
-            )
-            "REPOT" -> RepotCareRule(
-                id = id.toInt(),
-                plantId = plantId.toInt(),
-                recurrence = recurrence,
-                startDate = startDate,
-                endDate = endDate,
-                active = active,
-                notificationTime = notificationTime,
-                notificationsEnabled = notificationsEnabled,
-                newPotSize = PotSize.valueOf(newPotSize!!),
+        return CareRule(
+            id = CareRuleId(id.toInt()),
+            plantId = PlantId(plantId.toInt()),
+            recurrence = recurrence,
+            startDate = Instant.parse(startDate),
+            endDate = endDate?.let { Instant.parse(it) },
+            active = active == 1L,
+            notificationTime = notificationTime?.let { if (it.isBlank()) null else LocalTime.parse(it) },
+            notificationsEnabled = notificationsEnabled == 1L,
+            dismissedBefore = dismissedBefore?.let { Instant.parse(it) },
+            details = careDetailsFrom(
+                type = type,
+                amountMl = amountMl,
+                useFilteredWater = useFilteredWater,
+                fertilizerName = fertilizerName,
+                doseMl = doseMl,
+                dilutionRatio = dilutionRatio,
+                newPotSize = newPotSize,
                 substrateType = substrateType
             )
-            else -> throw IllegalStateException("Unknown care rule type: $type")
-        }
+        )
     }
 
-    private fun CareEventEntity.toDomain(): CareEvent {
-        val scheduledAt = Instant.parse(scheduledAt)
-        val status = CareEventStatus.valueOf(status)
-        val completedAt = completedAt?.let { Instant.parse(it) }
-        val originalScheduledAt = originalScheduledAt?.let { Instant.parse(it) }
-
-        return when (type) {
-            "WATER" -> WaterCareEvent(
-                id = id.toInt(),
-                careRuleId = careRuleId.toInt(),
-                plantId = plantId.toInt(),
-                scheduledAt = scheduledAt,
-                status = status,
-                completedAt = completedAt,
-                originalScheduledAt = originalScheduledAt,
-                amountMl = amountMl?.toInt(),
-                useFilteredWater = useFilteredWater == 1L
-            )
-            "FERTILIZE" -> FertilizeCareEvent(
-                id = id.toInt(),
-                careRuleId = careRuleId.toInt(),
-                plantId = plantId.toInt(),
-                scheduledAt = scheduledAt,
-                status = status,
-                completedAt = completedAt,
-                originalScheduledAt = originalScheduledAt,
+    private fun CareLogEntity.toDomain(): CareLog {
+        return CareLog(
+            id = CareLogId(id.toInt()),
+            plantId = PlantId(plantId.toInt()),
+            careRuleId = careRuleId?.let { CareRuleId(it.toInt()) },
+            performedAt = Instant.parse(performedAt),
+            scheduledAt = scheduledAt?.let { Instant.parse(it) },
+            note = note,
+            details = careDetailsFrom(
+                type = type,
+                amountMl = amountMl,
+                useFilteredWater = useFilteredWater,
                 fertilizerName = fertilizerName,
-                doseMl = doseMl?.toInt(),
-                dilutionRatio = dilutionRatio
-            )
-            "REPOT" -> RepotCareEvent(
-                id = id.toInt(),
-                careRuleId = careRuleId.toInt(),
-                plantId = plantId.toInt(),
-                scheduledAt = scheduledAt,
-                status = status,
-                completedAt = completedAt,
-                originalScheduledAt = originalScheduledAt,
-                newPotSize = newPotSize?.let { PotSize.valueOf(it) },
+                doseMl = doseMl,
+                dilutionRatio = dilutionRatio,
+                newPotSize = newPotSize,
                 substrateType = substrateType
             )
-            else -> throw IllegalStateException("Unknown care event type: $type")
-        }
+        )
     }
 }
+
+/**
+ * ISO-8601 UTC truncated to whole seconds. Plain [Instant.toString] omits the fractional part
+ * entirely when it's zero, which breaks the lexicographic ordering SQLite's `MAX()`/`BETWEEN` rely
+ * on for these TEXT columns: `"...T09:00:00Z"` sorts *after* `"...T09:00:00.500Z"` (`Z` > `.`) even
+ * though the first instant is later. Harmless as long as every stored instant is formatted the same
+ * way, which is why this is applied uniformly rather than only where it currently seems to matter.
+ */
+internal fun Instant.toDbString(): String = Instant.fromEpochSeconds(epochSeconds).toString()

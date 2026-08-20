@@ -6,23 +6,25 @@ import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mlanau.project.plant.application.DeletePlant
-import org.mlanau.project.plant.application.DeleteCareEvent
-import org.mlanau.project.plant.application.ResetCareEventStatus
+import org.mlanau.project.plant.application.DismissCareOccurrence
 import org.mlanau.project.plant.application.FindAllPlants
 import org.mlanau.project.plant.application.FindPlantById
 import org.mlanau.project.plant.application.CreatePlant
 import org.mlanau.project.plant.application.DeleteCareRule
-import org.mlanau.project.plant.application.GenerateCareEvents
-import org.mlanau.project.plant.application.GetCalendarEvents
+import org.mlanau.project.plant.application.GetCalendarEntries
 import org.mlanau.project.plant.application.GetCareRules
-import org.mlanau.project.plant.application.GetNextCareEvent
+import org.mlanau.project.plant.application.GetNextCareOccurrence
+import org.mlanau.project.plant.application.GetPlantCareHistory
+import org.mlanau.project.plant.application.LogCare
+import org.mlanau.project.plant.application.MigrateBase64PlantImages
+import org.mlanau.project.plant.application.RescheduleAllCareReminders
+import org.mlanau.project.plant.application.RescheduleCareReminder
 import org.mlanau.project.plant.application.SaveCareRule
-import org.mlanau.project.plant.application.SkipCareEvent
-import org.mlanau.project.plant.application.RescheduleCareEvent
-import org.mlanau.project.plant.application.ToggleCareEventStatus
+import org.mlanau.project.plant.application.UndoCareLog
 import org.mlanau.project.plant.application.UpdatePlant
 import org.mlanau.project.plant.domain.repository.CareRepository
 import org.mlanau.project.plant.domain.repository.PlantRepository
+import org.mlanau.project.plant.domain.service.CareOccurrenceScheduler
 import org.mlanau.project.plant.infrastructure.persistence.PlantDb
 import org.mlanau.project.plant.infrastructure.persistence.SqlDelightCareRepository
 import org.mlanau.project.plant.infrastructure.persistence.SqlDelightPlantRepository
@@ -33,14 +35,17 @@ import org.mlanau.project.plant.presentation.detail.PlantDetailViewModel
 import org.mlanau.project.shared.database.DatabaseDriverFactory
 
 val plantModule = module {
-    single {
-        val driver = get<DatabaseDriverFactory>().createDriver()
-        driver.execute(null, "PRAGMA foreign_keys = ON;", 0)
-        PlantDb(driver)
-    }
+    // Foreign key enforcement is configured per-platform inside each DatabaseDriverFactory
+    // (AndroidSqliteDriver.Callback.onOpen / NativeSqliteDriver's onConfiguration), since both
+    // drivers pool multiple connections and a single `driver.execute(...)` here would only reach
+    // one of them.
+    single { PlantDb(get<DatabaseDriverFactory>().createDriver()) }
 
     singleOf(::SqlDelightPlantRepository) bind PlantRepository::class
     singleOf(::SqlDelightCareRepository) bind CareRepository::class
+
+    // Domain services
+    singleOf(::CareOccurrenceScheduler)
 
     // Plant use cases
     factoryOf(::FindAllPlants)
@@ -53,14 +58,15 @@ val plantModule = module {
     factoryOf(::GetCareRules)
     factoryOf(::SaveCareRule)
     factoryOf(::DeleteCareRule)
-    factoryOf(::GenerateCareEvents)
-    factoryOf(::GetCalendarEvents)
-    factoryOf(::GetNextCareEvent)
-    factoryOf(::ToggleCareEventStatus)
-    factoryOf(::SkipCareEvent)
-    factoryOf(::RescheduleCareEvent)
-    factoryOf(::DeleteCareEvent)
-    factoryOf(::ResetCareEventStatus)
+    factoryOf(::MigrateBase64PlantImages)
+    factoryOf(::LogCare)
+    factoryOf(::UndoCareLog)
+    factoryOf(::DismissCareOccurrence)
+    factoryOf(::GetPlantCareHistory)
+    factoryOf(::GetCalendarEntries)
+    factoryOf(::GetNextCareOccurrence)
+    factoryOf(::RescheduleCareReminder)
+    factoryOf(::RescheduleAllCareReminders)
 
     // ViewModels
     viewModelOf(::HomeViewModel)

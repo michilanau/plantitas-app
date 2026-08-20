@@ -21,6 +21,10 @@ CREATE TABLE careRuleEntity (
     notificationsEnabled INTEGER NOT NULL DEFAULT 1,
     endDate TEXT,
     active INTEGER NOT NULL DEFAULT 1,
+    -- Suppresses every occurrence at or before this instant. Moved forward when the user
+    -- dismisses a scheduled or overdue occurrence; independent of the anchor below, which
+    -- comes from careLogEntity and tracks the actual care rhythm, not what was dismissed.
+    dismissedBefore TEXT,
     amountMl INTEGER,
     useFilteredWater INTEGER,
     fertilizerName TEXT,
@@ -31,15 +35,22 @@ CREATE TABLE careRuleEntity (
     FOREIGN KEY (plantId) REFERENCES plantEntity(id) ON DELETE CASCADE
 );
 
-CREATE TABLE careEventEntity (
+-- A care that actually happened: the factual counterpart to a CareRule's still-virtual
+-- occurrences. A log is not tied to a specific planned occurrence and outlives the rule that
+-- (maybe) produced it: careRuleId is
+-- nullable and SET NULL on delete, so a plant's care history survives deleting or recreating its
+-- rules. scheduledAt is nullable too, since a log can be entered ad hoc for a day that never had
+-- a planned occurrence. The scheduling anchor for a (plant, type) is derived as
+-- MAX(performedAt) grouped by (plantId, type) — see careLog_plant_type_performedAt below — rather
+-- than stored anywhere, so it can never drift out of sync with the log itself.
+CREATE TABLE careLogEntity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    careRuleId INTEGER NOT NULL,
     plantId INTEGER NOT NULL,
+    careRuleId INTEGER,
     type TEXT NOT NULL,
-    scheduledAt TEXT NOT NULL,
-    status TEXT NOT NULL,
-    completedAt TEXT,
-    originalScheduledAt TEXT,
+    performedAt TEXT NOT NULL,
+    scheduledAt TEXT,
+    note TEXT,
     amountMl INTEGER,
     useFilteredWater INTEGER,
     fertilizerName TEXT,
@@ -47,9 +58,13 @@ CREATE TABLE careEventEntity (
     dilutionRatio TEXT,
     newPotSize TEXT,
     substrateType TEXT,
-    FOREIGN KEY (careRuleId) REFERENCES careRuleEntity(id) ON DELETE CASCADE,
+    FOREIGN KEY (careRuleId) REFERENCES careRuleEntity(id) ON DELETE SET NULL,
     FOREIGN KEY (plantId) REFERENCES plantEntity(id) ON DELETE CASCADE
 );
+
+-- Serves MAX(performedAt) GROUP BY (plantId, type) directly (the anchor lookup) and orders a
+-- plant's history query.
+CREATE INDEX careLog_plant_type_performedAt ON careLogEntity(plantId, type, performedAt);
 
 -- Plant Queries
 selectAll:
@@ -80,48 +95,50 @@ SELECT * FROM careRuleEntity WHERE plantId = ?;
 selectAllCareRules:
 SELECT * FROM careRuleEntity;
 
+selectCareRuleById:
+SELECT * FROM careRuleEntity WHERE id = ?;
+
 insertCareRule:
-INSERT INTO careRuleEntity(plantId, type, recurrenceType, everyDays, startDate, notificationTime, notificationsEnabled, endDate, active, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO careRuleEntity(plantId, type, recurrenceType, everyDays, startDate, notificationTime, notificationsEnabled, endDate, active, dismissedBefore, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateCareRule:
 UPDATE careRuleEntity
-SET plantId = ?, type = ?, recurrenceType = ?, everyDays = ?, startDate = ?, notificationTime = ?, notificationsEnabled = ?, endDate = ?, active = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
+SET plantId = ?, type = ?, recurrenceType = ?, everyDays = ?, startDate = ?, notificationTime = ?, notificationsEnabled = ?, endDate = ?, active = ?, dismissedBefore = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
 WHERE id = ?;
+
+updateCareRuleDismissedBefore:
+UPDATE careRuleEntity SET dismissedBefore = ? WHERE id = ?;
 
 deleteCareRule:
 DELETE FROM careRuleEntity WHERE id = ?;
 
--- Care Event Queries
-selectCareEventsInRange:
-SELECT * FROM careEventEntity WHERE scheduledAt BETWEEN ? AND ?;
+-- Care Log Queries
+selectCareLogsByPlantId:
+SELECT * FROM careLogEntity WHERE plantId = ? ORDER BY performedAt DESC;
 
-selectCareEventsByPlantIdInRange:
-SELECT * FROM careEventEntity WHERE plantId = ? AND scheduledAt BETWEEN ? AND ?;
+selectCareLogsInRange:
+SELECT * FROM careLogEntity WHERE performedAt BETWEEN ? AND ?;
 
-selectCareEventsByRuleId:
-SELECT * FROM careEventEntity WHERE careRuleId = ?;
+selectCareLogById:
+SELECT * FROM careLogEntity WHERE id = ?;
 
-selectNextCareEventByPlantId:
-SELECT * FROM careEventEntity
-WHERE plantId = ? AND status = 'PENDING' AND scheduledAt >= ?
-ORDER BY scheduledAt ASC
-LIMIT 1;
+-- The anchor for every (plant, type) in one aggregated query, so a screen that loads all rules
+-- for all plants (the calendar) doesn't need one query per plant.
+selectLastCareByPlantAndType:
+SELECT plantId, type, MAX(performedAt) AS lastPerformedAt
+FROM careLogEntity
+GROUP BY plantId, type;
 
-insertCareEvent:
-INSERT INTO careEventEntity(careRuleId, plantId, type, scheduledAt, status, completedAt, originalScheduledAt, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+selectLastCareByTypeForPlant:
+SELECT plantId, type, MAX(performedAt) AS lastPerformedAt
+FROM careLogEntity
+WHERE plantId = ?
+GROUP BY plantId, type;
 
-updateCareEventStatus:
-UPDATE careEventEntity SET status = ?, completedAt = ? WHERE id = ?;
+insertCareLog:
+INSERT INTO careLogEntity(plantId, careRuleId, type, performedAt, scheduledAt, note, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
-updateCareEvent:
-UPDATE careEventEntity
-SET scheduledAt = ?, status = ?, completedAt = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
-WHERE id = ?;
-
-deleteCareEvent:
-DELETE FROM careEventEntity WHERE id = ?;
-
-deletePendingCareEventsByRuleId:
-DELETE FROM careEventEntity WHERE careRuleId = ? AND status = 'PENDING';
+deleteCareLog:
+DELETE FROM careLogEntity WHERE id = ?;

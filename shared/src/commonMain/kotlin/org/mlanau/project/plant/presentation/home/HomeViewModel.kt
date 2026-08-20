@@ -7,16 +7,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.StringResource
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.application.FindAllPlants
-import plantitas_app.shared.generated.resources.Res
-import plantitas_app.shared.generated.resources.error_load_plants
+import org.mlanau.project.plant.presentation.UiError
 
 data class HomeUiState(
     val plants: List<Plant> = emptyList(),
     val isLoading: Boolean = false,
-    val error: StringResource? = null
+    val error: UiError? = null
 )
 
 class HomeViewModel(
@@ -30,14 +28,14 @@ class HomeViewModel(
         loadPlants()
     }
 
-    fun loadPlants() {
+    private fun loadPlants() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             findAllPlants()
                 .catch {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = Res.string.error_load_plants
+                        error = UiError.LoadPlantsFailed
                     )
                 }
                 .collect { plants ->

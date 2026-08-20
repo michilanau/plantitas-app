@@ -100,12 +100,34 @@
     <string name="common_confirm">Confirmar</string>
     <string name="common_discard">Descartar</string>
     <string name="care_action_done">Marcar como hecho</string>
-    <string name="care_action_reset">Restablecer a pendiente</string>
     <string name="care_action_skip">Saltar</string>
-    <string name="care_action_delete">Eliminar evento</string>
     <string name="care_action_view_plant">Ver planta</string>
-    <string name="care_action_reschedule">Reprogramar</string>
-    <string name="care_dialog_reschedule_title">Reprogramar tarea</string>
+    <string name="care_action_undo">Deshacer</string>
+    <string name="care_occurrence_options_title">Opciones de la tarea</string>
+    <string name="care_log_options_title">Opciones del registro</string>
+
+    <!-- Registrar cuidado -->
+    <string name="care_log_action">Registrar cuidado</string>
+    <string name="care_log_dialog_title">Registrar cuidado</string>
+    <string name="care_log_plant_label">Planta</string>
+    <string name="care_log_date_label">¿Qué día lo hiciste?</string>
+    <string name="care_log_note_label">Nota (opcional)</string>
+    <string name="care_log_future_error">No puedes registrar un cuidado en el futuro</string>
+    <string name="care_log_saved">Cuidado registrado</string>
+    <string name="care_log_undone">Registro deshecho</string>
+
+    <!-- Estado del cuidado -->
+    <string name="care_overdue_label">Vencido</string>
+    <string name="care_never_done">Sin registros todavía</string>
+    <string name="care_days_without_care">Lleva %1$d días sin %2$s</string>
+    <string name="care_verb_water">regar</string>
+    <string name="care_verb_fertilize">abonar</string>
+    <string name="care_verb_repot">trasplantar</string>
+    <string name="plant_detail_no_upcoming_care">No hay cuidados programados</string>
+
+    <!-- Historial -->
+    <string name="care_history_title">Historial</string>
+    <string name="care_history_empty">Todavía no hay cuidados registrados</string>
 
     <!-- Months -->
     <string name="month_january">Enero</string>
@@ -120,4 +142,16 @@
     <string name="month_october">Octubre</string>
     <string name="month_november">Noviembre</string>
     <string name="month_december">Diciembre</string>
+
+    <!-- Care reminder notifications: shared between the Android and iOS schedulers so the copy
+         only lives in one place. -->
+    <string name="notification_title">¡Hora de cuidar tu planta!</string>
+    <string name="notification_water">Toca regar tu %1$s</string>
+    <string name="notification_fertilize">Toca abonar tu %1$s</string>
+    <string name="notification_repot">Toca trasplantar tu %1$s</string>
+    <!-- Shown instead of the ones above once there's at least one logged care for the (plant,
+         type): %2$d is the days since that log, measured at the instant the reminder fires. -->
+    <string name="notification_water_overdue">Tu %1$s lleva %2$d días sin agua</string>
+    <string name="notification_fertilize_overdue">Tu %1$s lleva %2$d días sin abono</string>
+    <string name="notification_repot_overdue">Tu %1$s lleva %2$d días esperando trasplante</string>
 </resources>

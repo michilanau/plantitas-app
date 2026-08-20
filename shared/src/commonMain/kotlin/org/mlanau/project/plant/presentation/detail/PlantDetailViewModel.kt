@@ -2,97 +2,122 @@ package org.mlanau.project.plant.presentation.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlin.time.Clock
+import kotlin.time.Instant
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import org.jetbrains.compose.resources.StringResource
-import org.mlanau.project.plant.application.*
-import org.mlanau.project.plant.domain.model.Plant
-import org.mlanau.project.plant.domain.model.CareEvent
+import org.mlanau.project.plant.application.DismissCareOccurrence
+import org.mlanau.project.plant.application.FindPlantById
+import org.mlanau.project.plant.application.GetCareRules
+import org.mlanau.project.plant.application.GetNextCareOccurrence
+import org.mlanau.project.plant.application.GetPlantCareHistory
+import org.mlanau.project.plant.application.LogCare
+import org.mlanau.project.plant.application.UndoCareLog
+import org.mlanau.project.plant.domain.model.CareDetails
+import org.mlanau.project.plant.domain.model.CareLog
 import org.mlanau.project.plant.domain.model.CareRule
-import kotlinx.datetime.*
-import plantitas_app.shared.generated.resources.Res
-import plantitas_app.shared.generated.resources.error_unknown
+import org.mlanau.project.plant.domain.model.Plant
+import org.mlanau.project.plant.domain.model.PlantId
+import org.mlanau.project.plant.domain.service.CareOccurrence
+import org.mlanau.project.plant.presentation.UiError
+import org.mlanau.project.plant.presentation.toUiError
 
 data class PlantDetailUiState(
     val plant: Plant? = null,
-    val nextEvent: CareEvent? = null,
+    val nextOccurrence: CareOccurrence? = null,
     val careRules: List<CareRule> = emptyList(),
+    val history: List<CareLog> = emptyList(),
     val isLoading: Boolean = false,
-    val error: StringResource? = null
+    val error: UiError? = null
 )
 
 class PlantDetailViewModel(
     private val findPlantById: FindPlantById,
-    private val getNextCareEvent: GetNextCareEvent,
+    private val getNextCareOccurrence: GetNextCareOccurrence,
     private val getCareRules: GetCareRules,
-    private val toggleCareEventStatus: ToggleCareEventStatus,
-    private val skipCareEvent: SkipCareEvent,
-    private val rescheduleCareEvent: RescheduleCareEvent,
-    private val deleteCareEvent: DeleteCareEvent,
-    private val resetCareEventStatus: ResetCareEventStatus
+    private val getPlantCareHistory: GetPlantCareHistory,
+    private val logCare: LogCare,
+    private val dismissCareOccurrence: DismissCareOccurrence,
+    private val undoCareLog: UndoCareLog,
+    private val clock: Clock = Clock.System
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlantDetailUiState())
     val uiState: StateFlow<PlantDetailUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     fun loadPlant(id: Int) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            
-            val plant = findPlantById(id)
+        loadJob?.cancel()
+        // Reset state synchronously to avoid showing old plant data during transition
+        _uiState.value = PlantDetailUiState(isLoading = true)
+
+        val plantId = PlantId(id)
+        loadJob = viewModelScope.launch {
+            val plant = findPlantById(plantId)
             if (plant != null) {
                 _uiState.update { it.copy(plant = plant, isLoading = false) }
-                
-                // Load next event
+
                 launch {
-                    getNextCareEvent(id, Clock.System.now()).collect { event ->
-                        _uiState.update { it.copy(nextEvent = event) }
+                    getNextCareOccurrence(plantId).collect { occurrence ->
+                        _uiState.update { it.copy(nextOccurrence = occurrence) }
                     }
                 }
 
-                // Load care rules
                 launch {
-                    getCareRules(id).collect { rules ->
+                    getCareRules(plantId).collect { rules ->
                         _uiState.update { it.copy(careRules = rules) }
                     }
                 }
+
+                launch {
+                    getPlantCareHistory(plantId).collect { history ->
+                        _uiState.update { it.copy(history = history) }
+                    }
+                }
             } else {
-                _uiState.update { it.copy(isLoading = false, error = Res.string.error_unknown) }
+                _uiState.update { it.copy(isLoading = false, error = UiError.PlantNotFound) }
             }
         }
     }
 
-    fun toggleEventStatus(event: CareEvent) {
+    private fun <T> Result<T>.publishErrorIfAny() {
+        onFailure { exception -> _uiState.update { it.copy(error = exception.toUiError()) } }
+    }
+
+    fun onMarkDone(occurrence: CareOccurrence) {
         viewModelScope.launch {
-            toggleCareEventStatus(event)
+            logCare(occurrence).publishErrorIfAny()
         }
     }
 
-    fun skipEvent(event: CareEvent) {
+    fun onDismissOccurrence(occurrence: CareOccurrence) {
         viewModelScope.launch {
-            skipCareEvent(event)
+            dismissCareOccurrence(occurrence).publishErrorIfAny()
         }
     }
 
-    fun rescheduleEvent(event: CareEvent, newDate: LocalDate) {
+    fun onLogAdHocCare(details: CareDetails, performedAt: Instant, note: String?) {
+        val plantId = _uiState.value.plant?.id ?: return
         viewModelScope.launch {
-            val timeZone = TimeZone.currentSystemDefault()
-            val currentDateTime = event.scheduledAt.toLocalDateTime(timeZone)
-            val newInstant = LocalDateTime(newDate, currentDateTime.time).toInstant(timeZone)
-            rescheduleCareEvent(event, newInstant)
+            logCare(
+                plantId = plantId,
+                careRuleId = null,
+                details = details,
+                performedAt = performedAt,
+                note = note
+            ).publishErrorIfAny()
         }
     }
 
-    fun deleteEvent(event: CareEvent) {
+    fun onUndoLog(log: CareLog) {
         viewModelScope.launch {
-            event.id?.let { deleteCareEvent(it) }
+            log.id?.let { undoCareLog(it).publishErrorIfAny() }
         }
     }
 
-    fun resetEventStatus(event: CareEvent) {
-        viewModelScope.launch {
-            resetCareEventStatus(event)
-        }
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }

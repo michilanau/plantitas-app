@@ -1,48 +1,23 @@
 package org.mlanau.project.plant.application
 
 import org.mlanau.project.plant.domain.model.CareRule
-import org.mlanau.project.plant.domain.model.FertilizeCareRule
-import org.mlanau.project.plant.domain.model.RepotCareRule
-import org.mlanau.project.plant.domain.model.WaterCareRule
+import org.mlanau.project.plant.domain.model.PlantId
 import org.mlanau.project.plant.domain.repository.CareRepository
-import org.mlanau.project.plant.domain.repository.PlantRepository
-import org.mlanau.project.shared.notification.NotificationService
-import kotlinx.coroutines.flow.first
 
 class SaveCareRule(
     private val repository: CareRepository,
-    private val plantRepository: PlantRepository,
-    private val notificationService: NotificationService
+    private val rescheduleCareReminder: RescheduleCareReminder
 ) {
     /**
      * Saves a care rule, optionally overriding the plantId.
      * This handles the case where a new plant is created and its rules
      * need to be assigned the newly generated plantId.
      */
-    suspend operator fun invoke(rule: CareRule, plantId: Int = rule.plantId): Result<Unit> {
-        return runCatching {
-            val ruleWithPlantId = if (rule.plantId == plantId) rule else when (rule) {
-                is WaterCareRule -> rule.copy(plantId = plantId)
-                is FertilizeCareRule -> rule.copy(plantId = plantId)
-                is RepotCareRule -> rule.copy(plantId = plantId)
-            }
+    suspend operator fun invoke(rule: CareRule, plantId: PlantId = rule.plantId): Result<Unit> {
+        return runCatchingDomainErrors {
+            val ruleWithPlantId = if (rule.plantId == plantId) rule else rule.assignedTo(plantId)
             val savedRuleId = repository.saveCareRule(ruleWithPlantId)
-            
-            val ruleWithId = when (ruleWithPlantId) {
-                is WaterCareRule -> ruleWithPlantId.copy(id = savedRuleId)
-                is FertilizeCareRule -> ruleWithPlantId.copy(id = savedRuleId)
-                is RepotCareRule -> ruleWithPlantId.copy(id = savedRuleId)
-            }
-
-            // Clean up pending events so they are re-generated with new rule parameters
-            repository.deletePendingEventsByRuleId(savedRuleId)
-            
-            // Handle notifications
-            val plant = plantRepository.findById(plantId)
-            if (plant != null) {
-                notificationService.scheduleNextNotification(ruleWithId, plant.name)
-            }
-            Result.success(Unit)
-        }.getOrElse { Result.failure(it) }
+            rescheduleCareReminder(savedRuleId)
+        }
     }
 }
