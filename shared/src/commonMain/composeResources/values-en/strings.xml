@@ -81,18 +81,21 @@
     <string name="care_type_water">Watering</string>
     <string name="care_type_fertilize">Fertilizing</string>
     <string name="care_type_repot">Repotting</string>
-    <string name="care_recurrence_once">Once</string>
     <string name="care_recurrence_periodic">Every %1$d days</string>
+    <string name="care_rule_paused">Paused</string>
+    <string name="care_rule_pause">Pause</string>
+    <string name="care_rule_resume">Resume</string>
+    <string name="care_rule_type_taken">This plant already has a care of this type</string>
+    <string name="care_task_not_due">Not due yet: you can only complete today's or overdue tasks</string>
     <string name="care_add_rule">Add care</string>
     <string name="care_edit_rule">Edit care</string>
     <string name="care_type_label">Care type</string>
     <string name="care_start_date_label">Start date</string>
-    <string name="care_task_date_label">Task date</string>
     <string name="care_time_label">Reminder time</string>
-    <string name="care_recurrence_label">Recurrence</string>
-    <string name="care_recurrence_periodic_label">Periodic</string>
     <string name="care_every_days_label">Every how many days</string>
+    <string name="care_every_days_error">Must be at least 1 day</string>
     <string name="care_water_amount_label">Amount (ml)</string>
+    <string name="care_water_amount_error">Must be greater than zero</string>
     <string name="care_notifications_enabled">Enable notifications</string>
     <string name="care_fertilizer_name_label">Fertilizer name</string>
     <string name="care_fertilizer_default_name">Fertilizer</string>
@@ -100,10 +103,7 @@
     <string name="common_confirm">Confirm</string>
     <string name="common_discard">Discard</string>
     <string name="care_action_done">Mark as done</string>
-    <string name="care_action_skip">Skip</string>
-    <string name="care_action_view_plant">View plant</string>
     <string name="care_action_undo">Undo</string>
-    <string name="care_occurrence_options_title">Task options</string>
     <string name="care_log_options_title">Log options</string>
 
     <!-- Log care -->
@@ -117,9 +117,10 @@
     <string name="care_log_undone">Log undone</string>
 
     <!-- Care status -->
+    <string name="care_overdue_days">%1$d days late</string>
+    <string name="care_overdue_today">Due today</string>
+    <string name="care_overdue_missed_count">×%1$d</string>
     <string name="care_overdue_label">Overdue</string>
-    <string name="care_never_done">No care logged yet</string>
-    <string name="care_days_without_care">%1$d days without %2$s</string>
     <string name="care_verb_water">watering</string>
     <string name="care_verb_fertilize">fertilizing</string>
     <string name="care_verb_repot">repotting</string>

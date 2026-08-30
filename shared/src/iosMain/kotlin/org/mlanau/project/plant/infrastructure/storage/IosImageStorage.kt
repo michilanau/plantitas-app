@@ -4,7 +4,7 @@ import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
-import org.mlanau.project.plant.domain.service.ImageStorage
+import org.mlanau.project.plant.domain.port.ImageStorage
 import platform.Foundation.NSData
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager

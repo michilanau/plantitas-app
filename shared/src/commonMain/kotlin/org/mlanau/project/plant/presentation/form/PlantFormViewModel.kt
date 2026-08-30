@@ -1,12 +1,13 @@
 package org.mlanau.project.plant.presentation.form
 
+import kotlin.time.Clock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.mlanau.project.plant.domain.model.*
-import org.mlanau.project.plant.domain.service.ImageStorage
+import org.mlanau.project.plant.domain.port.ImageStorage
 import org.mlanau.project.plant.application.CreatePlant
 import org.mlanau.project.plant.application.FindPlantById
 import org.mlanau.project.plant.application.UpdatePlant
@@ -52,7 +53,8 @@ class PlantFormViewModel(
     private val getCareRules: GetCareRules,
     private val saveCareRule: SaveCareRule,
     private val deleteCareRule: DeleteCareRule,
-    private val imageStorage: ImageStorage
+    private val imageStorage: ImageStorage,
+    private val clock: Clock = Clock.System
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlantFormUiState())
@@ -61,16 +63,8 @@ class PlantFormViewModel(
     private var loadJob: Job? = null
     private var loadRulesJob: Job? = null
 
-    /**
-     * Snapshot of the care rules as they were loaded from persistence, captured once per
-     * [loadPlant] call. Used by [onSavePlant] to tell which rules the user actually changed, so
-     * unchanged rules are left untouched on save. `null` for a plant that doesn't exist yet
-     * (nothing to diff against: every rule the user adds is new).
-     */
     private var originalCareRules: List<CareRule>? = null
 
-    /** Loads the plant to edit, or resets to a blank "new plant" state when [id] is `null`. The
-     * route only ever carries this id — never the [Plant] itself. */
     fun loadPlant(id: Int?) {
         loadJob?.cancel()
         loadRulesJob?.cancel()
@@ -115,8 +109,6 @@ class PlantFormViewModel(
     fun onLightNeedSelected(value: LightNeed?) = _uiState.update { it.copy(lightNeed = value) }
     fun onPotSizeSelected(value: PotSize?) = _uiState.update { it.copy(potSize = value) }
 
-    /** A newly picked image always replaces any existing URL, whether that URL came from a
-     * previously saved plant or from a picture picked earlier in this same session. */
     fun onImagePicked(bytes: ByteArray) = _uiState.update { it.copy(imageBytes = bytes, imageUrl = null) }
 
     fun onSavePlant() {
@@ -141,12 +133,13 @@ class PlantFormViewModel(
                     state.location,
                     state.lightNeed,
                     state.potSize,
-                    finalImageUrl,
-                    existingPlant.createdAt
+                    finalImageUrl
                 )
             }
 
-            result.onSuccess { savedPlantId ->
+            result.onSuccess { savedPlant ->
+                val savedPlantId = requireNotNull(savedPlant.id)
+
                 // The new photo (if any) already replaced the old one in finalImageUrl above; the
                 // old file is now orphaned.
                 if (state.imageBytes != null && previousImageUrl != null) {
@@ -172,6 +165,15 @@ class PlantFormViewModel(
 
     fun addCareRule(rule: CareRule) {
         _uiState.update { it.copy(careRules = it.careRules + rule) }
+    }
+
+    /**
+     * Pauses or resumes a rule in the draft list. Resuming moves the start date to now, so the
+     * time spent paused never comes back as a pile of missed occurrences.
+     */
+    fun toggleCareRulePaused(rule: CareRule) {
+        val toggled = if (rule.active) rule.paused() else rule.resumedAt(clock.now())
+        updateCareRuleInList(rule, toggled)
     }
 
     fun updateCareRuleInList(oldRule: CareRule, newRule: CareRule) {

@@ -3,9 +3,8 @@ package org.mlanau.project.plant.application
 import kotlin.time.Clock
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.Plant
-import org.mlanau.project.plant.domain.model.PlantId
 import org.mlanau.project.plant.domain.model.PotSize
-import org.mlanau.project.plant.domain.repository.PlantRepository
+import org.mlanau.project.plant.domain.port.PlantRepository
 
 class CreatePlant(
     private val repository: PlantRepository,
@@ -18,7 +17,7 @@ class CreatePlant(
         lightNeed: LightNeed? = null,
         potSize: PotSize? = null,
         imageUrl: String? = null
-    ): Result<PlantId> {
+    ): Result<Plant> {
         return runCatchingDomainErrors {
             val plant = Plant.create(
                 name = name,

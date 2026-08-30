@@ -1,37 +1,44 @@
 package org.mlanau.project.plant.domain.model
 
-import kotlin.jvm.JvmInline
 import kotlin.time.Instant
-import org.mlanau.project.plant.domain.exceptions.EmptyPlantNameException
+import org.mlanau.project.plant.domain.exception.EmptyPlantNameException
 
-@JvmInline
-value class PlantId(val value: Int)
-
-data class Plant(
-    val id: PlantId? = null,
+@ConsistentCopyVisibility
+data class Plant private constructor(
+    val id: PlantId?,
     val name: String,
-    val description: String? = null,
-    val location: String? = null,
-    val lightNeed: LightNeed? = null,
-    val potSize: PotSize? = null,
-    val imageUrl: String? = null,
+    val description: String?,
+    val location: String?,
+    val lightNeed: LightNeed?,
+    val potSize: PotSize?,
+    val imageUrl: String?,
     val createdAt: Instant
 ) {
     init {
-        if (name.isBlank()) {
-            throw EmptyPlantNameException()
-        }
+        if (name.isBlank()) throw EmptyPlantNameException()
     }
 
+    fun withId(newId: PlantId): Plant = copy(id = newId)
+
+    fun withDetails(
+        name: String,
+        description: String?,
+        location: String? = this.location,
+        lightNeed: LightNeed? = this.lightNeed,
+        potSize: PotSize? = this.potSize,
+        imageUrl: String? = this.imageUrl
+    ): Plant = copy(
+        name = name.trim(),
+        description = description?.trim()?.takeIf { it.isNotBlank() },
+        location = location?.trim()?.takeIf { it.isNotBlank() },
+        lightNeed = lightNeed,
+        potSize = potSize,
+        imageUrl = imageUrl?.takeIf { it.isNotBlank() }
+    )
+
     companion object {
-        /**
-         * Builds a [Plant], normalizing blank optional fields to null: a field the user left empty
-         * is the same as a field that was never set. [CreatePlant][org.mlanau.project.plant.application.CreatePlant]
-         * and [UpdatePlant][org.mlanau.project.plant.application.UpdatePlant] used to duplicate this
-         * normalization by hand.
-         */
+        /** Builds a new, not-yet-persisted plant: [id] is always null. */
         fun create(
-            id: PlantId? = null,
             name: String,
             description: String?,
             location: String? = null,
@@ -40,10 +47,35 @@ data class Plant(
             imageUrl: String? = null,
             createdAt: Instant
         ): Plant = Plant(
+            id = null,
+            name = name.trim(),
+            description = description?.trim()?.takeIf { it.isNotBlank() },
+            location = location?.trim()?.takeIf { it.isNotBlank() },
+            lightNeed = lightNeed,
+            potSize = potSize,
+            imageUrl = imageUrl?.takeIf { it.isNotBlank() },
+            createdAt = createdAt
+        )
+
+        /**
+         * Rehydrates a plant from persistence. Applies the same normalization as [create] so a
+         * legacy row storing `''` instead of `NULL` in a nullable column doesn't enter the domain
+         * as a blank string.
+         */
+        fun restore(
+            id: PlantId,
+            name: String,
+            description: String?,
+            location: String?,
+            lightNeed: LightNeed?,
+            potSize: PotSize?,
+            imageUrl: String?,
+            createdAt: Instant
+        ): Plant = Plant(
             id = id,
-            name = name,
-            description = description?.takeIf { it.isNotBlank() },
-            location = location?.takeIf { it.isNotBlank() },
+            name = name.trim(),
+            description = description?.trim()?.takeIf { it.isNotBlank() },
+            location = location?.trim()?.takeIf { it.isNotBlank() },
             lightNeed = lightNeed,
             potSize = potSize,
             imageUrl = imageUrl?.takeIf { it.isNotBlank() },

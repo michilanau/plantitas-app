@@ -17,13 +17,15 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
 import org.jetbrains.compose.resources.stringResource
+import org.mlanau.project.plant.application.runCatchingDomainErrors
+import org.mlanau.project.plant.domain.exception.InvalidRecurrenceException
+import org.mlanau.project.plant.domain.exception.NonPositiveAmountException
 import org.mlanau.project.plant.domain.model.CareDetails
 import org.mlanau.project.plant.domain.model.CareRule
 import org.mlanau.project.plant.domain.model.CareType
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PlantId
 import org.mlanau.project.plant.domain.model.PotSize
-import org.mlanau.project.plant.domain.model.RecurrenceRule
 import plantitas_app.shared.generated.resources.*
 
 @Composable
@@ -42,9 +44,17 @@ fun getPotSizeString(size: PotSize): String = when (size) {
 }
 
 @Composable
+fun getCareTypeString(type: CareType): String = when (type) {
+    CareType.WATER -> stringResource(Res.string.care_type_water)
+    CareType.FERTILIZE -> stringResource(Res.string.care_type_fertilize)
+    CareType.REPOT -> stringResource(Res.string.care_type_repot)
+}
+
+@Composable
 fun CareRuleItem(
     rule: CareRule,
     onClick: () -> Unit,
+    onTogglePaused: () -> Unit,
     onRemove: () -> Unit
 ) {
     Card(
@@ -62,24 +72,32 @@ fun CareRuleItem(
                     is CareDetails.Repot -> Icons.Default.HomeRepairService
                 },
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = if (rule.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
+                Text(text = getCareTypeString(rule.type), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    text = when (rule.details) {
-                        is CareDetails.Water -> stringResource(Res.string.care_type_water)
-                        is CareDetails.Fertilize -> stringResource(Res.string.care_type_fertilize)
-                        is CareDetails.Repot -> stringResource(Res.string.care_type_repot)
+                    text = if (rule.active) {
+                        stringResource(Res.string.care_recurrence_periodic, rule.everyDays)
+                    } else {
+                        stringResource(Res.string.care_rule_paused)
                     },
-                    style = MaterialTheme.typography.titleSmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (rule.active) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    }
                 )
-                Text(
-                    text = when (val rec = rule.recurrence) {
-                        is RecurrenceRule.Once -> stringResource(Res.string.care_recurrence_once)
-                        is RecurrenceRule.Periodic -> stringResource(Res.string.care_recurrence_periodic, rec.everyDays)
-                    },
-                    style = MaterialTheme.typography.bodySmall
+            }
+            IconButton(onClick = onTogglePaused) {
+                Icon(
+                    imageVector = if (rule.active) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = stringResource(
+                        if (rule.active) Res.string.care_rule_pause else Res.string.care_rule_resume
+                    ),
+                    modifier = Modifier.size(18.dp)
                 )
             }
             IconButton(onClick = onRemove) {
@@ -89,37 +107,32 @@ fun CareRuleItem(
     }
 }
 
+/**
+ * Creates or edits a plant's rule for one kind of care.
+ *
+ * [takenTypes] are the types this plant already has a rule for. A plant has at most one rule per
+ * type, so those are simply not offered, and editing an existing rule shows its type as fixed:
+ * switching a rule's type is deleting one rule and creating another, not an edit.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CareRuleDialog(
-    plantId: PlantId,
+    plantId: PlantId?,
+    takenTypes: Set<CareType>,
     initialRule: CareRule? = null,
     onDismiss: () -> Unit,
     onConfirm: (CareRule) -> Unit
 ) {
-    // Use a typed enum instead of raw String as discriminator
-    var type by remember {
-        mutableStateOf(
-            when (initialRule?.details) {
-                is CareDetails.Water -> CareType.WATER
-                is CareDetails.Fertilize -> CareType.FERTILIZE
-                is CareDetails.Repot -> CareType.REPOT
-                null -> CareType.WATER
-            }
-        )
+    val selectableTypes = remember(takenTypes, initialRule) {
+        CareType.entries.filter { it !in takenTypes || it == initialRule?.type }
     }
-    var recurrenceType by remember {
-        mutableStateOf(
-            if (initialRule?.recurrence is RecurrenceRule.Once) RecurrenceRule.Once::class else RecurrenceRule.Periodic::class
-        )
+    if (selectableTypes.isEmpty()) {
+        AllTypesTakenDialog(onDismiss)
+        return
     }
-    val isOnce = recurrenceType == RecurrenceRule.Once::class
 
-    var everyDays by remember {
-        mutableStateOf(
-            (initialRule?.recurrence as? RecurrenceRule.Periodic)?.everyDays?.toString() ?: "7"
-        )
-    }
+    var type by remember { mutableStateOf(initialRule?.type ?: selectableTypes.first()) }
+    var everyDays by remember { mutableStateOf(initialRule?.everyDays?.toString() ?: "7") }
 
     val timeZone = remember { TimeZone.currentSystemDefault() }
     val now = Clock.System.now().toLocalDateTime(timeZone)
@@ -139,33 +152,56 @@ fun CareRuleDialog(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // Specific fields
     var amountMl by remember { mutableStateOf((initialRule?.details as? CareDetails.Water)?.amountMl?.toString() ?: "") }
     var fertilizerName by remember { mutableStateOf((initialRule?.details as? CareDetails.Fertilize)?.fertilizerName ?: "") }
     var newPotSize by remember { mutableStateOf((initialRule?.details as? CareDetails.Repot)?.newPotSize ?: PotSize.MEDIUM) }
     var notificationsEnabled by remember { mutableStateOf(initialRule?.notificationsEnabled ?: true) }
 
-    // Resource strings resolved at composition time
     val strConfirm = stringResource(Res.string.common_confirm)
     val strCancel = stringResource(Res.string.common_cancel)
     val strAddRule = stringResource(Res.string.care_add_rule)
     val strEditRule = stringResource(Res.string.care_edit_rule)
     val strTypeLabel = stringResource(Res.string.care_type_label)
     val strStartDateLabel = stringResource(Res.string.care_start_date_label)
-    val strTaskDateLabel = stringResource(Res.string.care_task_date_label)
     val strTimeLabel = stringResource(Res.string.care_time_label)
-    val strRecurrenceLabel = stringResource(Res.string.care_recurrence_label)
-    val strPeriodic = stringResource(Res.string.care_recurrence_periodic_label)
     val strEveryDays = stringResource(Res.string.care_every_days_label)
     val strAmountMl = stringResource(Res.string.care_water_amount_label)
+    val strEveryDaysError = stringResource(Res.string.care_every_days_error)
+    val strAmountError = stringResource(Res.string.care_water_amount_error)
     val strFertilizerName = stringResource(Res.string.care_fertilizer_name_label)
     val strFertilizerDefault = stringResource(Res.string.care_fertilizer_default_name)
     val strRepotPotSize = stringResource(Res.string.care_repot_pot_size_label)
-    val strWater = stringResource(Res.string.care_type_water)
-    val strFertilize = stringResource(Res.string.care_type_fertilize)
-    val strRepot = stringResource(Res.string.care_type_repot)
-    val strOnce = stringResource(Res.string.care_recurrence_once)
     val strAdd = stringResource(Res.string.home_button_add)
+
+    // Recomputed on every recomposition from the current field values (Compose already
+    // recomposes this scope on their changes), so validity — and the specific field to blame —
+    // stay in sync with what's on screen instead of only surfacing at confirm time.
+    val ruleResult = runCatchingDomainErrors {
+        val selectedHour = hour.toIntOrNull()?.coerceIn(0, 23) ?: 10
+        val selectedMinute = minute.toIntOrNull()?.coerceIn(0, 59) ?: 0
+        val notificationTime = LocalTime(selectedHour, selectedMinute)
+        val startInstant = LocalDateTime(startDate, notificationTime).toInstant(timeZone)
+        val days = everyDays.toIntOrNull() ?: 0
+
+        val details: CareDetails = when (type) {
+            CareType.WATER -> CareDetails.Water.create(amountMl = amountMl.toIntOrNull())
+            CareType.FERTILIZE -> CareDetails.Fertilize.create(fertilizerName = fertilizerName.ifBlank { strFertilizerDefault })
+            CareType.REPOT -> CareDetails.Repot.create(newPotSize = newPotSize)
+        }
+
+        // Editing preserves the rule's id and its paused state; the type can't change, so the
+        // existing rule is always the one this dialog is editing.
+        initialRule?.withSchedule(days, startInstant, notificationTime, notificationsEnabled, details)
+            ?: CareRule.create(
+                plantId = plantId,
+                everyDays = days,
+                startDate = startInstant,
+                notificationTime = notificationTime,
+                notificationsEnabled = notificationsEnabled,
+                details = details
+            )
+    }
+    val ruleError = ruleResult.exceptionOrNull()
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -210,18 +246,21 @@ fun CareRuleDialog(
         title = { Text(if (initialRule == null) strAddRule else strEditRule) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Type Selector
                 Text(strTypeLabel, style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = type == CareType.WATER, onClick = { type = CareType.WATER }, label = { Text(strWater) })
-                    FilterChip(selected = type == CareType.FERTILIZE, onClick = { type = CareType.FERTILIZE }, label = { Text(strFertilize) })
-                    FilterChip(selected = type == CareType.REPOT, onClick = { type = CareType.REPOT }, label = { Text(strRepot) })
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    selectableTypes.forEach { selectable ->
+                        FilterChip(
+                            selected = type == selectable,
+                            onClick = { type = selectable },
+                            enabled = initialRule == null,
+                            label = { Text(getCareTypeString(selectable)) }
+                        )
+                    }
                 }
 
-                // Date / Time fields
                 ClickableField(
                     value = startDate.toString(),
-                    label = if (isOnce) strTaskDateLabel else strStartDateLabel,
+                    label = strStartDateLabel,
                     icon = Icons.Default.DateRange,
                     onClick = { showDatePicker = true }
                 )
@@ -245,32 +284,18 @@ fun CareRuleDialog(
                     )
                 }
 
-                // Recurrence Selector
-                Text(strRecurrenceLabel, style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = isOnce,
-                        onClick = { recurrenceType = RecurrenceRule.Once::class },
-                        label = { Text(strOnce) }
-                    )
-                    FilterChip(
-                        selected = !isOnce,
-                        onClick = { recurrenceType = RecurrenceRule.Periodic::class },
-                        label = { Text(strPeriodic) }
-                    )
-                }
+                OutlinedTextField(
+                    value = everyDays,
+                    onValueChange = { everyDays = it.filter { c -> c.isDigit() } },
+                    label = { Text(strEveryDays) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    isError = ruleError is InvalidRecurrenceException,
+                    supportingText = if (ruleError is InvalidRecurrenceException) {
+                        { Text(strEveryDaysError) }
+                    } else null
+                )
 
-                if (!isOnce) {
-                    OutlinedTextField(
-                        value = everyDays,
-                        onValueChange = { everyDays = it.filter { c -> c.isDigit() } },
-                        label = { Text(strEveryDays) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    )
-                }
-
-                // Specific fields based on type
                 when (type) {
                     CareType.WATER -> {
                         OutlinedTextField(
@@ -278,7 +303,11 @@ fun CareRuleDialog(
                             onValueChange = { amountMl = it.filter { c -> c.isDigit() } },
                             label = { Text(strAmountMl) },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
+                            shape = MaterialTheme.shapes.medium,
+                            isError = ruleError is NonPositiveAmountException,
+                            supportingText = if (ruleError is NonPositiveAmountException) {
+                                { Text(strAmountError) }
+                            } else null
                         )
                     }
                     CareType.FERTILIZE -> {
@@ -308,35 +337,8 @@ fun CareRuleDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = {
-                    val recurrence = if (isOnce) RecurrenceRule.Once else RecurrenceRule.Periodic(everyDays.toIntOrNull() ?: 7)
-                    val selectedHour = hour.toIntOrNull()?.coerceIn(0, 23) ?: 10
-                    val selectedMinute = minute.toIntOrNull()?.coerceIn(0, 59) ?: 0
-                    val notificationTime = LocalTime(selectedHour, selectedMinute)
-                    val startInstant = LocalDateTime(startDate, notificationTime).toInstant(timeZone)
-
-                    val details: CareDetails = when (type) {
-                        CareType.WATER -> CareDetails.Water(amountMl = amountMl.toIntOrNull())
-                        CareType.FERTILIZE -> CareDetails.Fertilize(fertilizerName = fertilizerName.ifBlank { strFertilizerDefault })
-                        CareType.REPOT -> CareDetails.Repot(newPotSize = newPotSize)
-                    }
-                    val rule = CareRule(
-                        id = initialRule?.id,
-                        plantId = plantId,
-                        recurrence = recurrence,
-                        startDate = startInstant,
-                        // Neither is editable from this dialog, but both must survive an edit —
-                        // without this, saving any change to an existing rule would silently wipe
-                        // its end date and un-dismiss whatever overdue range the user had cleared.
-                        endDate = initialRule?.endDate,
-                        dismissedBefore = initialRule?.dismissedBefore,
-                        notificationTime = notificationTime,
-                        notificationsEnabled = notificationsEnabled,
-                        active = initialRule?.active ?: true,
-                        details = details
-                    )
-                    onConfirm(rule)
-                }
+                onClick = { ruleResult.getOrNull()?.let(onConfirm) },
+                enabled = ruleResult.isSuccess
             ) {
                 Text(strAdd)
             }
@@ -345,6 +347,18 @@ fun CareRuleDialog(
             TextButton(onClick = onDismiss) {
                 Text(strCancel)
             }
+        }
+    )
+}
+
+@Composable
+private fun AllTypesTakenDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.care_add_rule)) },
+        text = { Text(stringResource(Res.string.care_rule_type_taken)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_confirm)) }
         }
     )
 }

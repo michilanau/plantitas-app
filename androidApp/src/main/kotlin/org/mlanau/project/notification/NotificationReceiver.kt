@@ -16,36 +16,39 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlanau.project.MainActivity
 import org.mlanau.project.R
-import org.mlanau.project.plant.application.RescheduleCareReminder
+import org.mlanau.project.plant.application.SyncCareReminder
 import org.mlanau.project.plant.domain.model.CareRuleId
 
 class NotificationReceiver : BroadcastReceiver(), KoinComponent {
 
-    private val rescheduleCareReminder: RescheduleCareReminder by inject()
+    private val syncCareReminder: SyncCareReminder by inject()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onReceive(context: Context, intent: Intent) {
-        val ruleId = intent.getIntExtra("ruleId", -1)
-        // Title/body are already fully resolved (in the user's language) by
-        // AndroidCareNotificationScheduler when the alarm was scheduled — this receiver only
-        // displays them, so it stays synchronous instead of needing a suspending resource lookup.
+        val notificationId = intent.getStringExtra("notificationId") ?: return
+        // Title/body are already fully resolved (in the user's language) by SyncCareReminder when
+        // the alarm was scheduled — this receiver only displays them, so it stays synchronous
+        // instead of needing a suspending resource lookup.
         val title = intent.getStringExtra("title") ?: return
         val body = intent.getStringExtra("body") ?: return
 
-        showNotification(context, ruleId, title, body)
+        showNotification(context, notificationId, title, body)
 
         // A one-shot AlarmManager alarm doesn't repeat on its own, so the rule's next reminder has
         // to be chained here, right after this one fires — otherwise a Periodic rule the user never
-        // opens the app for would only ever notify once. This part does need DB access, so it runs
-        // on goAsync() rather than blocking onReceive. RescheduleCareReminder always computes a
-        // strictly-future instant (see its doc on the anti-loop guarantee), so this can never
-        // re-trigger itself immediately.
-        if (ruleId != -1) {
+        // opens the app for would only ever notify once. This is the one place the generic
+        // notification/ context still has to know it's a plant/ care-rule reminder, to resolve which
+        // rule to sync back from the opaque notification id — see careReminderNotificationId. This
+        // part does need DB access, so it runs on goAsync() rather than blocking onReceive.
+        // SyncCareReminder always computes a strictly-future instant (see its doc on the anti-loop
+        // guarantee), so this can never re-trigger itself immediately.
+        val ruleId = notificationId.removePrefix("care-rule-").toIntOrNull()
+        if (ruleId != null) {
             val pendingResult = goAsync()
             scope.launch {
                 try {
-                    rescheduleCareReminder(CareRuleId(ruleId))
+                    syncCareReminder(CareRuleId(ruleId))
                 } finally {
                     pendingResult.finish()
                 }
@@ -53,7 +56,7 @@ class NotificationReceiver : BroadcastReceiver(), KoinComponent {
         }
     }
 
-    private fun showNotification(context: Context, ruleId: Int, title: String, body: String) {
+    private fun showNotification(context: Context, notificationId: String, title: String, body: String) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "plant_care_notifications"
 
@@ -88,8 +91,8 @@ class NotificationReceiver : BroadcastReceiver(), KoinComponent {
             .setContentIntent(pendingIntent)
             .build()
 
-        // Notifying with the ruleId as the id means a later notification for the same rule
-        // replaces this one instead of stacking a new one in the tray.
-        notificationManager.notify(ruleId, notification)
+        // Notifying with the notification id's hash means a later notification with the same id
+        // replaces this one in the tray instead of stacking a new one.
+        notificationManager.notify(notificationId.hashCode(), notification)
     }
 }

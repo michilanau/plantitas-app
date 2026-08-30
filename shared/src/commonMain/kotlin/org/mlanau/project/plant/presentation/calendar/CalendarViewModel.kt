@@ -7,32 +7,32 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
-import org.mlanau.project.plant.application.CalendarEntry
-import org.mlanau.project.plant.application.DismissCareOccurrence
-import org.mlanau.project.plant.application.GetCalendarEntries
-import org.mlanau.project.plant.application.LogCare
-import org.mlanau.project.plant.application.UndoCareLog
-import org.mlanau.project.plant.domain.model.CareLog
-import org.mlanau.project.plant.domain.service.CareOccurrence
+import org.mlanau.project.plant.application.CompleteCareTask
+import org.mlanau.project.plant.application.DeleteCareTask
+import org.mlanau.project.plant.application.FindAllPlants
+import org.mlanau.project.plant.application.GetCalendarTasks
+import org.mlanau.project.plant.domain.model.CareTask
 import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.toUiError
 import org.mlanau.project.shared.time.SystemTimeZoneProvider
 import org.mlanau.project.shared.time.TimeZoneProvider
 
+data class CalendarTaskItem(val task: CareTask, val plantName: String?)
+
 data class CalendarUiState(
     val selectedDate: LocalDate,
     val viewMonth: Month,
     val viewYear: Int,
-    val entries: List<CalendarEntry> = emptyList(),
+    val entries: List<CalendarTaskItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: UiError? = null
 )
 
 class CalendarViewModel(
-    private val getCalendarEntries: GetCalendarEntries,
-    private val logCare: LogCare,
-    private val dismissCareOccurrence: DismissCareOccurrence,
-    private val undoCareLog: UndoCareLog,
+    private val getCalendarTasks: GetCalendarTasks,
+    private val findAllPlants: FindAllPlants,
+    private val completeCareTask: CompleteCareTask,
+    private val deleteCareTask: DeleteCareTask,
     private val clock: Clock = Clock.System,
     private val timeZoneProvider: TimeZoneProvider = SystemTimeZoneProvider
 ) : ViewModel() {
@@ -65,7 +65,10 @@ class CalendarViewModel(
             val fromInstant = fromLocalDate.atStartOfDayIn(timeZone)
             val toInstant = toLocalDate.atTime(LocalTime(23, 59, 59)).toInstant(timeZone)
 
-            getCalendarEntries(fromInstant, toInstant).collect { entries ->
+            combine(getCalendarTasks(fromInstant, toInstant), findAllPlants()) { tasks, plants ->
+                val plantNameById = plants.associate { it.id to it.name }
+                tasks.map { CalendarTaskItem(it, plantNameById[it.plantId]) }
+            }.collect { entries ->
                 _uiState.update { it.copy(entries = entries, isLoading = false) }
             }
         }
@@ -107,21 +110,15 @@ class CalendarViewModel(
         onFailure { exception -> _uiState.update { it.copy(error = exception.toUiError()) } }
     }
 
-    fun onMarkDone(occurrence: CareOccurrence) {
+    fun onMarkDone(pending: CareTask.Pending) {
         viewModelScope.launch {
-            logCare(occurrence).publishErrorIfAny()
+            completeCareTask(pending).publishErrorIfAny()
         }
     }
 
-    fun onDismissOccurrence(occurrence: CareOccurrence) {
+    fun onUndoTask(done: CareTask.Done) {
         viewModelScope.launch {
-            dismissCareOccurrence(occurrence).publishErrorIfAny()
-        }
-    }
-
-    fun onUndoLog(log: CareLog) {
-        viewModelScope.launch {
-            log.id?.let { undoCareLog(it).publishErrorIfAny() }
+            done.id?.let { deleteCareTask(it).publishErrorIfAny() }
         }
     }
 

@@ -20,14 +20,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import kotlin.time.Clock
 import kotlinx.datetime.*
-import org.mlanau.project.plant.application.CalendarEntry
 import org.mlanau.project.plant.domain.model.*
 import org.jetbrains.compose.resources.stringResource
 import plantitas_app.shared.generated.resources.*
 
-import org.mlanau.project.plant.domain.service.CareOccurrence
-import org.mlanau.project.plant.domain.service.OccurrenceStatus
-import org.mlanau.project.plant.presentation.component.CareOccurrenceActionDialog
 import org.mlanau.project.plant.presentation.component.careColor
 import org.mlanau.project.plant.presentation.component.overdueColor
 import org.mlanau.project.plant.presentation.localizedMessage
@@ -42,8 +38,6 @@ fun CalendarScreen(
     val uiState by viewModel.uiState.collectAsState()
     val viewMonth = uiState.viewMonth
     val viewYear = uiState.viewYear
-
-    var showOccurrenceOptions by remember { mutableStateOf<CareOccurrence?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -90,7 +84,7 @@ fun CalendarScreen(
 
             val timeZone = TimeZone.currentSystemDefault()
             val selectedDateEntries = uiState.entries.filter {
-                it.at.toLocalDateTime(timeZone).date == uiState.selectedDate
+                it.task.at.toLocalDateTime(timeZone).date == uiState.selectedDate
             }
 
             if (uiState.isLoading) {
@@ -114,24 +108,14 @@ fun CalendarScreen(
                     items(selectedDateEntries) { entry ->
                         CalendarEntryRow(
                             entry = entry,
-                            onShowOccurrenceOptions = { showOccurrenceOptions = it },
-                            onUndoLog = { viewModel.onUndoLog(it) },
-                            onClick = { onNavigateToPlantDetail(entry.plantId.value) }
+                            onMarkDone = { viewModel.onMarkDone(it) },
+                            onUndoTask = { viewModel.onUndoTask(it) },
+                            onClick = { onNavigateToPlantDetail(entry.task.plantId.value) }
                         )
                     }
                 }
             }
         }
-    }
-
-    showOccurrenceOptions?.let { occurrence ->
-        CareOccurrenceActionDialog(
-            occurrence = occurrence,
-            onDismissRequest = { showOccurrenceOptions = null },
-            onMarkDone = { viewModel.onMarkDone(it) },
-            onDismissOccurrence = { viewModel.onDismissOccurrence(it) },
-            onViewPlant = { onNavigateToPlantDetail(it) }
-        )
     }
 }
 
@@ -140,7 +124,7 @@ private fun CalendarGrid(
     viewMonth: Month,
     viewYear: Int,
     selectedDate: LocalDate,
-    entries: List<CalendarEntry>,
+    entries: List<CalendarTaskItem>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val daysInMonth = LocalDate(viewYear, viewMonth, 1)
@@ -179,7 +163,7 @@ private fun CalendarGrid(
                         val timeZone = TimeZone.currentSystemDefault()
                         val today = Clock.System.now().toLocalDateTime(timeZone).date
                         val isToday = date == today
-                        val dayEntries = entries.filter { it.at.toLocalDateTime(timeZone).date == date }
+                        val dayEntries = entries.filter { it.task.at.toLocalDateTime(timeZone).date == date }
                         val hasEntries = dayEntries.isNotEmpty()
 
                         Box(
@@ -210,10 +194,11 @@ private fun CalendarGrid(
                                 )
                                 if (hasEntries) {
                                     val hasOverdue = dayEntries.any {
-                                        it is CalendarEntry.Scheduled && it.occurrence.status == OccurrenceStatus.OVERDUE
+                                        val task = it.task
+                                        task is CareTask.Pending && task.status == PendingStatus.OVERDUE
                                     }
                                     val entryColors = dayEntries
-                                        .map { entryColorFor(it) }
+                                        .map { careColor(it.task.type) }
                                         .distinct()
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -243,34 +228,32 @@ private fun CalendarGrid(
 }
 
 @Composable
-private fun entryColorFor(entry: CalendarEntry): Color = when (entry) {
-    is CalendarEntry.Scheduled -> careColor(entry.occurrence.type)
-    is CalendarEntry.Logged -> careColor(entry.log.type)
-}
-
-@Composable
 private fun CalendarEntryRow(
-    entry: CalendarEntry,
-    onShowOccurrenceOptions: (CareOccurrence) -> Unit,
-    onUndoLog: (CareLog) -> Unit,
+    entry: CalendarTaskItem,
+    onMarkDone: (CareTask.Pending) -> Unit,
+    onUndoTask: (CareTask.Done) -> Unit,
     onClick: () -> Unit
 ) {
-    when (entry) {
-        is CalendarEntry.Scheduled -> OccurrenceRow(entry, onShowOccurrenceOptions, onClick)
-        is CalendarEntry.Logged -> LoggedRow(entry, onUndoLog, onClick)
+    when (val task = entry.task) {
+        is CareTask.Pending -> PendingRow(task, entry.plantName, onMarkDone, onClick)
+        is CareTask.Done -> DoneRow(task, entry.plantName, onUndoTask, onClick)
     }
 }
 
 @Composable
-private fun OccurrenceRow(
-    entry: CalendarEntry.Scheduled,
-    onShowOptions: (CareOccurrence) -> Unit,
+private fun PendingRow(
+    task: CareTask.Pending,
+    plantName: String?,
+    onMarkDone: (CareTask.Pending) -> Unit,
     onClick: () -> Unit
 ) {
-    val occurrence = entry.occurrence
-    val isOverdue = occurrence.status == OccurrenceStatus.OVERDUE
-    val resolvedPlantName = entry.plantName ?: stringResource(Res.string.calendar_unknown_plant)
-    val typeColor = careColor(occurrence.type)
+    val isOverdue = task.isOverdue
+    val timeZone = TimeZone.currentSystemDefault()
+    // Today's tasks can be ticked off as well as overdue ones; a task the user hasn't reached yet
+    // simply offers no button, since completing it would be an ad-hoc care on another day.
+    val isCompletable = task.isCompletableOn(Clock.System.now(), timeZone)
+    val resolvedPlantName = plantName ?: stringResource(Res.string.calendar_unknown_plant)
+    val typeColor = careColor(task.type)
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
@@ -292,20 +275,19 @@ private fun OccurrenceRow(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${careTypeLabel(occurrence.type)} - $resolvedPlantName",
+                    text = "${careTypeLabel(task.type)} - $resolvedPlantName",
                     style = MaterialTheme.typography.titleMedium
                 )
                 if (isOverdue) {
                     Text(
-                        text = daysWithoutCareText(occurrence),
+                        text = overdueText(task),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Medium
                     )
                 } else {
-                    val timeZone = TimeZone.currentSystemDefault()
                     Text(
-                        text = DateFormatUtils.formatTime(occurrence.scheduledAt, timeZone),
+                        text = DateFormatUtils.formatTime(task.dueAt, timeZone),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -315,22 +297,28 @@ private fun OccurrenceRow(
                 Icon(Icons.Default.Warning, contentDescription = stringResource(Res.string.care_overdue_label), tint = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            IconButton(onClick = { onShowOptions(occurrence) }) {
-                Icon(Icons.Default.MoreVert, contentDescription = null)
+            if (isCompletable) {
+                IconButton(onClick = { onMarkDone(task) }) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = stringResource(Res.string.care_action_done),
+                        tint = Color(0xFF4CAF50)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun LoggedRow(
-    entry: CalendarEntry.Logged,
-    onUndoLog: (CareLog) -> Unit,
+private fun DoneRow(
+    task: CareTask.Done,
+    plantName: String?,
+    onUndoTask: (CareTask.Done) -> Unit,
     onClick: () -> Unit
 ) {
-    val log = entry.log
-    val resolvedPlantName = entry.plantName ?: stringResource(Res.string.calendar_unknown_plant)
-    val typeColor = careColor(log.type)
+    val resolvedPlantName = plantName ?: stringResource(Res.string.calendar_unknown_plant)
+    val typeColor = careColor(task.type)
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
@@ -349,19 +337,19 @@ private fun LoggedRow(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${careTypeLabel(log.type)} - $resolvedPlantName",
+                    text = "${careTypeLabel(task.type)} - $resolvedPlantName",
                     style = MaterialTheme.typography.titleMedium,
                     textDecoration = TextDecoration.LineThrough
                 )
                 val timeZone = TimeZone.currentSystemDefault()
                 Text(
-                    text = DateFormatUtils.formatTime(log.performedAt, timeZone),
+                    text = DateFormatUtils.formatTime(task.performedAt, timeZone),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50))
-            IconButton(onClick = { onUndoLog(log) }) {
+            IconButton(onClick = { onUndoTask(task) }) {
                 Icon(Icons.Default.Undo, contentDescription = stringResource(Res.string.care_action_undo))
             }
         }
@@ -375,17 +363,26 @@ private fun careTypeLabel(type: CareType): String = when (type) {
     CareType.REPOT -> stringResource(Res.string.care_type_repot)
 }
 
+/**
+ * How far behind an overdue task is, counted from the day it was first owed rather than from the
+ * last care — the same measure the reminder notification uses, so both say the same number.
+ * [CareTask.Pending.missedCount] is appended when the task stands for more than one missed
+ * occurrence, since a single entry is all the user ever sees however long they forgot the plant.
+ */
 @Composable
-private fun daysWithoutCareText(occurrence: CareOccurrence): String {
-    val lastCareAt = occurrence.lastCareAt ?: return stringResource(Res.string.care_never_done)
+private fun overdueText(task: CareTask.Pending): String {
     val timeZone = TimeZone.currentSystemDefault()
-    val days = lastCareAt.daysUntil(Clock.System.now(), timeZone).coerceAtLeast(0)
-    val verb = when (occurrence.type) {
-        CareType.WATER -> stringResource(Res.string.care_verb_water)
-        CareType.FERTILIZE -> stringResource(Res.string.care_verb_fertilize)
-        CareType.REPOT -> stringResource(Res.string.care_verb_repot)
+    val daysLate = task.dueAt.daysUntil(Clock.System.now(), timeZone).coerceAtLeast(0)
+    val lateness = if (daysLate == 0) {
+        stringResource(Res.string.care_overdue_today)
+    } else {
+        stringResource(Res.string.care_overdue_days, daysLate)
     }
-    return stringResource(Res.string.care_days_without_care, days, verb)
+    return if (task.missedCount > 1) {
+        "$lateness  ${stringResource(Res.string.care_overdue_missed_count, task.missedCount)}"
+    } else {
+        lateness
+    }
 }
 
 @Composable

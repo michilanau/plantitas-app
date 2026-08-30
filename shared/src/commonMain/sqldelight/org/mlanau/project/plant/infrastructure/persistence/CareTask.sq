@@ -1,0 +1,66 @@
+-- A care that actually happened: the factual counterpart to a CareTask.Pending, which is only ever
+-- a prediction. A completed task is not tied to a specific planned slot and outlives the rule that
+-- (maybe) produced it: careRuleId is nullable and SET NULL on delete, so a plant's care history
+-- survives deleting or recreating its rules. scheduledAt is nullable too, since a task can be
+-- entered ad hoc for a day that never had a planned slot. The scheduling anchor for a (plant, type)
+-- is derived as MAX(performedAt) grouped by (plantId, type) — see careTask_plant_type_performedAt
+-- below — rather than stored anywhere, so it can never drift out of sync with the row itself.
+CREATE TABLE careTaskEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plantId INTEGER NOT NULL,
+    careRuleId INTEGER,
+    type TEXT NOT NULL,
+    performedAt TEXT NOT NULL,
+    scheduledAt TEXT,
+    note TEXT,
+    amountMl INTEGER,
+    useFilteredWater INTEGER,
+    fertilizerName TEXT,
+    doseMl INTEGER,
+    dilutionRatio TEXT,
+    newPotSize TEXT,
+    substrateType TEXT,
+    FOREIGN KEY (careRuleId) REFERENCES careRuleEntity(id) ON DELETE SET NULL,
+    FOREIGN KEY (plantId) REFERENCES plantEntity(id) ON DELETE CASCADE
+);
+
+-- Serves MAX(performedAt) GROUP BY (plantId, type) directly (the anchor lookup) and orders a
+-- plant's history query.
+CREATE INDEX careTask_plant_type_performedAt ON careTaskEntity(plantId, type, performedAt);
+
+selectCareTasksByPlantId:
+SELECT * FROM careTaskEntity WHERE plantId = ? ORDER BY performedAt DESC;
+
+selectCareTasksInRange:
+SELECT * FROM careTaskEntity WHERE performedAt BETWEEN ? AND ?;
+
+selectCareTaskById:
+SELECT * FROM careTaskEntity WHERE id = ?;
+
+-- The last care date for every (plant, type) in one aggregated query, so a screen that loads all
+-- rules for all plants (the calendar) doesn't need one query per plant.
+selectLastCareDatesByPlantAndType:
+SELECT plantId, type, MAX(performedAt) AS lastPerformedAt
+FROM careTaskEntity
+GROUP BY plantId, type;
+
+selectLastCareDatesForPlant:
+SELECT plantId, type, MAX(performedAt) AS lastPerformedAt
+FROM careTaskEntity
+WHERE plantId = ?
+GROUP BY plantId, type;
+
+selectLastCareDateForPlantAndType:
+SELECT MAX(performedAt) AS lastPerformedAt
+FROM careTaskEntity
+WHERE plantId = ? AND type = ?;
+
+insertCareTask:
+INSERT INTO careTaskEntity(plantId, careRuleId, type, performedAt, scheduledAt, note, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+lastInsertId:
+SELECT last_insert_rowid();
+
+deleteCareTask:
+DELETE FROM careTaskEntity WHERE id = ?;

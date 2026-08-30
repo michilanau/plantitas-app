@@ -15,16 +15,13 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
 import org.jetbrains.compose.resources.stringResource
+import org.mlanau.project.plant.application.runCatchingDomainErrors
+import org.mlanau.project.plant.domain.exception.NonPositiveAmountException
 import org.mlanau.project.plant.domain.model.CareDetails
 import org.mlanau.project.plant.domain.model.CareType
 import org.mlanau.project.plant.domain.model.PotSize
 import plantitas_app.shared.generated.resources.*
 
-/**
- * Records a care for [preselectedType] (or lets the user pick, if null) on any day up to and
- * including today — see [CareDetails] for the per-type fields, mirrored here in a smaller form
- * than [CareRuleDialog]'s, since a log carries no recurrence or notification settings.
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LogCareDialog(
@@ -49,12 +46,24 @@ fun LogCareDialog(
     val strConfirm = stringResource(Res.string.common_confirm)
     val strCancel = stringResource(Res.string.common_cancel)
     val strFertilizerDefault = stringResource(Res.string.care_fertilizer_default_name)
+    val strAmountError = stringResource(Res.string.care_water_amount_error)
+
+    // Recomputed on every recomposition from the current field values, so an invalid amount is
+    // flagged as soon as it's typed instead of only surfacing when the user taps confirm.
+    val detailsResult = runCatchingDomainErrors {
+        when (type) {
+            CareType.WATER -> CareDetails.Water.create(amountMl = amountMl.toIntOrNull())
+            CareType.FERTILIZE -> CareDetails.Fertilize.create(fertilizerName = fertilizerName.ifBlank { strFertilizerDefault })
+            CareType.REPOT -> CareDetails.Repot.create(newPotSize = newPotSize)
+        }
+    }
+    val detailsError = detailsResult.exceptionOrNull()
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = selectedDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
-            // Defensive UI-level cap — the real invariant lives in CareLog.create, which rejects a
-            // performedAt after "now" regardless of what the picker allows through.
+            // Defensive UI-level cap — the real invariant lives in CareTask.Done.create, which
+            // rejects a performedAt after "now" regardless of what the picker allows through.
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     val date = Instant.fromEpochMilliseconds(utcTimeMillis).toLocalDateTime(TimeZone.UTC).date
@@ -104,7 +113,11 @@ fun LogCareDialog(
                         onValueChange = { amountMl = it.filter { c -> c.isDigit() } },
                         label = { Text(stringResource(Res.string.care_water_amount_label)) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.medium,
+                        isError = detailsError is NonPositiveAmountException,
+                        supportingText = if (detailsError is NonPositiveAmountException) {
+                            { Text(strAmountError) }
+                        } else null
                     )
                     CareType.FERTILIZE -> OutlinedTextField(
                         value = fertilizerName,
@@ -141,11 +154,7 @@ fun LogCareDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val details: CareDetails = when (type) {
-                        CareType.WATER -> CareDetails.Water(amountMl = amountMl.toIntOrNull())
-                        CareType.FERTILIZE -> CareDetails.Fertilize(fertilizerName = fertilizerName.ifBlank { strFertilizerDefault })
-                        CareType.REPOT -> CareDetails.Repot(newPotSize = newPotSize)
-                    }
+                    val details = detailsResult.getOrNull() ?: return@TextButton
                     // Same-day logs keep the current time of day rather than snapping to midnight,
                     // so "logged today" reads as "just now" instead of looking backdated.
                     val performedAt = if (selectedDate == today) {
@@ -154,7 +163,8 @@ fun LogCareDialog(
                         selectedDate.atTime(12, 0).toInstant(timeZone)
                     }
                     onConfirm(details, performedAt, note.ifBlank { null })
-                }
+                },
+                enabled = detailsResult.isSuccess
             ) {
                 Text(strConfirm)
             }

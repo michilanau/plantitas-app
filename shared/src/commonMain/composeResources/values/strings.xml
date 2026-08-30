@@ -81,18 +81,21 @@
     <string name="care_type_water">Riego</string>
     <string name="care_type_fertilize">Abonado</string>
     <string name="care_type_repot">Trasplante</string>
-    <string name="care_recurrence_once">Una vez</string>
     <string name="care_recurrence_periodic">Cada %1$d días</string>
+    <string name="care_rule_paused">En pausa</string>
+    <string name="care_rule_pause">Pausar</string>
+    <string name="care_rule_resume">Reanudar</string>
+    <string name="care_rule_type_taken">Esta planta ya tiene un cuidado de este tipo</string>
+    <string name="care_task_not_due">Todavía no toca: solo puedes marcar tareas de hoy o vencidas</string>
     <string name="care_add_rule">Añadir cuidado</string>
     <string name="care_edit_rule">Editar cuidado</string>
     <string name="care_type_label">Tipo de cuidado</string>
     <string name="care_start_date_label">Día de comienzo</string>
-    <string name="care_task_date_label">Día de la tarea</string>
     <string name="care_time_label">Hora del recordatorio</string>
-    <string name="care_recurrence_label">Recurrencia</string>
-    <string name="care_recurrence_periodic_label">Periódico</string>
     <string name="care_every_days_label">Cada cuántos días</string>
+    <string name="care_every_days_error">Debe ser al menos 1 día</string>
     <string name="care_water_amount_label">Cantidad (ml)</string>
+    <string name="care_water_amount_error">Debe ser mayor que cero</string>
     <string name="care_notifications_enabled">Activar notificaciones</string>
     <string name="care_fertilizer_name_label">Nombre del fertilizante</string>
     <string name="care_fertilizer_default_name">Abono</string>
@@ -100,10 +103,7 @@
     <string name="common_confirm">Confirmar</string>
     <string name="common_discard">Descartar</string>
     <string name="care_action_done">Marcar como hecho</string>
-    <string name="care_action_skip">Saltar</string>
-    <string name="care_action_view_plant">Ver planta</string>
     <string name="care_action_undo">Deshacer</string>
-    <string name="care_occurrence_options_title">Opciones de la tarea</string>
     <string name="care_log_options_title">Opciones del registro</string>
 
     <!-- Registrar cuidado -->
@@ -117,9 +117,10 @@
     <string name="care_log_undone">Registro deshecho</string>
 
     <!-- Estado del cuidado -->
+    <string name="care_overdue_days">%1$d días de retraso</string>
+    <string name="care_overdue_today">Toca hoy</string>
+    <string name="care_overdue_missed_count">×%1$d</string>
     <string name="care_overdue_label">Vencido</string>
-    <string name="care_never_done">Sin registros todavía</string>
-    <string name="care_days_without_care">Lleva %1$d días sin %2$s</string>
     <string name="care_verb_water">regar</string>
     <string name="care_verb_fertilize">abonar</string>
     <string name="care_verb_repot">trasplantar</string>

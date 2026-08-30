@@ -1,0 +1,52 @@
+-- A plant's standing instruction for one kind of care. The UNIQUE(plantId, type) index is the
+-- schema-level half of the domain invariant that a plant has at most one rule per care type: the
+-- UI hides types that are already taken and SaveCareRule updates instead of inserting, but only
+-- this constraint makes the invalid state impossible whatever writes to the table.
+CREATE TABLE careRuleEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plantId INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    everyDays INTEGER NOT NULL,
+    startDate TEXT NOT NULL,
+    notificationTime TEXT NOT NULL,
+    notificationsEnabled INTEGER NOT NULL DEFAULT 1,
+    active INTEGER NOT NULL DEFAULT 1,
+    amountMl INTEGER,
+    useFilteredWater INTEGER,
+    fertilizerName TEXT,
+    doseMl INTEGER,
+    dilutionRatio TEXT,
+    newPotSize TEXT,
+    substrateType TEXT,
+    UNIQUE (plantId, type),
+    FOREIGN KEY (plantId) REFERENCES plantEntity(id) ON DELETE CASCADE
+);
+
+selectCareRulesByPlantId:
+SELECT * FROM careRuleEntity WHERE plantId = ?;
+
+selectCareRuleByPlantIdAndType:
+SELECT * FROM careRuleEntity WHERE plantId = ? AND type = ?;
+
+selectAllCareRules:
+SELECT * FROM careRuleEntity;
+
+selectCareRuleById:
+SELECT * FROM careRuleEntity WHERE id = ?;
+
+insertCareRule:
+INSERT INTO careRuleEntity(plantId, type, everyDays, startDate, notificationTime, notificationsEnabled, active, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+lastInsertId:
+SELECT last_insert_rowid();
+
+-- The care type is deliberately not updatable: it identifies the rule within its plant, so
+-- changing it would be deleting one rule and creating another.
+updateCareRule:
+UPDATE careRuleEntity
+SET everyDays = ?, startDate = ?, notificationTime = ?, notificationsEnabled = ?, active = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
+WHERE id = ?;
+
+deleteCareRule:
+DELETE FROM careRuleEntity WHERE id = ?;

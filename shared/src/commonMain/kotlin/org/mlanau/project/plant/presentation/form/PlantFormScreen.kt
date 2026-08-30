@@ -25,7 +25,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.presentation.localizedMessage
 import org.mlanau.project.plant.domain.model.CareRule
 import org.mlanau.project.plant.domain.model.LightNeed
-import org.mlanau.project.plant.domain.model.PlantId
 import org.mlanau.project.plant.domain.model.PotSize
 import org.mlanau.project.plant.presentation.component.CareRuleDialog
 import org.mlanau.project.plant.presentation.component.CareRuleItem
@@ -41,7 +40,8 @@ import com.preat.peekaboo.image.picker.SelectionMode
 fun PlantFormScreen(
     viewModel: PlantFormViewModel,
     plantId: Int? = null,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDeleted: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -67,9 +67,15 @@ fun PlantFormScreen(
     }
 
     LaunchedEffect(uiState.isSaveSuccess, uiState.isDeleteSuccess) {
-        if (uiState.isSaveSuccess || uiState.isDeleteSuccess) {
-            viewModel.resetState()
-            onBack()
+        when {
+            uiState.isDeleteSuccess -> {
+                viewModel.resetState()
+                onDeleted()
+            }
+            uiState.isSaveSuccess -> {
+                viewModel.resetState()
+                onBack()
+            }
         }
     }
 
@@ -146,7 +152,6 @@ fun PlantFormScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Image Picker Section
             Box(
                 modifier = Modifier
                     .size(160.dp)
@@ -215,7 +220,6 @@ fun PlantFormScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Name Field (Required)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
                     value = uiState.name,
@@ -245,7 +249,6 @@ fun PlantFormScreen(
                 }
             }
 
-            // Description Field
             OutlinedTextField(
                 value = uiState.description,
                 onValueChange = { viewModel.onDescriptionChanged(it) },
@@ -263,7 +266,6 @@ fun PlantFormScreen(
                 )
             )
 
-            // Location Field
             OutlinedTextField(
                 value = uiState.location,
                 onValueChange = { viewModel.onLocationChanged(it) },
@@ -281,7 +283,6 @@ fun PlantFormScreen(
                 )
             )
 
-            // Light Need Selector
             Text(
                 text = stringResource(Res.string.home_plant_light),
                 style = MaterialTheme.typography.titleMedium,
@@ -306,7 +307,6 @@ fun PlantFormScreen(
                 }
             }
 
-            // Pot Size Selector
             Text(
                 text = stringResource(Res.string.home_plant_pot),
                 style = MaterialTheme.typography.titleMedium,
@@ -330,7 +330,6 @@ fun PlantFormScreen(
                 }
             }
 
-            // Care Rules Section
             Text(
                 text = stringResource(Res.string.care_rules_title),
                 style = MaterialTheme.typography.titleMedium,
@@ -341,6 +340,7 @@ fun PlantFormScreen(
                 CareRuleItem(
                     rule = rule,
                     onClick = { ruleToEdit = rule },
+                    onTogglePaused = { viewModel.toggleCareRulePaused(rule) },
                     onRemove = { viewModel.removeCareRule(rule) }
                 )
             }
@@ -401,7 +401,8 @@ fun PlantFormScreen(
 
         if (isAddCareDialogOpen || ruleToEdit != null) {
             CareRuleDialog(
-                plantId = uiState.plant?.id ?: PlantId(0),
+                plantId = uiState.plant?.id,
+                takenTypes = uiState.careRules.map { it.type }.toSet(),
                 initialRule = ruleToEdit,
                 onDismiss = {
                     isAddCareDialogOpen = false

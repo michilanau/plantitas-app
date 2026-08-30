@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -22,9 +23,6 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
-import org.mlanau.project.plant.domain.service.CareOccurrence
-import org.mlanau.project.plant.domain.service.OccurrenceStatus
-import org.mlanau.project.plant.presentation.component.CareOccurrenceActionDialog
 import org.mlanau.project.plant.presentation.component.FullScreenImageDialog
 import org.mlanau.project.plant.presentation.component.LogCareDialog
 import androidx.compose.foundation.layout.FlowRow
@@ -33,6 +31,7 @@ import coil3.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import org.mlanau.project.shared.ui.DateFormatUtils
 import org.mlanau.project.plant.presentation.component.careColor
+import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.localizedMessage
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -45,7 +44,6 @@ fun PlantDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var showOccurrenceOptions by remember { mutableStateOf<CareOccurrence?>(null) }
     var showFullScreenImage by remember { mutableStateOf<String?>(null) }
     var showLogCareDialog by remember { mutableStateOf(false) }
 
@@ -55,7 +53,16 @@ fun PlantDetailScreen(
         viewModel.loadPlant(plantId)
     }
 
-    uiState.error?.let { error ->
+    // A deleted (or never-existing) plant leaves nothing to show here — back out instead of
+    // getting stuck on the loading spinner behind the id guard below.
+    LaunchedEffect(uiState.error) {
+        if (uiState.error == UiError.PlantNotFound) {
+            viewModel.clearError()
+            onBack()
+        }
+    }
+
+    uiState.error?.takeIf { it != UiError.PlantNotFound }?.let { error ->
         val errorMessage = error.localizedMessage()
         LaunchedEffect(error) {
             snackbarHostState.showSnackbar(errorMessage)
@@ -91,13 +98,13 @@ fun PlantDetailScreen(
             uiState.plant?.let { plant ->
                 PlantDetailContent(
                     plant = plant,
-                    nextOccurrence = uiState.nextOccurrence,
+                    nextPending = uiState.nextPending,
                     careRules = uiState.careRules,
                     history = uiState.history,
-                    onShowOccurrenceOptions = { showOccurrenceOptions = it },
+                    onMarkDone = { viewModel.onMarkDone(it) },
                     onImageClick = { showFullScreenImage = it },
                     onLogCareClick = { showLogCareDialog = true },
-                    onUndoLog = { viewModel.onUndoLog(it) },
+                    onUndoTask = { viewModel.onUndoTask(it) },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -108,15 +115,6 @@ fun PlantDetailScreen(
         FullScreenImageDialog(
             imageUrl = showFullScreenImage!!,
             onDismissRequest = { showFullScreenImage = null }
-        )
-    }
-
-    showOccurrenceOptions?.let { occurrence ->
-        CareOccurrenceActionDialog(
-            occurrence = occurrence,
-            onDismissRequest = { showOccurrenceOptions = null },
-            onMarkDone = { viewModel.onMarkDone(it) },
-            onDismissOccurrence = { viewModel.onDismissOccurrence(it) }
         )
     }
 
@@ -135,13 +133,13 @@ fun PlantDetailScreen(
 @Composable
 private fun PlantDetailContent(
     plant: Plant,
-    nextOccurrence: CareOccurrence?,
+    nextPending: CareTask.Pending?,
     careRules: List<CareRule>,
-    history: List<CareLog>,
-    onShowOccurrenceOptions: (CareOccurrence) -> Unit,
+    history: List<CareTask.Done>,
+    onMarkDone: (CareTask.Pending) -> Unit,
     onImageClick: (String) -> Unit,
     onLogCareClick: () -> Unit,
-    onUndoLog: (CareLog) -> Unit,
+    onUndoTask: (CareTask.Done) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -151,7 +149,6 @@ private fun PlantDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -176,7 +173,6 @@ private fun PlantDetailContent(
             }
         }
 
-        // Info Grid
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
@@ -215,7 +211,6 @@ private fun PlantDetailContent(
             }
         }
 
-        // Description
         plant.description?.takeIf { it.isNotBlank() }?.let {
             Column {
                 Text(
@@ -232,7 +227,6 @@ private fun PlantDetailContent(
             }
         }
 
-        // Configured Care Rules Section
         if (careRules.isNotEmpty()) {
             Column {
                 Text(
@@ -255,7 +249,11 @@ private fun PlantDetailContent(
                                 is CareDetails.Fertilize -> Icons.Default.Science
                                 is CareDetails.Repot -> Icons.Default.HomeRepairService
                             }
-                            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                icon,
+                                contentDescription = null,
+                                tint = if (rule.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
@@ -268,9 +266,10 @@ private fun PlantDetailContent(
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                                 )
                                 Text(
-                                    text = when (val rec = rule.recurrence) {
-                                        is RecurrenceRule.Once -> stringResource(Res.string.care_recurrence_once)
-                                        is RecurrenceRule.Periodic -> stringResource(Res.string.care_recurrence_periodic, rec.everyDays)
+                                    text = if (rule.active) {
+                                        stringResource(Res.string.care_recurrence_periodic, rule.everyDays)
+                                    } else {
+                                        stringResource(Res.string.care_rule_paused)
                                     },
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -281,10 +280,10 @@ private fun PlantDetailContent(
             }
         }
 
-        // Next Care Section
-        val isOverdue = nextOccurrence?.status == OccurrenceStatus.OVERDUE
+        val isOverdue = nextPending?.isOverdue == true
+    val isCompletable = nextPending?.isCompletableOn(Clock.System.now(), TimeZone.currentSystemDefault()) == true
         Card(
-            modifier = Modifier.fillMaxWidth().clickable(enabled = nextOccurrence != null) { nextOccurrence?.let { onShowOccurrenceOptions(it) } },
+            modifier = Modifier.fillMaxWidth().clickable(enabled = isCompletable) { nextPending?.let { onMarkDone(it) } },
             colors = CardDefaults.cardColors(
                 containerColor = if (isOverdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
                 else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
@@ -298,14 +297,14 @@ private fun PlantDetailContent(
                         color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.weight(1f)
                     )
-                    if (nextOccurrence != null) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                    if (isCompletable) {
+                        Icon(Icons.Default.Check, contentDescription = stringResource(Res.string.care_action_done), tint = Color(0xFF4CAF50))
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                if (nextOccurrence != null) {
+                if (nextPending != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val icon = when (nextOccurrence.type) {
+                        val icon = when (nextPending.type) {
                             CareType.WATER -> Icons.Default.WaterDrop
                             CareType.FERTILIZE -> Icons.Default.Science
                             CareType.REPOT -> Icons.Default.HomeRepairService
@@ -313,12 +312,12 @@ private fun PlantDetailContent(
                         Icon(
                             icon,
                             contentDescription = null,
-                            tint = if (isOverdue) MaterialTheme.colorScheme.error else careColor(nextOccurrence.type)
+                            tint = if (isOverdue) MaterialTheme.colorScheme.error else careColor(nextPending.type)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = when (nextOccurrence.type) {
+                                text = when (nextPending.type) {
                                     CareType.WATER -> stringResource(Res.string.care_type_water)
                                     CareType.FERTILIZE -> stringResource(Res.string.care_type_fertilize)
                                     CareType.REPOT -> stringResource(Res.string.care_type_repot)
@@ -328,14 +327,14 @@ private fun PlantDetailContent(
                             )
                             if (isOverdue) {
                                 Text(
-                                    text = daysWithoutCareText(nextOccurrence),
+                                    text = daysWithoutCareText(nextPending),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.error,
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                                 )
                             } else {
                                 Text(
-                                    text = DateFormatUtils.formatDateTime(nextOccurrence.scheduledAt),
+                                    text = DateFormatUtils.formatDateTime(nextPending.dueAt),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -352,7 +351,6 @@ private fun PlantDetailContent(
             }
         }
 
-        // Log care action
         OutlinedButton(
             onClick = onLogCareClick,
             modifier = Modifier.fillMaxWidth()
@@ -362,7 +360,6 @@ private fun PlantDetailContent(
             Text(stringResource(Res.string.care_log_action))
         }
 
-        // History Section
         Column {
             Text(
                 text = stringResource(Res.string.care_history_title),
@@ -377,8 +374,8 @@ private fun PlantDetailContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                history.forEach { log ->
-                    HistoryRow(log = log, onUndo = { onUndoLog(log) })
+                history.forEach { task ->
+                    HistoryRow(task = task, onUndo = { onUndoTask(task) })
                 }
             }
         }
@@ -386,7 +383,7 @@ private fun PlantDetailContent(
 }
 
 @Composable
-private fun HistoryRow(log: CareLog, onUndo: () -> Unit) {
+private fun HistoryRow(task: CareTask.Done, onUndo: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
@@ -398,12 +395,12 @@ private fun HistoryRow(log: CareLog, onUndo: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(10.dp)
-                    .background(careColor(log.type), shape = CircleShape)
+                    .background(careColor(task.type), shape = CircleShape)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = when (log.type) {
+                    text = when (task.type) {
                         CareType.WATER -> stringResource(Res.string.care_type_water)
                         CareType.FERTILIZE -> stringResource(Res.string.care_type_fertilize)
                         CareType.REPOT -> stringResource(Res.string.care_type_repot)
@@ -412,11 +409,11 @@ private fun HistoryRow(log: CareLog, onUndo: () -> Unit) {
                     textDecoration = TextDecoration.LineThrough
                 )
                 Text(
-                    text = DateFormatUtils.formatDateTime(log.performedAt),
+                    text = DateFormatUtils.formatDateTime(task.performedAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                log.note?.takeIf { it.isNotBlank() }?.let {
+                task.note?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -427,17 +424,24 @@ private fun HistoryRow(log: CareLog, onUndo: () -> Unit) {
     }
 }
 
+/**
+ * How far behind an overdue task is, counted from the day it was first owed — the same measure the
+ * calendar and the reminder notification use, so all three say the same number.
+ */
 @Composable
-private fun daysWithoutCareText(occurrence: CareOccurrence): String {
-    val lastCareAt = occurrence.lastCareAt ?: return stringResource(Res.string.care_never_done)
+private fun daysWithoutCareText(pending: CareTask.Pending): String {
     val timeZone = TimeZone.currentSystemDefault()
-    val days = lastCareAt.daysUntil(Clock.System.now(), timeZone).coerceAtLeast(0)
-    val verb = when (occurrence.type) {
-        CareType.WATER -> stringResource(Res.string.care_verb_water)
-        CareType.FERTILIZE -> stringResource(Res.string.care_verb_fertilize)
-        CareType.REPOT -> stringResource(Res.string.care_verb_repot)
+    val daysLate = pending.dueAt.daysUntil(Clock.System.now(), timeZone).coerceAtLeast(0)
+    val lateness = if (daysLate == 0) {
+        stringResource(Res.string.care_overdue_today)
+    } else {
+        stringResource(Res.string.care_overdue_days, daysLate)
     }
-    return stringResource(Res.string.care_days_without_care, days, verb)
+    return if (pending.missedCount > 1) {
+        "$lateness  ${stringResource(Res.string.care_overdue_missed_count, pending.missedCount)}"
+    } else {
+        lateness
+    }
 }
 
 @Composable

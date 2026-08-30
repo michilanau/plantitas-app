@@ -67,23 +67,19 @@ kotlin {
             implementation(libs.compose.icons.extended)
             implementation(libs.kotlinx.datetime)
             
-            // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
 
-            // Settings
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.no.arg)
             implementation(libs.multiplatform.settings.coroutines)
 
-            // SQLDelight
             implementation(libs.sqldelight.coroutines.extensions)
 
             // Coil (compose-only: every image is local, there's no network image loading)
             implementation(libs.coil.compose)
 
-            // Peekaboo
             implementation(libs.peekaboo.ui)
             implementation(libs.peekaboo.image.picker)
         }
@@ -93,14 +89,6 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-            implementation(libs.koin.test)
-        }
-        getByName("androidHostTest") {
-            dependencies {
-                // Konsist parses .kt source files directly (JVM-only, no Kotlin/Native artifact),
-                // so the architecture tests live in this JVM-only test source set.
-                implementation(libs.konsist)
-            }
         }
     }
 }

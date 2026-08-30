@@ -1,7 +1,7 @@
 package org.mlanau.project.plant.application
 
 import kotlinx.coroutines.CancellationException
-import org.mlanau.project.plant.domain.exceptions.DomainException
+import org.mlanau.project.plant.domain.exception.DomainException
 
 /**
  * Like `runCatching`, but only catches [DomainException] — the failures a use case can legitimately

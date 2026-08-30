@@ -1,30 +1,23 @@
 package org.mlanau.project.plant.application
 
-import kotlinx.coroutines.flow.first
 import org.mlanau.project.plant.domain.model.PlantId
-import org.mlanau.project.plant.domain.repository.CareRepository
-import org.mlanau.project.plant.domain.repository.PlantRepository
-import org.mlanau.project.plant.domain.service.CareNotificationScheduler
-import org.mlanau.project.plant.domain.service.ImageStorage
+import org.mlanau.project.plant.domain.port.ImageStorage
+import org.mlanau.project.plant.domain.port.PlantRepository
 
 class DeletePlant(
     private val repository: PlantRepository,
-    private val careRepository: CareRepository,
-    private val careNotificationScheduler: CareNotificationScheduler,
     private val imageStorage: ImageStorage
 ) {
     suspend operator fun invoke(id: PlantId): Result<Unit> {
         return runCatchingDomainErrors {
-            // Fetched before deleting: once the plant's row is gone its photo path and its rules'
-            // ids are too, and a still-scheduled alarm has no way to know the plant it belonged to
-            // was removed.
+            // Fetched before deleting: once the plant's row is gone so is its photo path. Its
+            // rules and tasks fall by ON DELETE CASCADE; CareReminderSync notices them missing from
+            // the next reconciliation and cancels their alarms on its own.
             val imageUrl = repository.findById(id)?.imageUrl
-            val ruleIds = careRepository.getCareRules(id).first().mapNotNull { it.id }
 
             repository.delete(id)
 
             imageUrl?.let { imageStorage.delete(it) }
-            ruleIds.forEach { careNotificationScheduler.cancel(it) }
         }
     }
 }

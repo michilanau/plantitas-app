@@ -7,39 +7,38 @@ import kotlin.time.Instant
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import org.mlanau.project.plant.application.DismissCareOccurrence
+import org.mlanau.project.plant.application.CompleteCareTask
+import org.mlanau.project.plant.application.DeleteCareTask
 import org.mlanau.project.plant.application.FindPlantById
 import org.mlanau.project.plant.application.GetCareRules
-import org.mlanau.project.plant.application.GetNextCareOccurrence
+import org.mlanau.project.plant.application.GetNextPendingCare
 import org.mlanau.project.plant.application.GetPlantCareHistory
-import org.mlanau.project.plant.application.LogCare
-import org.mlanau.project.plant.application.UndoCareLog
+import org.mlanau.project.plant.application.LogAdHocCare
 import org.mlanau.project.plant.domain.model.CareDetails
-import org.mlanau.project.plant.domain.model.CareLog
 import org.mlanau.project.plant.domain.model.CareRule
+import org.mlanau.project.plant.domain.model.CareTask
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PlantId
-import org.mlanau.project.plant.domain.service.CareOccurrence
 import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.toUiError
 
 data class PlantDetailUiState(
     val plant: Plant? = null,
-    val nextOccurrence: CareOccurrence? = null,
+    val nextPending: CareTask.Pending? = null,
     val careRules: List<CareRule> = emptyList(),
-    val history: List<CareLog> = emptyList(),
+    val history: List<CareTask.Done> = emptyList(),
     val isLoading: Boolean = false,
     val error: UiError? = null
 )
 
 class PlantDetailViewModel(
     private val findPlantById: FindPlantById,
-    private val getNextCareOccurrence: GetNextCareOccurrence,
+    private val getNextPendingCare: GetNextPendingCare,
     private val getCareRules: GetCareRules,
     private val getPlantCareHistory: GetPlantCareHistory,
-    private val logCare: LogCare,
-    private val dismissCareOccurrence: DismissCareOccurrence,
-    private val undoCareLog: UndoCareLog,
+    private val completeCareTask: CompleteCareTask,
+    private val logAdHocCare: LogAdHocCare,
+    private val deleteCareTask: DeleteCareTask,
     private val clock: Clock = Clock.System
 ) : ViewModel() {
 
@@ -60,8 +59,8 @@ class PlantDetailViewModel(
                 _uiState.update { it.copy(plant = plant, isLoading = false) }
 
                 launch {
-                    getNextCareOccurrence(plantId).collect { occurrence ->
-                        _uiState.update { it.copy(nextOccurrence = occurrence) }
+                    getNextPendingCare(plantId).collect { pending ->
+                        _uiState.update { it.copy(nextPending = pending) }
                     }
                 }
 
@@ -86,34 +85,27 @@ class PlantDetailViewModel(
         onFailure { exception -> _uiState.update { it.copy(error = exception.toUiError()) } }
     }
 
-    fun onMarkDone(occurrence: CareOccurrence) {
+    fun onMarkDone(pending: CareTask.Pending) {
         viewModelScope.launch {
-            logCare(occurrence).publishErrorIfAny()
-        }
-    }
-
-    fun onDismissOccurrence(occurrence: CareOccurrence) {
-        viewModelScope.launch {
-            dismissCareOccurrence(occurrence).publishErrorIfAny()
+            completeCareTask(pending).publishErrorIfAny()
         }
     }
 
     fun onLogAdHocCare(details: CareDetails, performedAt: Instant, note: String?) {
         val plantId = _uiState.value.plant?.id ?: return
         viewModelScope.launch {
-            logCare(
+            logAdHocCare(
                 plantId = plantId,
-                careRuleId = null,
-                details = details,
+                care = details,
                 performedAt = performedAt,
                 note = note
             ).publishErrorIfAny()
         }
     }
 
-    fun onUndoLog(log: CareLog) {
+    fun onUndoTask(done: CareTask.Done) {
         viewModelScope.launch {
-            log.id?.let { undoCareLog(it).publishErrorIfAny() }
+            done.id?.let { deleteCareTask(it).publishErrorIfAny() }
         }
     }
 

@@ -11,8 +11,7 @@ import androidx.navigation.toRoute
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlanau.project.navigation.*
-import org.mlanau.project.plant.application.MigrateBase64PlantImages
-import org.mlanau.project.plant.application.RescheduleAllCareReminders
+import org.mlanau.project.plant.application.CareReminderSync
 import org.mlanau.project.plant.presentation.home.HomeViewModel
 import org.mlanau.project.plant.presentation.calendar.CalendarViewModel
 import org.mlanau.project.plant.presentation.form.PlantFormViewModel
@@ -45,17 +44,13 @@ fun App() {
 
     val darkTheme = settingsState.isDarkMode
 
-    // One-time (idempotent) migration of plant photos still stored as a data: URL in the database
-    // to files on disk, see MigrateBase64PlantImages.
-    val migrateBase64PlantImages = koinInject<MigrateBase64PlantImages>()
-    LaunchedEffect(Unit) { migrateBase64PlantImages() }
-
-    // Catches up every rule's reminder on launch. On Android this covers a rule edited while the
-    // app was closed (BootReceiver only handles the "device just rebooted" case); on iOS it's the
-    // *only* rescheduling path between mutations, since that platform has no hook to chain the next
-    // alarm the moment one fires — see RescheduleAllCareReminders.
-    val rescheduleAllCareReminders = koinInject<RescheduleAllCareReminders>()
-    LaunchedEffect(Unit) { rescheduleAllCareReminders() }
+    // Reconciles reminders for as long as the app stays composed: any change to a rule, a logged
+    // care, or a plant flows through here and re-syncs the affected alarms on its own, so no write
+    // path needs to remember to reschedule by hand. BootReceiver covers the "device just rebooted,
+    // app never opened" case with its own one-shot pass.
+    val careReminderSync = koinInject<CareReminderSync>()
+    val appScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) { careReminderSync.start(appScope) }
 
     AppLocaleWrapper(languageCode = settingsState.languageCode) {
         PlantitasTheme(darkTheme = darkTheme) {
@@ -126,7 +121,8 @@ fun App() {
                         PlantFormScreen(
                             viewModel = viewModel,
                             plantId = route.plantId,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onDeleted = { navController.popBackStack<Home>(inclusive = false) }
                         )
                     }
                     composable<Settings> {
@@ -145,11 +141,6 @@ fun App() {
     }
 }
 
-/**
- * Navigates to a bottom-nav tab, replacing whatever was pushed on top of the previous tab and
- * preserving each tab's own state (e.g. calendar month, scroll position) across switches — the
- * standard Navigation Compose pattern for a bottom bar.
- */
 private fun androidx.navigation.NavHostController.navigateAsTab(route: Any) {
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { saveState = true }

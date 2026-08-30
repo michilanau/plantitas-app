@@ -6,7 +6,7 @@ import java.net.URI
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.mlanau.project.plant.domain.service.ImageStorage
+import org.mlanau.project.plant.domain.port.ImageStorage
 
 class AndroidImageStorage(private val context: Context) : ImageStorage {
 

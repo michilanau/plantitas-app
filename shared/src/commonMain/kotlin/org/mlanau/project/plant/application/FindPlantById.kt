@@ -2,7 +2,7 @@ package org.mlanau.project.plant.application
 
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PlantId
-import org.mlanau.project.plant.domain.repository.PlantRepository
+import org.mlanau.project.plant.domain.port.PlantRepository
 
 class FindPlantById(
     private val repository: PlantRepository

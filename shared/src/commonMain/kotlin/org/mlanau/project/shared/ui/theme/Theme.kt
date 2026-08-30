@@ -9,18 +9,10 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/**
- * The theme deliberately has no dependency on the domain layer: it only exposes color tokens.
- * Mapping a domain type (e.g. [org.mlanau.project.plant.domain.model.CareDetails]) to one of these
- * colors lives in `plant/presentation/component/CareEventColor.kt`, next to the other presentation
- * mapping helpers.
- */
 data class CareColors(
     val water: Color,
     val fertilize: Color,
     val repot: Color,
-    /** Shared across all three types for an overdue occurrence — distinguishing overdue is a
-     * status, not a task type, so it deliberately doesn't get its own per-type variants. */
     val overdue: Color
 )
 
@@ -40,20 +32,19 @@ val DarkCareColors = CareColors(
 
 val LocalCareColors = staticCompositionLocalOf { LightCareColors }
 
-// Definición de colores inspirados en plantas (Verdes y naturales)
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF2E7D32), // Verde bosque oscuro
+    primary = Color(0xFF2E7D32),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFC8E6C9), // Verde claro suave
+    primaryContainer = Color(0xFFC8E6C9),
     onPrimaryContainer = Color(0xFF003300),
-    secondary = Color(0xFF558B2F), // Verde lima oscuro
+    secondary = Color(0xFF558B2F),
     onSecondary = Color.White,
     secondaryContainer = Color(0xFFDCEDC8),
     onSecondaryContainer = Color(0xFF1B5E20),
-    tertiary = Color(0xFF795548), // Marrón tierra
+    tertiary = Color(0xFF795548),
     onTertiary = Color.White,
     error = Color(0xFFB00020),
-    background = Color(0xFFF1F8E9), // Fondo verdoso muy tenue
+    background = Color(0xFFF1F8E9),
     surface = Color.White,
     onBackground = Color(0xFF1B5E20),
     onSurface = Color(0xFF1B5E20)
