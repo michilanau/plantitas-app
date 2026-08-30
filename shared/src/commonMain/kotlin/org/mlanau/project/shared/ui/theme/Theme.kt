@@ -13,21 +13,24 @@ data class CareColors(
     val water: Color,
     val fertilize: Color,
     val repot: Color,
-    val overdue: Color
+    val overdue: Color,
+    val done: Color
 )
 
 val LightCareColors = CareColors(
     water = Color(0xFF1976D2),
     fertilize = Color(0xFF388E3C),
     repot = Color(0xFF795548),
-    overdue = Color(0xFFB00020)
+    overdue = Color(0xFFB00020),
+    done = Color(0xFF4CAF50)
 )
 
 val DarkCareColors = CareColors(
     water = Color(0xFF64B5F6),
     fertilize = Color(0xFF81C784),
     repot = Color(0xFFD7CCC8),
-    overdue = Color(0xFFEF9A9A)
+    overdue = Color(0xFFEF9A9A),
+    done = Color(0xFFA5D6A7)
 )
 
 val LocalCareColors = staticCompositionLocalOf { LightCareColors }

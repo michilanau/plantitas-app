@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.mlanau.project.plant.application.CompleteCareTask
@@ -14,11 +15,17 @@ import org.mlanau.project.plant.application.GetCareRules
 import org.mlanau.project.plant.application.GetNextPendingCare
 import org.mlanau.project.plant.application.GetPlantCareHistory
 import org.mlanau.project.plant.application.LogAdHocCare
+import org.mlanau.project.plant.application.PauseCareRule
+import org.mlanau.project.plant.application.ResumeCareRule
+import org.mlanau.project.plant.application.SaveCareRule
 import org.mlanau.project.plant.domain.model.CareDetails
 import org.mlanau.project.plant.domain.model.CareRule
+import org.mlanau.project.plant.domain.model.CareRuleId
 import org.mlanau.project.plant.domain.model.CareTask
+import org.mlanau.project.plant.domain.model.CareTaskId
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PlantId
+import org.mlanau.project.plant.presentation.CareToast
 import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.toUiError
 
@@ -39,11 +46,17 @@ class PlantDetailViewModel(
     private val completeCareTask: CompleteCareTask,
     private val logAdHocCare: LogAdHocCare,
     private val deleteCareTask: DeleteCareTask,
+    private val saveCareRule: SaveCareRule,
+    private val pauseCareRule: PauseCareRule,
+    private val resumeCareRule: ResumeCareRule,
     private val clock: Clock = Clock.System
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlantDetailUiState())
     val uiState: StateFlow<PlantDetailUiState> = _uiState.asStateFlow()
+
+    private val _toasts = Channel<CareToast>(Channel.BUFFERED)
+    val toasts = _toasts.receiveAsFlow()
 
     private var loadJob: Job? = null
 
@@ -87,7 +100,9 @@ class PlantDetailViewModel(
 
     fun onMarkDone(pending: CareTask.Pending) {
         viewModelScope.launch {
-            completeCareTask(pending).publishErrorIfAny()
+            completeCareTask(pending)
+                .onSuccess { _toasts.send(CareToast.Logged(it)) }
+                .publishErrorIfAny()
         }
     }
 
@@ -99,13 +114,41 @@ class PlantDetailViewModel(
                 care = details,
                 performedAt = performedAt,
                 note = note
-            ).publishErrorIfAny()
+            )
+                .onSuccess { _toasts.send(CareToast.Logged(it)) }
+                .publishErrorIfAny()
         }
     }
 
     fun onUndoTask(done: CareTask.Done) {
         viewModelScope.launch {
-            done.id?.let { deleteCareTask(it).publishErrorIfAny() }
+            done.id?.let { id ->
+                deleteCareTask(id)
+                    .onSuccess { _toasts.send(CareToast.Undone) }
+                    .publishErrorIfAny()
+            }
+        }
+    }
+
+    /** UNDO of the snackbar shown after [onMarkDone] / [onLogAdHocCare]. */
+    fun onUndoLoggedCare(taskId: CareTaskId) {
+        viewModelScope.launch {
+            deleteCareTask(taskId).publishErrorIfAny()
+        }
+    }
+
+    fun onToggleRulePaused(rule: CareRule) {
+        val id = rule.id ?: return
+        viewModelScope.launch {
+            val result = if (rule.active) pauseCareRule(id) else resumeCareRule(id)
+            result.publishErrorIfAny()
+        }
+    }
+
+    fun onSaveRule(rule: CareRule) {
+        val plantId = _uiState.value.plant?.id ?: return
+        viewModelScope.launch {
+            saveCareRule(rule, plantId).publishErrorIfAny()
         }
     }
 

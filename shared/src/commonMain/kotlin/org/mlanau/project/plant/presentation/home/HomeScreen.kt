@@ -17,15 +17,27 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.HomeRepairService
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.toLocalDateTime
+import org.mlanau.project.plant.domain.model.CareTask
+import org.mlanau.project.plant.domain.model.CareType
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PotSize
 import plantitas_app.shared.generated.resources.*
 import coil3.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import org.mlanau.project.plant.presentation.component.careColor
+import org.mlanau.project.plant.presentation.component.getCareTypeString
 import org.mlanau.project.plant.presentation.localizedMessage
 
 @Composable
@@ -144,6 +156,7 @@ fun HomeContent(
                 items(uiState.plants) { plant ->
                     PlantItem(
                         plant = plant,
+                        nextCare = plant.id?.let { uiState.nextCareByPlant[it] },
                         onClick = { plant.id?.let { onNavigateToPlantDetail(it.value) } }
                     )
                 }
@@ -156,6 +169,7 @@ fun HomeContent(
 @Composable
 fun PlantItem(
     plant: Plant,
+    nextCare: CareTask.Pending?,
     onClick: () -> Unit
 ) {
     Card(
@@ -252,7 +266,57 @@ fun PlantItem(
                     }
                 }
             }
+
+            nextCare?.let {
+                Spacer(modifier = Modifier.width(12.dp))
+                NextCareIndicator(task = it)
+            }
         }
+    }
+}
+
+@Composable
+private fun NextCareIndicator(task: CareTask.Pending) {
+    val isOverdue = task.isOverdue
+    val color = if (isOverdue) MaterialTheme.colorScheme.error else careColor(task.type)
+    val icon = when (task.type) {
+        CareType.WATER -> Icons.Default.WaterDrop
+        CareType.FERTILIZE -> Icons.Default.Science
+        CareType.REPOT -> Icons.Default.HomeRepairService
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = getCareTypeString(task.type),
+            modifier = Modifier.size(18.dp),
+            tint = color
+        )
+        Text(
+            text = nextCareLabel(task),
+            style = MaterialTheme.typography.labelSmall,
+            color = color
+        )
+    }
+}
+
+@Composable
+private fun nextCareLabel(task: CareTask.Pending): String {
+    val timeZone = TimeZone.currentSystemDefault()
+    val today = Clock.System.now().toLocalDateTime(timeZone).date
+    val dueDate = task.dueAt.toLocalDateTime(timeZone).date
+    val days = today.daysUntil(dueDate)
+    return when {
+        days < 0 -> pluralStringResource(Res.plurals.care_overdue_days, -days, -days)
+        days == 0 -> if (task.isOverdue) {
+            stringResource(Res.string.care_overdue_today)
+        } else {
+            stringResource(Res.string.home_next_care_today)
+        }
+        days == 1 -> stringResource(Res.string.home_next_care_tomorrow)
+        else -> stringResource(Res.string.home_next_care_in_days, days)
     }
 }
 

@@ -4,6 +4,8 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.coroutines.toFlowSettings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import org.mlanau.project.settings.domain.ThemeMode
 import org.mlanau.project.settings.domain.repository.SettingsRepository
 
 @OptIn(ExperimentalSettingsApi::class)
@@ -13,11 +15,13 @@ class PersistentSettingsRepository(
 
     private val flowSettings = settings.toFlowSettings()
 
-    override fun isDarkMode(): Flow<Boolean> =
-        flowSettings.getBooleanFlow(KEY_DARK_MODE, false)
+    override fun themeMode(): Flow<ThemeMode> =
+        flowSettings.getStringFlow(KEY_THEME, migratedThemeDefault().name).map { stored ->
+            runCatching { ThemeMode.valueOf(stored) }.getOrDefault(ThemeMode.SYSTEM)
+        }
 
-    override suspend fun setDarkMode(enabled: Boolean) {
-        settings.putBoolean(KEY_DARK_MODE, enabled)
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        settings.putString(KEY_THEME, mode.name)
     }
 
     override fun getLanguage(): Flow<String> =
@@ -27,8 +31,20 @@ class PersistentSettingsRepository(
         settings.putString(KEY_LANGUAGE, languageCode)
     }
 
+    /**
+     * Users upgrading from the boolean `dark_mode` setting keep the look they picked: a stored
+     * `true` becomes [ThemeMode.DARK], `false` becomes [ThemeMode.LIGHT]. A fresh install has
+     * neither key and falls through to [ThemeMode.SYSTEM].
+     */
+    private fun migratedThemeDefault(): ThemeMode = when {
+        !settings.hasKey(KEY_DARK_MODE) -> ThemeMode.SYSTEM
+        settings.getBoolean(KEY_DARK_MODE, false) -> ThemeMode.DARK
+        else -> ThemeMode.LIGHT
+    }
+
     companion object {
         private const val KEY_DARK_MODE = "dark_mode"
+        private const val KEY_THEME = "theme_mode"
         private const val KEY_LANGUAGE = "language"
     }
 }

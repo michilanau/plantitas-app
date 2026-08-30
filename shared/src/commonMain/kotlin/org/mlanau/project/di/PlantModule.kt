@@ -16,6 +16,7 @@ import org.mlanau.project.plant.application.FindPlantById
 import org.mlanau.project.plant.application.GetCalendarTasks
 import org.mlanau.project.plant.application.GetCareRules
 import org.mlanau.project.plant.application.GetNextPendingCare
+import org.mlanau.project.plant.application.GetNextPendingCareForPlants
 import org.mlanau.project.plant.application.GetPlantCareHistory
 import org.mlanau.project.plant.application.LogAdHocCare
 import org.mlanau.project.plant.application.PauseCareRule
@@ -68,6 +69,7 @@ val plantModule = module {
     factoryOf(::GetPlantCareHistory)
     factoryOf(::GetCalendarTasks)
     factoryOf(::GetNextPendingCare)
+    factoryOf(::GetNextPendingCareForPlants)
     factoryOf(::SyncCareReminder)
 
     viewModelOf(::HomeViewModel)

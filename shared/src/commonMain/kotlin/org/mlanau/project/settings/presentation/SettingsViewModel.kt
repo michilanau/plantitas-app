@@ -7,10 +7,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.mlanau.project.settings.domain.ThemeMode
 import org.mlanau.project.settings.domain.repository.SettingsRepository
 
 data class SettingsUiState(
-    val isDarkMode: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val languageCode: String = "es"
 )
 
@@ -19,19 +20,19 @@ class SettingsViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        repository.isDarkMode(),
+        repository.themeMode(),
         repository.getLanguage()
-    ) { isDarkMode, languageCode ->
-        SettingsUiState(isDarkMode, languageCode)
+    ) { themeMode, languageCode ->
+        SettingsUiState(themeMode, languageCode)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = SettingsUiState()
     )
 
-    fun setDarkMode(enabled: Boolean) {
+    fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
-            repository.setDarkMode(enabled)
+            repository.setThemeMode(mode)
         }
     }
 

@@ -20,10 +20,14 @@ import org.mlanau.project.plant.presentation.calendar.CalendarScreen
 import org.mlanau.project.plant.presentation.form.PlantFormScreen
 import org.mlanau.project.plant.presentation.detail.PlantDetailScreen
 import org.mlanau.project.plant.presentation.detail.PlantDetailViewModel
+import org.mlanau.project.settings.domain.ThemeMode
 import org.mlanau.project.settings.presentation.SettingsViewModel
 import org.mlanau.project.settings.presentation.AboutScreen
 import org.mlanau.project.settings.presentation.SettingsScreen
+import androidx.compose.foundation.isSystemInDarkTheme
 import org.mlanau.project.shared.ui.AppLocaleWrapper
+import org.mlanau.project.shared.ui.DateFormatter
+import org.mlanau.project.shared.ui.LocalDateFormatter
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
@@ -42,7 +46,11 @@ fun App() {
     val settingsViewModel = koinViewModel<SettingsViewModel>()
     val settingsState by settingsViewModel.uiState.collectAsState()
 
-    val darkTheme = settingsState.isDarkMode
+    val darkTheme = when (settingsState.themeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
 
     // Reconciles reminders for as long as the app stays composed: any change to a rule, a logged
     // care, or a plant flows through here and re-syncs the affected alarms on its own, so no write
@@ -53,6 +61,8 @@ fun App() {
     LaunchedEffect(Unit) { careReminderSync.start(appScope) }
 
     AppLocaleWrapper(languageCode = settingsState.languageCode) {
+        val dateFormatter = remember(settingsState.languageCode) { DateFormatter(settingsState.languageCode) }
+        CompositionLocalProvider(LocalDateFormatter provides dateFormatter) {
         PlantitasTheme(darkTheme = darkTheme) {
             val navController = rememberNavController()
             val currentDestination = navController.currentBackStackEntryAsState().value?.destination
@@ -137,6 +147,7 @@ fun App() {
                     }
                 }
             }
+        }
         }
     }
 }

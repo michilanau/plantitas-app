@@ -10,12 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.domain.model.*
 import plantitas_app.shared.generated.resources.*
@@ -23,14 +23,17 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
+import org.mlanau.project.plant.presentation.component.CareRuleDialog
+import org.mlanau.project.plant.presentation.component.CareRuleItem
 import org.mlanau.project.plant.presentation.component.FullScreenImageDialog
 import org.mlanau.project.plant.presentation.component.LogCareDialog
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.graphics.vector.ImageVector
 import coil3.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
-import org.mlanau.project.shared.ui.DateFormatUtils
+import org.mlanau.project.shared.ui.LocalDateFormatter
 import org.mlanau.project.plant.presentation.component.careColor
+import org.mlanau.project.plant.presentation.CareToast
 import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.localizedMessage
 
@@ -46,6 +49,7 @@ fun PlantDetailScreen(
 
     var showFullScreenImage by remember { mutableStateOf<String?>(null) }
     var showLogCareDialog by remember { mutableStateOf(false) }
+    var ruleToEdit by remember { mutableStateOf<CareRule?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -70,6 +74,27 @@ fun PlantDetailScreen(
         }
     }
 
+    val careLoggedMessage = stringResource(Res.string.care_log_saved)
+    val careUndoneMessage = stringResource(Res.string.care_log_undone)
+    val undoActionLabel = stringResource(Res.string.care_action_undo)
+    LaunchedEffect(Unit) {
+        viewModel.toasts.collect { toast ->
+            when (toast) {
+                is CareToast.Logged -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = careLoggedMessage,
+                        actionLabel = undoActionLabel,
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.onUndoLoggedCare(toast.taskId)
+                    }
+                }
+                CareToast.Undone -> snackbarHostState.showSnackbar(careUndoneMessage)
+            }
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -83,7 +108,7 @@ fun PlantDetailScreen(
                 actions = {
                     if (uiState.plant?.id?.value == plantId) {
                         IconButton(onClick = { onEdit(plantId) }) {
-                            Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.care_edit_rule))
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.plant_form_edit_title))
                         }
                     }
                 }
@@ -105,6 +130,8 @@ fun PlantDetailScreen(
                     onImageClick = { showFullScreenImage = it },
                     onLogCareClick = { showLogCareDialog = true },
                     onUndoTask = { viewModel.onUndoTask(it) },
+                    onToggleRulePaused = { viewModel.onToggleRulePaused(it) },
+                    onEditRule = { ruleToEdit = it },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -127,6 +154,19 @@ fun PlantDetailScreen(
             }
         )
     }
+
+    ruleToEdit?.let { rule ->
+        CareRuleDialog(
+            plantId = uiState.plant?.id,
+            takenTypes = uiState.careRules.map { it.type }.toSet(),
+            initialRule = rule,
+            onDismiss = { ruleToEdit = null },
+            onConfirm = {
+                viewModel.onSaveRule(it)
+                ruleToEdit = null
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -140,8 +180,11 @@ private fun PlantDetailContent(
     onImageClick: (String) -> Unit,
     onLogCareClick: () -> Unit,
     onUndoTask: (CareTask.Done) -> Unit,
+    onToggleRulePaused: (CareRule) -> Unit,
+    onEditRule: (CareRule) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dateFormatter = LocalDateFormatter.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -173,6 +216,8 @@ private fun PlantDetailContent(
             }
         }
 
+        val hasAttributes = plant.location?.isNotBlank() == true || plant.lightNeed != null || plant.potSize != null
+        if (hasAttributes) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
@@ -210,6 +255,7 @@ private fun PlantDetailContent(
                 }
             }
         }
+        }
 
         plant.description?.takeIf { it.isNotBlank() }?.let {
             Column {
@@ -236,71 +282,32 @@ private fun PlantDetailContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 careRules.forEach { rule ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val icon = when (rule.details) {
-                                is CareDetails.Water -> Icons.Default.WaterDrop
-                                is CareDetails.Fertilize -> Icons.Default.Science
-                                is CareDetails.Repot -> Icons.Default.HomeRepairService
-                            }
-                            Icon(
-                                icon,
-                                contentDescription = null,
-                                tint = if (rule.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = when (rule.details) {
-                                        is CareDetails.Water -> stringResource(Res.string.care_type_water)
-                                        is CareDetails.Fertilize -> stringResource(Res.string.care_type_fertilize)
-                                        is CareDetails.Repot -> stringResource(Res.string.care_type_repot)
-                                    },
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-                                )
-                                Text(
-                                    text = if (rule.active) {
-                                        stringResource(Res.string.care_recurrence_periodic, rule.everyDays)
-                                    } else {
-                                        stringResource(Res.string.care_rule_paused)
-                                    },
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
+                    Box(modifier = Modifier.padding(vertical = 4.dp)) {
+                        CareRuleItem(
+                            rule = rule,
+                            onClick = { onEditRule(rule) },
+                            onTogglePaused = { onToggleRulePaused(rule) }
+                        )
                     }
                 }
             }
         }
 
         val isOverdue = nextPending?.isOverdue == true
-    val isCompletable = nextPending?.isCompletableOn(Clock.System.now(), TimeZone.currentSystemDefault()) == true
+        val isCompletable = nextPending?.isCompletableOn(Clock.System.now(), TimeZone.currentSystemDefault()) == true
         Card(
-            modifier = Modifier.fillMaxWidth().clickable(enabled = isCompletable) { nextPending?.let { onMarkDone(it) } },
+            modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = if (isOverdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
                 else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
             )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(Res.string.plant_detail_next_care),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (isCompletable) {
-                        Icon(Icons.Default.Check, contentDescription = stringResource(Res.string.care_action_done), tint = Color(0xFF4CAF50))
-                    }
-                }
+                Text(
+                    text = stringResource(Res.string.plant_detail_next_care),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 if (nextPending != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -334,7 +341,7 @@ private fun PlantDetailContent(
                                 )
                             } else {
                                 Text(
-                                    text = DateFormatUtils.formatDateTime(nextPending.dueAt),
+                                    text = dateFormatter.formatDateTime(nextPending.dueAt),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -348,10 +355,34 @@ private fun PlantDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                if (nextPending != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { onMarkDone(nextPending) },
+                        enabled = isCompletable,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(Res.string.care_action_done))
+                    }
+                    if (!isCompletable) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(
+                                Res.string.plant_detail_available_on,
+                                dateFormatter.formatDate(nextPending.dueAt)
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
 
-        OutlinedButton(
+        FilledTonalButton(
             onClick = onLogCareClick,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -384,6 +415,7 @@ private fun PlantDetailContent(
 
 @Composable
 private fun HistoryRow(task: CareTask.Done, onUndo: () -> Unit) {
+    val dateFormatter = LocalDateFormatter.current
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
@@ -409,7 +441,7 @@ private fun HistoryRow(task: CareTask.Done, onUndo: () -> Unit) {
                     textDecoration = TextDecoration.LineThrough
                 )
                 Text(
-                    text = DateFormatUtils.formatDateTime(task.performedAt),
+                    text = dateFormatter.formatDateTime(task.performedAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -435,7 +467,7 @@ private fun daysWithoutCareText(pending: CareTask.Pending): String {
     val lateness = if (daysLate == 0) {
         stringResource(Res.string.care_overdue_today)
     } else {
-        stringResource(Res.string.care_overdue_days, daysLate)
+        pluralStringResource(Res.plurals.care_overdue_days, daysLate, daysLate)
     }
     return if (pending.missedCount > 1) {
         "$lateness  ${stringResource(Res.string.care_overdue_missed_count, pending.missedCount)}"

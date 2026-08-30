@@ -17,3 +17,6 @@ fun careColor(type: CareType): Color {
 
 @Composable
 fun overdueColor(): Color = LocalCareColors.current.overdue
+
+@Composable
+fun doneColor(): Color = LocalCareColors.current.done

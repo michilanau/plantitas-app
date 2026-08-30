@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlin.time.Clock
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
@@ -12,6 +13,8 @@ import org.mlanau.project.plant.application.DeleteCareTask
 import org.mlanau.project.plant.application.FindAllPlants
 import org.mlanau.project.plant.application.GetCalendarTasks
 import org.mlanau.project.plant.domain.model.CareTask
+import org.mlanau.project.plant.domain.model.CareTaskId
+import org.mlanau.project.plant.presentation.CareToast
 import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.toUiError
 import org.mlanau.project.shared.time.SystemTimeZoneProvider
@@ -43,6 +46,9 @@ class CalendarViewModel(
         CalendarUiState(selectedDate = it.date, viewMonth = it.month, viewYear = it.year)
     })
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
+
+    private val _toasts = Channel<CareToast>(Channel.BUFFERED)
+    val toasts = _toasts.receiveAsFlow()
 
     private var loadEntriesJob: Job? = null
 
@@ -112,13 +118,26 @@ class CalendarViewModel(
 
     fun onMarkDone(pending: CareTask.Pending) {
         viewModelScope.launch {
-            completeCareTask(pending).publishErrorIfAny()
+            completeCareTask(pending)
+                .onSuccess { _toasts.send(CareToast.Logged(it)) }
+                .publishErrorIfAny()
         }
     }
 
     fun onUndoTask(done: CareTask.Done) {
         viewModelScope.launch {
-            done.id?.let { deleteCareTask(it).publishErrorIfAny() }
+            done.id?.let { id ->
+                deleteCareTask(id)
+                    .onSuccess { _toasts.send(CareToast.Undone) }
+                    .publishErrorIfAny()
+            }
+        }
+    }
+
+    /** UNDO of the snackbar shown after [onMarkDone]. */
+    fun onUndoLoggedCare(taskId: CareTaskId) {
+        viewModelScope.launch {
+            deleteCareTask(taskId).publishErrorIfAny()
         }
     }
 

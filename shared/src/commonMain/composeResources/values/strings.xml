@@ -13,12 +13,20 @@
     <string name="home_button_add">Añadir</string>
     <string name="home_button_cancel">Cancelar</string>
 
+    <!-- Home: próximo cuidado por planta -->
+    <string name="home_next_care_today">Hoy</string>
+    <string name="home_next_care_tomorrow">Mañana</string>
+    <string name="home_next_care_in_days">En %1$d días</string>
+
     <!-- Common -->
     <string name="common_back">Volver</string>
     <string name="common_delete">Eliminar</string>
     <string name="common_cancel">Cancelar</string>
     <string name="common_add_image">Añadir imagen</string>
     <string name="common_optional">(opcional)</string>
+    <string name="common_close">Cerrar</string>
+    <string name="common_save">Guardar</string>
+    <string name="common_remove_image">Quitar imagen</string>
 
     <!-- Light Needs -->
     <string name="light_low">Baja</string>
@@ -49,11 +57,23 @@
     <string name="settings_change_theme_description">Cambiar Tema</string>
     <string name="settings_theme_section">Apariencia</string>
     <string name="settings_dark_mode">Modo Oscuro</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_theme_system">Seguir al sistema</string>
     <string name="settings_language_section">Idioma</string>
     <string name="settings_language_es">Español</string>
-    <string name="settings_language_en">Inglés</string>
+    <string name="settings_language_en">English</string>
     <string name="settings_about_section">Acerca de</string>
     <string name="settings_about_app">Sobre la aplicación</string>
+
+    <!-- Ajustes: notificaciones -->
+    <string name="settings_notifications_section">Notificaciones</string>
+    <string name="settings_notifications_permission">Permiso de notificaciones</string>
+    <string name="settings_notifications_granted">Concedido</string>
+    <string name="settings_notifications_denied">No concedido · toca para abrir los ajustes</string>
+    <string name="settings_notifications_exact_alarms">Alarmas exactas</string>
+    <string name="settings_notifications_exact_alarms_denied">Los recordatorios pueden llegar con retraso · toca para permitirlas</string>
 
     <!-- Acerca de -->
     <string name="about_title">Acerca de</string>
@@ -63,6 +83,7 @@
     <!-- Plant Detail -->
     <string name="plant_detail_title">Detalle de la Planta</string>
     <string name="plant_detail_next_care">Próximo Cuidado</string>
+    <string name="plant_detail_available_on">Disponible el %1$s</string>
 
     <!-- Navigation -->
     <string name="nav_plants">Plantas</string>
@@ -76,12 +97,24 @@
     <string name="calendar_today">Hoy</string>
     <string name="calendar_no_tasks">No hay tareas para este día</string>
 
+    <!-- Días de la semana (abreviados, para el calendario) -->
+    <string name="weekday_short_monday">L</string>
+    <string name="weekday_short_tuesday">M</string>
+    <string name="weekday_short_wednesday">X</string>
+    <string name="weekday_short_thursday">J</string>
+    <string name="weekday_short_friday">V</string>
+    <string name="weekday_short_saturday">S</string>
+    <string name="weekday_short_sunday">D</string>
+
     <!-- Care Rules -->
     <string name="care_rules_title">Cuidados</string>
     <string name="care_type_water">Riego</string>
     <string name="care_type_fertilize">Abonado</string>
     <string name="care_type_repot">Trasplante</string>
-    <string name="care_recurrence_periodic">Cada %1$d días</string>
+    <plurals name="care_recurrence_periodic">
+        <item quantity="one">Cada día</item>
+        <item quantity="other">Cada %1$d días</item>
+    </plurals>
     <string name="care_rule_paused">En pausa</string>
     <string name="care_rule_pause">Pausar</string>
     <string name="care_rule_resume">Reanudar</string>
@@ -97,6 +130,8 @@
     <string name="care_water_amount_label">Cantidad (ml)</string>
     <string name="care_water_amount_error">Debe ser mayor que cero</string>
     <string name="care_notifications_enabled">Activar notificaciones</string>
+    <string name="care_notifications_permission_denied">Las notificaciones están desactivadas en el sistema.</string>
+    <string name="care_notifications_open_settings">Abrir ajustes</string>
     <string name="care_fertilizer_name_label">Nombre del fertilizante</string>
     <string name="care_fertilizer_default_name">Abono</string>
     <string name="care_repot_pot_size_label">Nuevo tamaño de maceta</string>
@@ -117,7 +152,10 @@
     <string name="care_log_undone">Registro deshecho</string>
 
     <!-- Estado del cuidado -->
-    <string name="care_overdue_days">%1$d días de retraso</string>
+    <plurals name="care_overdue_days">
+        <item quantity="one">%1$d día de retraso</item>
+        <item quantity="other">%1$d días de retraso</item>
+    </plurals>
     <string name="care_overdue_today">Toca hoy</string>
     <string name="care_overdue_missed_count">×%1$d</string>
     <string name="care_overdue_label">Vencido</string>
@@ -146,6 +184,8 @@
 
     <!-- Care reminder notifications: shared between the Android and iOS schedulers so the copy
          only lives in one place. -->
+    <string name="notification_channel_name">Recordatorios de cuidado</string>
+    <string name="notification_channel_description">Notificaciones para el riego y el cuidado de tus plantas</string>
     <string name="notification_title">¡Hora de cuidar tu planta!</string>
     <string name="notification_water">Toca regar tu %1$s</string>
     <string name="notification_fertilize">Toca abonar tu %1$s</string>

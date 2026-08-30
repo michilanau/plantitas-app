@@ -34,7 +34,13 @@ data class PlantFormUiState(
     val lightNeed: LightNeed? = null,
     val potSize: PotSize? = null,
     val imageUrl: String? = null,
-    val imageBytes: ByteArray? = null
+    val imageBytes: ByteArray? = null,
+    // The photo has three edit states: untouched, replaced (imageBytes set), or removed.
+    val imageCleared: Boolean = false,
+    // Any add / remove / pause / edit of a care rule flips this. Rule changes are drafts held in
+    // [careRules] (and [PlantFormViewModel.pendingRuleDeletions]) until the plant is saved, so a
+    // field-by-field comparison isn't available the way it is for the plain fields.
+    val rulesDirty: Boolean = false
 ) {
     val hasChanges: Boolean
         get() = name != (plant?.name ?: "") ||
@@ -42,7 +48,9 @@ data class PlantFormUiState(
             location != (plant?.location ?: "") ||
             lightNeed != plant?.lightNeed ||
             potSize != plant?.potSize ||
-            imageBytes != null
+            imageBytes != null ||
+            imageCleared ||
+            rulesDirty
 }
 
 class PlantFormViewModel(
@@ -65,10 +73,16 @@ class PlantFormViewModel(
 
     private var originalCareRules: List<CareRule>? = null
 
+    // Rules the user removed from the draft. Applied to the database only when the plant is saved,
+    // so backing out with "discard" leaves them intact (the plant's care history survives either
+    // way — careTaskEntity.careRuleId is ON DELETE SET NULL).
+    private val pendingRuleDeletions = mutableListOf<CareRuleId>()
+
     fun loadPlant(id: Int?) {
         loadJob?.cancel()
         loadRulesJob?.cancel()
         originalCareRules = null
+        pendingRuleDeletions.clear()
 
         if (id == null) {
             _uiState.value = PlantFormUiState()
@@ -109,7 +123,9 @@ class PlantFormViewModel(
     fun onLightNeedSelected(value: LightNeed?) = _uiState.update { it.copy(lightNeed = value) }
     fun onPotSizeSelected(value: PotSize?) = _uiState.update { it.copy(potSize = value) }
 
-    fun onImagePicked(bytes: ByteArray) = _uiState.update { it.copy(imageBytes = bytes, imageUrl = null) }
+    fun onImagePicked(bytes: ByteArray) = _uiState.update { it.copy(imageBytes = bytes, imageUrl = null, imageCleared = false) }
+
+    fun onImageCleared() = _uiState.update { it.copy(imageBytes = null, imageUrl = null, imageCleared = true) }
 
     fun onSavePlant() {
         val state = _uiState.value
@@ -120,7 +136,11 @@ class PlantFormViewModel(
 
             // A freshly picked photo is only written to storage once the user actually saves —
             // not on every pick — so an abandoned edit never leaves an orphaned file behind.
-            val finalImageUrl = state.imageBytes?.let { imageStorage.save(it) } ?: state.imageUrl
+            val finalImageUrl = when {
+                state.imageBytes != null -> imageStorage.save(state.imageBytes)
+                state.imageCleared -> null
+                else -> state.imageUrl
+            }
 
             val existingPlant = state.plant
             val result = if (existingPlant?.id == null) {
@@ -140,11 +160,15 @@ class PlantFormViewModel(
             result.onSuccess { savedPlant ->
                 val savedPlantId = requireNotNull(savedPlant.id)
 
-                // The new photo (if any) already replaced the old one in finalImageUrl above; the
-                // old file is now orphaned.
-                if (state.imageBytes != null && previousImageUrl != null) {
+                // finalImageUrl already replaced (or dropped) the old photo above; the old file is
+                // now orphaned whether it was swapped for a new one or removed outright.
+                if (previousImageUrl != null && (state.imageBytes != null || state.imageCleared)) {
                     imageStorage.delete(previousImageUrl)
                 }
+
+                // Rules the user removed from the draft are only now deleted from the database.
+                pendingRuleDeletions.forEach { deleteCareRule(it) }
+                pendingRuleDeletions.clear()
 
                 // Delegate care rule persistence to the SaveCareRule use case, which handles
                 // plantId assignment for newly created plants. Only rules that are new or that the
@@ -164,7 +188,7 @@ class PlantFormViewModel(
     }
 
     fun addCareRule(rule: CareRule) {
-        _uiState.update { it.copy(careRules = it.careRules + rule) }
+        _uiState.update { it.copy(careRules = it.careRules + rule, rulesDirty = true) }
     }
 
     /**
@@ -179,19 +203,13 @@ class PlantFormViewModel(
     fun updateCareRuleInList(oldRule: CareRule, newRule: CareRule) {
         _uiState.update { state ->
             val newList = state.careRules.map { if (it == oldRule) newRule else it }
-            state.copy(careRules = newList)
+            state.copy(careRules = newList, rulesDirty = true)
         }
     }
 
     fun removeCareRule(rule: CareRule) {
-        _uiState.update { it.copy(careRules = it.careRules - rule) }
-        viewModelScope.launch {
-            rule.id?.let { id ->
-                deleteCareRule(id).onFailure { exception ->
-                    _uiState.update { it.copy(error = exception.toUiError()) }
-                }
-            }
-        }
+        rule.id?.let { pendingRuleDeletions.add(it) }
+        _uiState.update { it.copy(careRules = it.careRules - rule, rulesDirty = true) }
     }
 
     fun onDeletePlant() {
@@ -212,6 +230,7 @@ class PlantFormViewModel(
         loadJob?.cancel()
         loadRulesJob?.cancel()
         originalCareRules = null
+        pendingRuleDeletions.clear()
         _uiState.value = PlantFormUiState()
     }
 }

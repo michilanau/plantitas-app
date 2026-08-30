@@ -1,14 +1,20 @@
 package org.mlanau.project.notification.infrastructure
 
 import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import org.jetbrains.compose.resources.getString
 import org.mlanau.project.notification.NotificationReceiver
 import org.mlanau.project.notification.domain.port.NotificationId
 import org.mlanau.project.notification.domain.port.NotificationScheduler
 import org.mlanau.project.notification.domain.port.ScheduledNotification
+import plantitas_app.shared.generated.resources.Res
+import plantitas_app.shared.generated.resources.notification_channel_description
+import plantitas_app.shared.generated.resources.notification_channel_name
 
 /**
  * Stays in `:androidApp` rather than `shared/androidMain` alongside its iOS counterpart:
@@ -25,6 +31,11 @@ class AndroidNotificationScheduler(
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     override suspend fun schedule(notification: ScheduledNotification) {
+        // Created (and its name/description refreshed to the current app language) here rather than
+        // in the receiver: this method is suspending, so it can resolve the localized channel copy,
+        // and it always runs before the receiver that would post into the channel.
+        ensureChannel()
+
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("notificationId", notification.id.value)
             putExtra("title", notification.title)
@@ -75,5 +86,22 @@ class AndroidNotificationScheduler(
         }
     }
 
+    private suspend fun ensureChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channel = NotificationChannel(
+            CARE_CHANNEL_ID,
+            getString(Res.string.notification_channel_name),
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = getString(Res.string.notification_channel_description)
+        }
+        manager.createNotificationChannel(channel)
+    }
+
     private fun requestCode(id: NotificationId): Int = id.value.hashCode()
+
+    companion object {
+        const val CARE_CHANNEL_ID = "plant_care_notifications"
+    }
 }

@@ -1,12 +1,10 @@
 package org.mlanau.project.notification
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +14,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlanau.project.MainActivity
 import org.mlanau.project.R
+import org.mlanau.project.notification.infrastructure.AndroidNotificationScheduler
 import org.mlanau.project.plant.application.SyncCareReminder
 import org.mlanau.project.plant.domain.model.CareRuleId
 
@@ -58,18 +57,9 @@ class NotificationReceiver : BroadcastReceiver(), KoinComponent {
 
     private fun showNotification(context: Context, notificationId: String, title: String, body: String) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "plant_care_notifications"
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Recordatorios de Cuidado",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notificaciones para el riego y cuidado de tus plantas"
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
+        // The channel is created (and localized) by AndroidNotificationScheduler.schedule(), which
+        // always runs before an alarm can fire this receiver.
+        val channelId = AndroidNotificationScheduler.CARE_CHANNEL_ID
 
         val mainIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

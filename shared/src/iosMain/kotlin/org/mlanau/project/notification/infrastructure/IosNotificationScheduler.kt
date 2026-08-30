@@ -6,9 +6,6 @@ import org.mlanau.project.notification.domain.port.NotificationId
 import org.mlanau.project.notification.domain.port.NotificationScheduler
 import org.mlanau.project.notification.domain.port.ScheduledNotification
 import platform.Foundation.NSDateComponents
-import platform.UserNotifications.UNAuthorizationOptionAlert
-import platform.UserNotifications.UNAuthorizationOptionBadge
-import platform.UserNotifications.UNAuthorizationOptionSound
 import platform.UserNotifications.UNCalendarNotificationTrigger
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationRequest
@@ -17,14 +14,9 @@ import platform.UserNotifications.UNUserNotificationCenter
 
 class IosNotificationScheduler : NotificationScheduler {
 
+    // Notification permission is requested from the UI (see rememberNotificationPermissions),
+    // which can react to the user's answer — not fire-and-forget from here.
     private val center = UNUserNotificationCenter.currentNotificationCenter()
-
-    init {
-        center.requestAuthorizationWithOptions(
-            options = UNAuthorizationOptionAlert or UNAuthorizationOptionBadge or UNAuthorizationOptionSound,
-            completionHandler = { _, _ -> }
-        )
-    }
 
     override suspend fun schedule(notification: ScheduledNotification) {
         // Replace whatever was previously scheduled under this id.

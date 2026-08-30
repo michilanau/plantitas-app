@@ -1,5 +1,7 @@
 package org.mlanau.project.plant.presentation.form
 
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -35,7 +37,8 @@ import coil3.compose.AsyncImage
 import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
 import com.preat.peekaboo.image.picker.SelectionMode
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalComposeUiApi::class)
+@Suppress("DEPRECATION")
 @Composable
 fun PlantFormScreen(
     viewModel: PlantFormViewModel,
@@ -48,6 +51,9 @@ fun PlantFormScreen(
     val focusManager = LocalFocusManager.current
 
     var showCancelConfirmation by remember { mutableStateOf(false) }
+
+    // Cover the system back gesture / button too, not just the top-bar arrow.
+    BackHandler(enabled = uiState.hasChanges) { showCancelConfirmation = true }
 
     val scope = rememberCoroutineScope()
     val launcher = rememberImagePickerLauncher(
@@ -215,6 +221,23 @@ fun PlantFormScreen(
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
+                    Surface(
+                        onClick = { viewModel.onImageCleared() },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(32.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 4.dp
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = stringResource(Res.string.common_remove_image),
+                            modifier = Modifier.padding(6.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
 
@@ -297,7 +320,7 @@ fun PlantFormScreen(
                     val isSelected = uiState.lightNeed == need
                     FilterChip(
                         selected = isSelected,
-                        onClick = { viewModel.onLightNeedSelected(need) },
+                        onClick = { viewModel.onLightNeedSelected(if (isSelected) null else need) },
                         label = { Text(getLightNeedString(need)) },
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
@@ -321,7 +344,7 @@ fun PlantFormScreen(
                     val isSelected = uiState.potSize == size
                     FilterChip(
                         selected = isSelected,
-                        onClick = { viewModel.onPotSizeSelected(size) },
+                        onClick = { viewModel.onPotSizeSelected(if (isSelected) null else size) },
                         label = { Text(getPotSizeString(size)) },
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }

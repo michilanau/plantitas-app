@@ -16,6 +16,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.application.runCatchingDomainErrors
 import org.mlanau.project.plant.domain.exception.InvalidRecurrenceException
@@ -26,6 +27,9 @@ import org.mlanau.project.plant.domain.model.CareType
 import org.mlanau.project.plant.domain.model.LightNeed
 import org.mlanau.project.plant.domain.model.PlantId
 import org.mlanau.project.plant.domain.model.PotSize
+import org.mlanau.project.notification.presentation.NotificationPermissionStatus
+import org.mlanau.project.notification.presentation.rememberNotificationPermissions
+import org.mlanau.project.shared.ui.LocalDateFormatter
 import plantitas_app.shared.generated.resources.*
 
 @Composable
@@ -55,7 +59,7 @@ fun CareRuleItem(
     rule: CareRule,
     onClick: () -> Unit,
     onTogglePaused: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
@@ -79,7 +83,7 @@ fun CareRuleItem(
                 Text(text = getCareTypeString(rule.type), style = MaterialTheme.typography.titleSmall)
                 Text(
                     text = if (rule.active) {
-                        stringResource(Res.string.care_recurrence_periodic, rule.everyDays)
+                        pluralStringResource(Res.plurals.care_recurrence_periodic, rule.everyDays, rule.everyDays)
                     } else {
                         stringResource(Res.string.care_rule_paused)
                     },
@@ -100,8 +104,10 @@ fun CareRuleItem(
                     modifier = Modifier.size(18.dp)
                 )
             }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+            if (onRemove != null) {
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
             }
         }
     }
@@ -123,6 +129,11 @@ fun CareRuleDialog(
     onDismiss: () -> Unit,
     onConfirm: (CareRule) -> Unit
 ) {
+    // Read before the early return below so the (Android) permission launcher is registered on
+    // every path this composable can take.
+    val notificationPermissions = rememberNotificationPermissions()
+    val dateFormatter = LocalDateFormatter.current
+
     val selectableTypes = remember(takenTypes, initialRule) {
         CareType.entries.filter { it !in takenTypes || it == initialRule?.type }
     }
@@ -171,7 +182,7 @@ fun CareRuleDialog(
     val strFertilizerName = stringResource(Res.string.care_fertilizer_name_label)
     val strFertilizerDefault = stringResource(Res.string.care_fertilizer_default_name)
     val strRepotPotSize = stringResource(Res.string.care_repot_pot_size_label)
-    val strAdd = stringResource(Res.string.home_button_add)
+    val strConfirmAction = stringResource(if (initialRule == null) Res.string.home_button_add else Res.string.common_save)
 
     // Recomputed on every recomposition from the current field values (Compose already
     // recomposes this scope on their changes), so validity — and the specific field to blame —
@@ -216,6 +227,9 @@ fun CareRuleDialog(
                     }
                     showDatePicker = false
                 }) { Text(strConfirm) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text(strCancel) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -226,9 +240,10 @@ fun CareRuleDialog(
         val timePickerState = rememberTimePickerState(
             initialHour = hour.toIntOrNull() ?: 10,
             initialMinute = minute.toIntOrNull() ?: 0,
-            is24Hour = true
+            is24Hour = dateFormatter.uses24HourClock
         )
-        AlertDialog(
+        var timeDisplayMode by remember { mutableStateOf(TimePickerDisplayMode.Picker) }
+        TimePickerDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
                 TextButton(onClick = {
@@ -237,8 +252,29 @@ fun CareRuleDialog(
                     showTimePicker = false
                 }) { Text(strConfirm) }
             },
-            text = { TimePicker(state = timePickerState) }
-        )
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text(strCancel) }
+            },
+            title = { TimePickerDialogDefaults.Title(displayMode = timeDisplayMode) },
+            modeToggleButton = {
+                TimePickerDialogDefaults.DisplayModeToggle(
+                    onDisplayModeChange = {
+                        timeDisplayMode = if (timeDisplayMode == TimePickerDisplayMode.Picker) {
+                            TimePickerDisplayMode.Input
+                        } else {
+                            TimePickerDisplayMode.Picker
+                        }
+                    },
+                    displayMode = timeDisplayMode
+                )
+            }
+        ) {
+            if (timeDisplayMode == TimePickerDisplayMode.Picker) {
+                TimePicker(state = timePickerState)
+            } else {
+                TimeInput(state = timePickerState)
+            }
+        }
     }
 
     AlertDialog(
@@ -259,14 +295,16 @@ fun CareRuleDialog(
                 }
 
                 ClickableField(
-                    value = startDate.toString(),
+                    value = dateFormatter.formatDate(startDate),
                     label = strStartDateLabel,
                     icon = Icons.Default.DateRange,
                     onClick = { showDatePicker = true }
                 )
 
                 ClickableField(
-                    value = "$hour:$minute",
+                    value = dateFormatter.formatTime(
+                        LocalTime(hour.toIntOrNull() ?: 0, minute.toIntOrNull() ?: 0)
+                    ),
                     label = strTimeLabel,
                     icon = Icons.Default.Schedule,
                     onClick = { showTimePicker = true }
@@ -280,8 +318,33 @@ fun CareRuleDialog(
                     Text(stringResource(Res.string.care_notifications_enabled), style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked = notificationsEnabled,
-                        onCheckedChange = { notificationsEnabled = it }
+                        onCheckedChange = { enabled ->
+                            notificationsEnabled = enabled
+                            // Turning the switch on is the moment to ask: the request has a
+                            // reason the user can see. The rule still stores their choice even
+                            // if the system blocks it.
+                            if (enabled && notificationPermissions.status != NotificationPermissionStatus.GRANTED) {
+                                notificationPermissions.request()
+                            }
+                        }
                     )
+                }
+                if (notificationsEnabled && notificationPermissions.status == NotificationPermissionStatus.DENIED) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            stringResource(Res.string.care_notifications_permission_denied),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { notificationPermissions.openAppNotificationSettings() }) {
+                            Text(stringResource(Res.string.care_notifications_open_settings))
+                        }
+                    }
                 }
 
                 OutlinedTextField(
@@ -340,7 +403,7 @@ fun CareRuleDialog(
                 onClick = { ruleResult.getOrNull()?.let(onConfirm) },
                 enabled = ruleResult.isSuccess
             ) {
-                Text(strAdd)
+                Text(strConfirmAction)
             }
         },
         dismissButton = {
