@@ -50,7 +50,6 @@ class CareScheduler(
         timeZone: TimeZone = timeZoneProvider(),
         lookaheadDays: Int = 365
     ): CareTask.Pending? {
-        if (!rule.active) return null
         val ruleId = rule.id ?: return null
         val plantId = rule.plantId ?: return null
         val state = anchorStateFor(rule, lastPerformedAt, timeZone)
@@ -79,7 +78,6 @@ class CareScheduler(
         after: Instant,
         timeZone: TimeZone = timeZoneProvider()
     ): Instant? {
-        if (!rule.active) return null
         val state = anchorStateFor(rule, lastPerformedAt, timeZone)
         val candidate = rule.firstOccurrenceAfter(state.anchor, state.resolvedThrough, timeZone)
         return if (candidate > after) candidate else rule.reminderSlotAfter(after, timeZone)
@@ -93,7 +91,6 @@ class CareScheduler(
         now: Instant,
         timeZone: TimeZone
     ): List<CareTask.Pending> {
-        if (!rule.active) return emptyList()
         val ruleId = rule.id ?: return emptyList()
         val plantId = rule.plantId ?: return emptyList()
         val state = anchorStateFor(rule, lastPerformedAt, timeZone)

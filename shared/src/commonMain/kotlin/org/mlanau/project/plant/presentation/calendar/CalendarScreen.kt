@@ -1,5 +1,6 @@
 package org.mlanau.project.plant.presentation.calendar
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,32 +10,41 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import kotlin.time.Clock
 import kotlinx.datetime.*
-import org.mlanau.project.plant.domain.model.*
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import plantitas_app.shared.generated.resources.*
-
+import org.mlanau.project.plant.domain.model.*
+import org.mlanau.project.plant.presentation.CareToast
 import org.mlanau.project.plant.presentation.component.careColor
 import org.mlanau.project.plant.presentation.component.doneColor
+import org.mlanau.project.plant.presentation.component.getCareTypeString
+import org.mlanau.project.plant.presentation.component.icon
 import org.mlanau.project.plant.presentation.component.overdueColor
-import org.mlanau.project.plant.presentation.CareToast
 import org.mlanau.project.plant.presentation.localizedMessage
 import org.mlanau.project.shared.ui.LocalDateFormatter
+import org.mlanau.project.shared.ui.component.ScreenHeader
+import org.mlanau.project.shared.ui.monthName
+import org.mlanau.project.shared.ui.weekdayShortName
+import plantitas_app.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     viewModel: CalendarViewModel,
@@ -76,13 +86,18 @@ fun CalendarScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${getMonthName(viewMonth)} $viewYear")
-                        Spacer(modifier = Modifier.weight(1f))
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier.padding(paddingValues).fillMaxSize(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Column(modifier = Modifier.fillMaxSize().widthIn(max = 640.dp)) {
+                ScreenHeader(
+                    title = "${monthName(viewMonth)} $viewYear",
+                    eyebrow = stringResource(Res.string.calendar_title),
+                    actions = {
                         IconButton(onClick = { viewModel.onPreviousMonth() }) {
                             Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(Res.string.calendar_prev_month))
                         }
@@ -93,51 +108,52 @@ fun CalendarScreen(
                             Icon(Icons.Default.ChevronRight, contentDescription = stringResource(Res.string.calendar_next_month))
                         }
                     }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            CalendarGrid(
-                viewMonth = viewMonth,
-                viewYear = viewYear,
-                selectedDate = uiState.selectedDate,
-                entries = uiState.entries,
-                onDateSelected = { viewModel.onDateSelected(it) }
-            )
+                )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                CalendarGrid(
+                    viewMonth = viewMonth,
+                    viewYear = viewYear,
+                    selectedDate = uiState.selectedDate,
+                    entries = uiState.entries,
+                    onDateSelected = { viewModel.onDateSelected(it) }
+                )
 
-            val timeZone = TimeZone.currentSystemDefault()
-            val selectedDateEntries = uiState.entries.filter {
-                it.task.at.toLocalDateTime(timeZone).date == uiState.selectedDate
-            }
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
 
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                val timeZone = TimeZone.currentSystemDefault()
+                val selectedDateEntries = uiState.entries.filter {
+                    it.task.at.toLocalDateTime(timeZone).date == uiState.selectedDate
                 }
-            } else if (selectedDateEntries.isEmpty()) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(Res.string.calendar_no_tasks),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(selectedDateEntries) { entry ->
-                        CalendarEntryRow(
-                            entry = entry,
-                            onMarkDone = { viewModel.onMarkDone(it) },
-                            onUndoTask = { viewModel.onUndoTask(it) },
-                            onClick = { onNavigateToPlantDetail(entry.task.plantId.value) }
+
+                if (uiState.isLoading) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (selectedDateEntries.isEmpty()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(Res.string.calendar_no_tasks),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(selectedDateEntries) { entry ->
+                            CalendarEntryRow(
+                                entry = entry,
+                                onMarkDone = { viewModel.onMarkDone(it) },
+                                onUndoTask = { viewModel.onUndoTask(it) },
+                                onClick = { onNavigateToPlantDetail(entry.task.plantId.value) }
+                            )
+                        }
                     }
                 }
             }
@@ -161,24 +177,25 @@ private fun CalendarGrid(
     val dayOfWeekOffset = (firstDayOfMonth.dayOfWeek.ordinal - firstDayOfWeek.ordinal + 7) % 7
     val weekdays = (0..6).map { DayOfWeek.entries[(firstDayOfWeek.ordinal + it) % 7] }
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             weekdays.forEach { day ->
                 Text(
-                    text = weekdayShort(day),
+                    text = weekdayShortName(day),
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         val totalCells = daysInMonth + dayOfWeekOffset
         val rows = (totalCells + 6) / 7
+        val timeZone = TimeZone.currentSystemDefault()
+        val today = Clock.System.now().toLocalDateTime(timeZone).date
 
         repeat(rows) { rowIndex ->
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -186,68 +203,15 @@ private fun CalendarGrid(
                     val dayIndex = rowIndex * 7 + columnIndex - dayOfWeekOffset + 1
                     if (dayIndex in 1..daysInMonth) {
                         val date = LocalDate(viewYear, viewMonth, dayIndex)
-                        val isSelected = date == selectedDate
-                        val timeZone = TimeZone.currentSystemDefault()
-                        val today = Clock.System.now().toLocalDateTime(timeZone).date
-                        val isToday = date == today
                         val dayEntries = entries.filter { it.task.at.toLocalDateTime(timeZone).date == date }
-                        val hasEntries = dayEntries.isNotEmpty()
-                        val hasOverdueEntry = dayEntries.any {
-                            val task = it.task
-                            task is CareTask.Pending && task.status == PendingStatus.OVERDUE
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .padding(2.dp)
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                    else if (isToday) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                                    else Color.Transparent,
-                                    shape = CircleShape
-                                )
-                                .clickable { onDateSelected(date) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = dayIndex.toString(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (isSelected || isToday || hasOverdueEntry) FontWeight.Bold else FontWeight.Normal,
-                                    color = when {
-                                        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-                                        hasOverdueEntry -> MaterialTheme.colorScheme.error
-                                        isToday -> MaterialTheme.colorScheme.onSecondaryContainer
-                                        else -> MaterialTheme.colorScheme.onSurface
-                                    }
-                                )
-                                if (hasEntries) {
-                                    val entryColors = dayEntries
-                                        .map { careColor(it.task.type) }
-                                        .distinct()
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    ) {
-                                        entryColors.forEach { color ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(6.dp)
-                                                    .let {
-                                                        if (hasOverdueEntry) it.border(1.dp, overdueColor(), CircleShape) else it
-                                                    }
-                                                    .background(color, shape = CircleShape)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        DayCell(
+                            day = dayIndex,
+                            isSelected = date == selectedDate,
+                            isToday = date == today,
+                            entries = dayEntries,
+                            onClick = { onDateSelected(date) },
+                            modifier = Modifier.weight(1f)
+                        )
                     } else {
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -255,8 +219,69 @@ private fun CalendarGrid(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         CalendarLegend()
+    }
+}
+
+@Composable
+private fun DayCell(
+    day: Int,
+    isSelected: Boolean,
+    isToday: Boolean,
+    entries: List<CalendarTaskItem>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasOverdue = entries.any { (it.task as? CareTask.Pending)?.status == PendingStatus.OVERDUE }
+    val background = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        isToday -> MaterialTheme.colorScheme.primaryContainer
+        else -> Color.Transparent
+    }
+    val textColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        hasOverdue -> MaterialTheme.colorScheme.error
+        isToday -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .padding(2.dp)
+            .clip(CircleShape)
+            .background(background)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = day.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected || isToday || hasOverdue) FontWeight.Bold else FontWeight.Normal,
+                color = textColor
+            )
+            if (entries.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    entries.map { careColor(it.task.type) }.distinct().forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .let { if (hasOverdue) it.border(1.dp, overdueColor(), CircleShape) else it }
+                                .clip(CircleShape)
+                                .background(color)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -286,7 +311,8 @@ private fun LegendItem(color: Color, label: String, ringColor: Color? = null) {
             modifier = Modifier
                 .size(8.dp)
                 .let { if (ringColor != null) it.border(1.dp, ringColor, CircleShape) else it }
-                .background(color, CircleShape)
+                .clip(CircleShape)
+                .background(color)
         )
         Text(
             text = label,
@@ -319,57 +345,38 @@ private fun PendingRow(
     val dateFormatter = LocalDateFormatter.current
     val isOverdue = task.isOverdue
     val timeZone = TimeZone.currentSystemDefault()
-    // Today's tasks can be ticked off as well as overdue ones; a task the user hasn't reached yet
-    // simply offers no button, since completing it would be an ad-hoc care on another day.
     val isCompletable = task.isCompletableOn(Clock.System.now(), timeZone)
     val resolvedPlantName = plantName ?: stringResource(Res.string.calendar_unknown_plant)
     val typeColor = careColor(task.type)
 
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isOverdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
-            else MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = if (isOverdue) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface,
+        border = if (isOverdue) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = careTypeIcon(task.type),
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = typeColor
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            Icon(task.type.icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = typeColor)
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${careTypeLabel(task.type)} - $resolvedPlantName",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "${getCareTypeString(task.type)} · $resolvedPlantName",
+                    style = MaterialTheme.typography.titleSmall
                 )
-                if (isOverdue) {
-                    Text(
-                        text = overdueText(task),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Medium
-                    )
-                } else {
-                    Text(
-                        text = dateFormatter.formatTime(task.dueAt, timeZone),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = if (isOverdue) overdueText(task) else dateFormatter.formatTime(task.dueAt, timeZone),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (isOverdue) FontWeight.Medium else FontWeight.Normal
+                )
             }
             if (isOverdue) {
-                Icon(Icons.Default.Warning, contentDescription = stringResource(Res.string.care_overdue_label), tint = MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.Default.Warning, contentDescription = stringResource(Res.string.care_overdue_label), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
             }
-            // Shown disabled rather than hidden for a task that isn't due yet, so the action is
-            // discoverable and it's clear it exists but doesn't apply today.
             IconButton(onClick = { onMarkDone(task) }, enabled = isCompletable) {
                 Icon(
                     Icons.Default.Check,
@@ -390,63 +397,43 @@ private fun DoneRow(
 ) {
     val dateFormatter = LocalDateFormatter.current
     val resolvedPlantName = plantName ?: stringResource(Res.string.calendar_unknown_plant)
-    val typeColor = careColor(task.type)
+    val timeZone = TimeZone.currentSystemDefault()
 
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = careTypeIcon(task.type),
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = typeColor
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            Icon(task.type.icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = careColor(task.type))
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${careTypeLabel(task.type)} - $resolvedPlantName",
-                    style = MaterialTheme.typography.titleMedium,
-                    textDecoration = TextDecoration.LineThrough
+                    text = "${getCareTypeString(task.type)} · $resolvedPlantName",
+                    style = MaterialTheme.typography.titleSmall,
+                    textDecoration = TextDecoration.LineThrough,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                val timeZone = TimeZone.currentSystemDefault()
                 Text(
                     text = dateFormatter.formatTime(task.performedAt, timeZone),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Icon(Icons.Default.Check, contentDescription = null, tint = doneColor())
+            Icon(Icons.Default.Check, contentDescription = null, tint = doneColor(), modifier = Modifier.size(20.dp))
             IconButton(onClick = { onUndoTask(task) }) {
-                Icon(Icons.Default.Undo, contentDescription = stringResource(Res.string.care_action_undo))
+                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(Res.string.care_action_undo))
             }
         }
     }
 }
 
-private fun careTypeIcon(type: CareType): androidx.compose.ui.graphics.vector.ImageVector = when (type) {
-    CareType.WATER -> Icons.Default.WaterDrop
-    CareType.FERTILIZE -> Icons.Default.Science
-    CareType.REPOT -> Icons.Default.HomeRepairService
-}
-
-@Composable
-private fun careTypeLabel(type: CareType): String = when (type) {
-    CareType.WATER -> stringResource(Res.string.care_type_water)
-    CareType.FERTILIZE -> stringResource(Res.string.care_type_fertilize)
-    CareType.REPOT -> stringResource(Res.string.care_type_repot)
-}
-
 /**
  * How far behind an overdue task is, counted from the day it was first owed rather than from the
  * last care — the same measure the reminder notification uses, so both say the same number.
- * [CareTask.Pending.missedCount] is appended when the task stands for more than one missed
- * occurrence, since a single entry is all the user ever sees however long they forgot the plant.
  */
 @Composable
 private fun overdueText(task: CareTask.Pending): String {
@@ -462,31 +449,4 @@ private fun overdueText(task: CareTask.Pending): String {
     } else {
         lateness
     }
-}
-
-@Composable
-private fun weekdayShort(day: DayOfWeek): String = when (day) {
-    DayOfWeek.MONDAY -> stringResource(Res.string.weekday_short_monday)
-    DayOfWeek.TUESDAY -> stringResource(Res.string.weekday_short_tuesday)
-    DayOfWeek.WEDNESDAY -> stringResource(Res.string.weekday_short_wednesday)
-    DayOfWeek.THURSDAY -> stringResource(Res.string.weekday_short_thursday)
-    DayOfWeek.FRIDAY -> stringResource(Res.string.weekday_short_friday)
-    DayOfWeek.SATURDAY -> stringResource(Res.string.weekday_short_saturday)
-    DayOfWeek.SUNDAY -> stringResource(Res.string.weekday_short_sunday)
-}
-
-@Composable
-private fun getMonthName(month: Month): String = when (month) {
-    Month.JANUARY -> stringResource(Res.string.month_january)
-    Month.FEBRUARY -> stringResource(Res.string.month_february)
-    Month.MARCH -> stringResource(Res.string.month_march)
-    Month.APRIL -> stringResource(Res.string.month_april)
-    Month.MAY -> stringResource(Res.string.month_may)
-    Month.JUNE -> stringResource(Res.string.month_june)
-    Month.JULY -> stringResource(Res.string.month_july)
-    Month.AUGUST -> stringResource(Res.string.month_august)
-    Month.SEPTEMBER -> stringResource(Res.string.month_september)
-    Month.OCTOBER -> stringResource(Res.string.month_october)
-    Month.NOVEMBER -> stringResource(Res.string.month_november)
-    Month.DECEMBER -> stringResource(Res.string.month_december)
 }

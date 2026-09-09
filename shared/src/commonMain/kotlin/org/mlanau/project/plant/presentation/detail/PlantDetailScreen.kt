@@ -1,43 +1,55 @@
 package org.mlanau.project.plant.presentation.detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import coil3.compose.AsyncImage
+import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.domain.model.*
-import plantitas_app.shared.generated.resources.*
-import kotlin.time.Clock
-import kotlin.time.Instant
-import kotlinx.datetime.*
-import org.mlanau.project.shared.ui.theme.PlantitasTheme
+import org.mlanau.project.plant.presentation.CareToast
+import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.component.CareRuleDialog
 import org.mlanau.project.plant.presentation.component.CareRuleItem
 import org.mlanau.project.plant.presentation.component.FullScreenImageDialog
 import org.mlanau.project.plant.presentation.component.LogCareDialog
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.ui.graphics.vector.ImageVector
-import coil3.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
-import org.mlanau.project.shared.ui.LocalDateFormatter
 import org.mlanau.project.plant.presentation.component.careColor
-import org.mlanau.project.plant.presentation.CareToast
-import org.mlanau.project.plant.presentation.UiError
+import org.mlanau.project.plant.presentation.component.getCareTypeString
+import org.mlanau.project.plant.presentation.component.getLightNeedString
+import org.mlanau.project.plant.presentation.component.getPotSizeString
+import org.mlanau.project.plant.presentation.component.icon
 import org.mlanau.project.plant.presentation.localizedMessage
+import org.mlanau.project.shared.ui.LocalDateFormatter
+import org.mlanau.project.shared.ui.component.ScreenHeader
+import org.mlanau.project.shared.ui.component.SectionLabel
+import plantitas_app.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlantDetailScreen(
     viewModel: PlantDetailViewModel,
@@ -57,8 +69,6 @@ fun PlantDetailScreen(
         viewModel.loadPlant(plantId)
     }
 
-    // A deleted (or never-existing) plant leaves nothing to show here — back out instead of
-    // getting stuck on the loading spinner behind the id guard below.
     LaunchedEffect(uiState.error) {
         if (uiState.error == UiError.PlantNotFound) {
             viewModel.clearError()
@@ -96,44 +106,31 @@ fun PlantDetailScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(if (uiState.plant?.id?.value == plantId) uiState.plant?.name ?: "" else "") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
-                    }
-                },
-                actions = {
-                    if (uiState.plant?.id?.value == plantId) {
-                        IconButton(onClick = { onEdit(plantId) }) {
-                            Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.plant_form_edit_title))
-                        }
-                    }
-                }
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        if (uiState.isLoading || uiState.plant?.id?.value != plantId) {
-            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            uiState.plant?.let { plant ->
-                PlantDetailContent(
-                    plant = plant,
-                    nextPending = uiState.nextPending,
-                    careRules = uiState.careRules,
-                    history = uiState.history,
-                    onMarkDone = { viewModel.onMarkDone(it) },
-                    onImageClick = { showFullScreenImage = it },
-                    onLogCareClick = { showLogCareDialog = true },
-                    onUndoTask = { viewModel.onUndoTask(it) },
-                    onToggleRulePaused = { viewModel.onToggleRulePaused(it) },
-                    onEditRule = { ruleToEdit = it },
-                    modifier = Modifier.padding(paddingValues)
-                )
+        Box(
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (uiState.isLoading || uiState.plant?.id?.value != plantId) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else {
+                uiState.plant?.let { plant ->
+                    PlantDetailContent(
+                        plant = plant,
+                        nextPending = uiState.nextPending,
+                        careRules = uiState.careRules,
+                        history = uiState.history,
+                        onBack = onBack,
+                        onEdit = { onEdit(plantId) },
+                        onMarkDone = { viewModel.onMarkDone(it) },
+                        onImageClick = { showFullScreenImage = it },
+                        onLogCareClick = { showLogCareDialog = true },
+                        onUndoTask = { viewModel.onUndoTask(it) },
+                        onEditRule = { ruleToEdit = it }
+                    )
+                }
             }
         }
     }
@@ -169,245 +166,221 @@ fun PlantDetailScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlantDetailContent(
     plant: Plant,
     nextPending: CareTask.Pending?,
     careRules: List<CareRule>,
     history: List<CareTask.Done>,
+    onBack: () -> Unit,
+    onEdit: () -> Unit,
     onMarkDone: (CareTask.Pending) -> Unit,
     onImageClick: (String) -> Unit,
     onLogCareClick: () -> Unit,
     onUndoTask: (CareTask.Done) -> Unit,
-    onToggleRulePaused: (CareRule) -> Unit,
-    onEditRule: (CareRule) -> Unit,
-    modifier: Modifier = Modifier
+    onEditRule: (CareRule) -> Unit
 ) {
-    val dateFormatter = LocalDateFormatter.current
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
+            .widthIn(max = 640.dp)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .padding(bottom = 32.dp)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .clickable(enabled = plant.imageUrl != null) {
-                    plant.imageUrl?.let { onImageClick(it) }
-                },
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            if (plant.imageUrl != null) {
-                AsyncImage(
-                    model = plant.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("🌿", style = MaterialTheme.typography.displayLarge)
+        ScreenHeader(
+            title = plant.name,
+            onNavigateBack = onBack,
+            backContentDescription = stringResource(Res.string.common_back),
+            actions = {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.plant_form_edit_title))
                 }
             }
-        }
+        )
 
-        val hasAttributes = plant.location?.isNotBlank() == true || plant.lightNeed != null || plant.potSize != null
-        if (hasAttributes) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            FlowRow(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable(enabled = plant.imageUrl != null) {
+                        plant.imageUrl?.let { onImageClick(it) }
+                    },
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
+                if (plant.imageUrl != null) {
+                    AsyncImage(
+                        model = plant.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_leaf),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
+                            modifier = Modifier.size(72.dp)
+                        )
+                    }
+                }
+            }
+
+            val attributes = buildList {
                 plant.location?.takeIf { it.isNotBlank() }?.let {
-                    DetailAttribute(Icons.Default.LocationOn, stringResource(Res.string.home_plant_location), it)
+                    add(Triple(Icons.Default.LocationOn, stringResource(Res.string.home_plant_location), it))
                 }
                 plant.lightNeed?.let {
-                    DetailAttribute(
-                        Icons.Default.WbSunny,
-                        stringResource(Res.string.home_plant_light),
-                        when(it) {
-                            LightNeed.LOW -> stringResource(Res.string.light_low)
-                            LightNeed.MEDIUM -> stringResource(Res.string.light_medium)
-                            LightNeed.HIGH -> stringResource(Res.string.light_high)
-                        }
-                    )
+                    add(Triple(Icons.Default.WbSunny, stringResource(Res.string.home_plant_light), getLightNeedString(it)))
                 }
                 plant.potSize?.let {
-                    DetailAttribute(
-                        Icons.Default.Yard,
-                        stringResource(Res.string.home_plant_pot),
-                        when(it) {
-                            PotSize.SMALL -> stringResource(Res.string.pot_small)
-                            PotSize.MEDIUM -> stringResource(Res.string.pot_medium)
-                            PotSize.LARGE -> stringResource(Res.string.pot_large)
-                            PotSize.EXTRA_LARGE -> stringResource(Res.string.pot_extra_large)
-                        }
-                    )
+                    add(Triple(Icons.Default.Yard, stringResource(Res.string.home_plant_pot), getPotSizeString(it)))
                 }
             }
-        }
-        }
-
-        plant.description?.takeIf { it.isNotBlank() }?.let {
-            Column {
-                Text(
-                    text = stringResource(Res.string.home_plant_description),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-
-        if (careRules.isNotEmpty()) {
-            Column {
-                Text(
-                    text = stringResource(Res.string.care_rules_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                careRules.forEach { rule ->
-                    Box(modifier = Modifier.padding(vertical = 4.dp)) {
-                        CareRuleItem(
-                            rule = rule,
-                            onClick = { onEditRule(rule) },
-                            onTogglePaused = { onToggleRulePaused(rule) }
-                        )
+            if (attributes.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    attributes.forEach { (icon, label, value) ->
+                        AttributePill(icon, label, value, modifier = Modifier.weight(1f))
                     }
                 }
             }
-        }
 
-        val isOverdue = nextPending?.isOverdue == true
-        val isCompletable = nextPending?.isCompletableOn(Clock.System.now(), TimeZone.currentSystemDefault()) == true
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isOverdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
-                else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-            )
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = stringResource(Res.string.plant_detail_next_care),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                if (nextPending != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val icon = when (nextPending.type) {
-                            CareType.WATER -> Icons.Default.WaterDrop
-                            CareType.FERTILIZE -> Icons.Default.Science
-                            CareType.REPOT -> Icons.Default.HomeRepairService
-                        }
-                        Icon(
-                            icon,
-                            contentDescription = null,
-                            tint = if (isOverdue) MaterialTheme.colorScheme.error else careColor(nextPending.type)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = when (nextPending.type) {
-                                    CareType.WATER -> stringResource(Res.string.care_type_water)
-                                    CareType.FERTILIZE -> stringResource(Res.string.care_type_fertilize)
-                                    CareType.REPOT -> stringResource(Res.string.care_type_repot)
-                                },
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                            )
-                            if (isOverdue) {
-                                Text(
-                                    text = daysWithoutCareText(nextPending),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-                                )
-                            } else {
-                                Text(
-                                    text = dateFormatter.formatDateTime(nextPending.dueAt),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+            plant.description?.takeIf { it.isNotBlank() }?.let {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionLabel(stringResource(Res.string.home_plant_description))
+                    Text(it, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+
+            if (careRules.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionLabel(stringResource(Res.string.care_rules_title))
+                    careRules.forEach { rule ->
+                        CareRuleItem(rule = rule, onClick = { onEditRule(rule) })
                     }
-                } else {
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionLabel(stringResource(Res.string.plant_detail_next_care))
+                NextCareCard(nextPending = nextPending, onMarkDone = onMarkDone)
+            }
+
+            FilledTonalButton(
+                onClick = onLogCareClick,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.care_log_action))
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel(stringResource(Res.string.care_history_title))
+                if (history.isEmpty()) {
                     Text(
-                        text = stringResource(Res.string.plant_detail_no_upcoming_care),
+                        text = stringResource(Res.string.care_history_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-
-                if (nextPending != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = { onMarkDone(nextPending) },
-                        enabled = isCompletable,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(Res.string.care_action_done))
-                    }
-                    if (!isCompletable) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(
-                                Res.string.plant_detail_available_on,
-                                dateFormatter.formatDate(nextPending.dueAt)
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                } else {
+                    history.forEach { task -> HistoryRow(task = task, onUndo = { onUndoTask(task) }) }
                 }
             }
         }
+    }
+}
 
-        FilledTonalButton(
-            onClick = onLogCareClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(Res.string.care_log_action))
-        }
-
-        Column {
+@Composable
+private fun AttributePill(icon: ImageVector, label: String, value: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Text(
-                text = stringResource(Res.string.care_history_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
+                value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 4.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            if (history.isEmpty()) {
+        }
+    }
+}
+
+@Composable
+private fun NextCareCard(nextPending: CareTask.Pending?, onMarkDone: (CareTask.Pending) -> Unit) {
+    val dateFormatter = LocalDateFormatter.current
+    val isOverdue = nextPending?.isOverdue == true
+    val isCompletable = nextPending?.isCompletableOn(Clock.System.now(), TimeZone.currentSystemDefault()) == true
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = if (isOverdue) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface,
+        border = if (isOverdue) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            if (nextPending == null) {
                 Text(
-                    text = stringResource(Res.string.care_history_empty),
+                    text = stringResource(Res.string.plant_detail_no_upcoming_care),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                history.forEach { task ->
-                    HistoryRow(task = task, onUndo = { onUndoTask(task) })
+                return@Column
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(
+                    imageVector = nextPending.type.icon,
+                    contentDescription = null,
+                    tint = if (isOverdue) MaterialTheme.colorScheme.error else careColor(nextPending.type)
+                )
+                Column {
+                    Text(
+                        text = getCareTypeString(nextPending.type),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = if (isOverdue) daysWithoutCareText(nextPending) else dateFormatter.formatDateTime(nextPending.dueAt),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isOverdue) FontWeight.Medium else FontWeight.Normal
+                    )
                 }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Button(
+                onClick = { onMarkDone(nextPending) },
+                enabled = isCompletable,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.care_action_done))
+            }
+            if (!isCompletable) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(Res.string.plant_detail_available_on, dateFormatter.formatDate(nextPending.dueAt)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -416,29 +389,23 @@ private fun PlantDetailContent(
 @Composable
 private fun HistoryRow(task: CareTask.Done, onUndo: () -> Unit) {
     val dateFormatter = LocalDateFormatter.current
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .background(careColor(task.type), shape = CircleShape)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
+            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(careColor(task.type)))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = when (task.type) {
-                        CareType.WATER -> stringResource(Res.string.care_type_water)
-                        CareType.FERTILIZE -> stringResource(Res.string.care_type_fertilize)
-                        CareType.REPOT -> stringResource(Res.string.care_type_repot)
-                    },
+                    text = getCareTypeString(task.type),
                     style = MaterialTheme.typography.bodyLarge,
-                    textDecoration = TextDecoration.LineThrough
+                    textDecoration = TextDecoration.LineThrough,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = dateFormatter.formatDateTime(task.performedAt),
@@ -450,7 +417,7 @@ private fun HistoryRow(task: CareTask.Done, onUndo: () -> Unit) {
                 }
             }
             IconButton(onClick = onUndo) {
-                Icon(Icons.Default.Undo, contentDescription = stringResource(Res.string.care_action_undo))
+                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(Res.string.care_action_undo))
             }
         }
     }
@@ -473,17 +440,5 @@ private fun daysWithoutCareText(pending: CareTask.Pending): String {
         "$lateness  ${stringResource(Res.string.care_overdue_missed_count, pending.missedCount)}"
     } else {
         lateness
-    }
-}
-
-@Composable
-private fun DetailAttribute(icon: ImageVector, label: String, value: String) {
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-        }
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
     }
 }

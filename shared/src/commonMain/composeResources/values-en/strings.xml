@@ -106,6 +106,23 @@
     <string name="weekday_short_saturday">S</string>
     <string name="weekday_short_sunday">S</string>
 
+    <!-- Weekdays (full, for the Home header) -->
+    <string name="weekday_monday">Monday</string>
+    <string name="weekday_tuesday">Tuesday</string>
+    <string name="weekday_wednesday">Wednesday</string>
+    <string name="weekday_thursday">Thursday</string>
+    <string name="weekday_friday">Friday</string>
+    <string name="weekday_saturday">Saturday</string>
+    <string name="weekday_sunday">Sunday</string>
+
+    <!-- Home: weekly care summary -->
+    <string name="home_care_summary_clear">No care due this week</string>
+    <string name="home_care_summary_today">%1$d for today</string>
+    <plurals name="home_care_summary_week">
+        <item quantity="one">%1$d plant needs care this week</item>
+        <item quantity="other">%1$d plants need care this week</item>
+    </plurals>
+
     <!-- Care Rules -->
     <string name="care_rules_title">Care</string>
     <string name="care_type_water">Watering</string>
@@ -115,9 +132,6 @@
         <item quantity="one">Every day</item>
         <item quantity="other">Every %1$d days</item>
     </plurals>
-    <string name="care_rule_paused">Paused</string>
-    <string name="care_rule_pause">Pause</string>
-    <string name="care_rule_resume">Resume</string>
     <string name="care_rule_type_taken">This plant already has a care of this type</string>
     <string name="care_task_not_due">Not due yet: you can only complete today's or overdue tasks</string>
     <string name="care_add_rule">Add care</string>

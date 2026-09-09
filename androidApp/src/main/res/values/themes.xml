@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The window theme applied before Compose takes over. The -night variant swaps the parent and
+      the background so the launch frame (and the system bars behind an edge-to-edge Activity) match
+      whichever palette the app is about to show. Icon contrast for the in-app LIGHT/DARK/SYSTEM
+      override is corrected from Compose by ApplySystemBarAppearance.
+    -->
+    <style name="Theme.Plantitas" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

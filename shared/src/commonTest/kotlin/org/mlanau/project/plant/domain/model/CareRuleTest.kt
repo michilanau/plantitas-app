@@ -3,8 +3,6 @@ package org.mlanau.project.plant.domain.model
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlin.time.Instant
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -119,22 +117,6 @@ class CareRuleTest {
     }
 
     @Test
-    fun `pausing stops the rule without losing it`() {
-        val paused = waterRule().paused()
-        assertFalse(paused.active)
-        assertEquals(start, paused.startDate)
-    }
-
-    @Test
-    fun `resuming restarts the schedule from the moment it is resumed`() {
-        // Otherwise every occurrence missed while paused would come back at once as a huge backlog.
-        val resumedAt = Instant.parse("2026-03-01T18:00:00Z")
-        val resumed = waterRule().paused().resumedAt(resumedAt)
-        assertTrue(resumed.active)
-        assertEquals(resumedAt, resumed.startDate)
-    }
-
-    @Test
     fun `create without a plantId leaves the rule unassigned`() {
         val draft = CareRule.create(everyDays = 7, startDate = start, details = waterDetails)
         assertEquals(null, draft.plantId)
@@ -154,7 +136,6 @@ class CareRuleTest {
                 plantId = plantId,
                 everyDays = 7,
                 startDate = start,
-                active = true,
                 notificationTime = stored,
                 notificationsEnabled = true,
                 details = waterDetails

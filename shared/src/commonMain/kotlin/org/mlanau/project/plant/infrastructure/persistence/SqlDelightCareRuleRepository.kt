@@ -46,7 +46,6 @@ class SqlDelightCareRuleRepository(database: PlantDb) : CareRuleRepository {
             startDate = rule.startDate.toDbString(),
             notificationTime = rule.notificationTime.toString(),
             notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
-            active = if (rule.active) 1L else 0L,
             amountMl = rule.details.amountMlColumn(),
             useFilteredWater = rule.details.useFilteredWaterColumn(),
             fertilizerName = rule.details.fertilizerNameColumn(),
@@ -68,7 +67,6 @@ class SqlDelightCareRuleRepository(database: PlantDb) : CareRuleRepository {
             startDate = rule.startDate.toDbString(),
             notificationTime = rule.notificationTime.toString(),
             notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
-            active = if (rule.active) 1L else 0L,
             amountMl = rule.details.amountMlColumn(),
             useFilteredWater = rule.details.useFilteredWaterColumn(),
             fertilizerName = rule.details.fertilizerNameColumn(),
@@ -89,7 +87,6 @@ class SqlDelightCareRuleRepository(database: PlantDb) : CareRuleRepository {
         plantId = PlantId(plantId.toInt()),
         everyDays = everyDays,
         startDate = Instant.parse(startDate),
-        active = active == 1L,
         notificationTime = notificationTime,
         notificationsEnabled = notificationsEnabled == 1L,
         details = careDetailsFrom(

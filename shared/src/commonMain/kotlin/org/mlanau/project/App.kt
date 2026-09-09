@@ -31,6 +31,7 @@ import org.mlanau.project.shared.ui.LocalDateFormatter
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
@@ -70,9 +71,13 @@ fun App() {
             val isCalendar = currentDestination?.hasRoute<Calendar>() == true
 
             Scaffold(
+                containerColor = MaterialTheme.colorScheme.background,
                 bottomBar = {
                     if (isHome || isCalendar) {
-                        NavigationBar {
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 0.dp
+                        ) {
                             NavigationBarItem(
                                 icon = { Icon(Icons.Default.Home, contentDescription = null) },
                                 label = { Text(stringResource(Res.string.nav_plants)) },

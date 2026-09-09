@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Figtree', system-ui, sans-serif; }
+    a { color: #47583A; } a:hover { color: #374630; }
+
+    .sheet { width: 740px; min-height: 1160px; background: #FAF6EE; color: #2B2621; padding: 40px 44px 48px; font-family: 'Figtree', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    .serif { font-family: 'Newsreader', Georgia, serif; }
+
+    .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #A79C88; }
+    .title { font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px; margin: 6px 0 4px; letter-spacing: -0.01em; }
+    .sub { font-size: 14px; color: #6E6559; margin-bottom: 34px; }
+    .sub em { font-family: 'Newsreader', Georgia, serif; font-style: italic; }
+
+    .block { margin-bottom: 36px; }
+    .blabel { font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #5C6E48; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #E6DECB; }
+
+    .swatches { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+    .sw { border-radius: 14px; border: 1px solid #EBE3D0; overflow: hidden; background: #FFFDF9; }
+    .sw .cap { height: 62px; }
+    .sw .meta { padding: 8px 10px; }
+    .sw .nm { font-size: 12.5px; font-weight: 600; }
+    .sw .hx { font-size: 11px; color: #A79C88; font-family: 'Newsreader', Georgia, serif; }
+
+    .typerow { display: flex; align-items: baseline; gap: 18px; padding: 9px 0; border-bottom: 1px dashed #E6DECB; }
+    .typerow .tag { font-size: 11px; color: #A79C88; width: 130px; flex: none; }
+    .d1 { font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 30px; letter-spacing: -0.01em; }
+    .d2 { font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 21px; }
+    .d3 { font-family: 'Newsreader', Georgia, serif; font-style: italic; font-weight: 400; font-size: 16px; }
+    .b1 { font-size: 15px; }
+    .b2 { font-size: 13px; color: #6E6559; }
+    .ov { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: #A79C88; }
+
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+    .btn { height: 46px; border-radius: 14px; border: 0; font-family: inherit; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; }
+    .btn-primary { background: #47583A; color: #FAF6EE; }
+    .btn-tonal { background: #E4EAD3; color: #3C4A30; }
+    .btn-ghost { background: transparent; border: 1.5px solid #D8CEB4; color: #47583A; }
+    .btn-disabled { background: #CDD3BF; color: #8C9280; }
+
+    .chip { border: 1px solid #D8CEB4; background: transparent; border-radius: 999px; padding: 9px 16px; font-size: 13px; font-weight: 600; color: #6E6559; display: inline-flex; align-items: center; gap: 6px; }
+    .chip.on { background: #47583A; border-color: #47583A; color: #FAF6EE; }
+
+    .badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; padding: 7px 13px 7px 11px; border-radius: 999px; }
+    .badge i { width: 8px; height: 8px; border-radius: 999px; display: block; }
+
+    .pcard { display: flex; align-items: center; gap: 14px; background: #FFFDF9; border: 1px solid #EBE3D0; border-radius: 20px; padding: 14px 16px; max-width: 380px; box-shadow: 0 1px 2px rgba(43,38,33,.03), 0 10px 22px rgba(43,38,33,.05); }
+    .pthumb { width: 54px; height: 54px; border-radius: 17px; display: grid; place-items: center; font-family: 'Newsreader', Georgia, serif; font-size: 22px; color: #FFFDF9; background: #2F5D48; flex: none; }
+    .pname { font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500; }
+    .pmeta { font-size: 12.5px; color: #A79C88; margin-top: 2px; }
+    .pcare { margin-left: auto; font-size: 11.5px; font-weight: 600; color: #3E7C93; text-align: right; }
+  </style>
+</helmet>
+
+<div class="sheet">
+  <div class="kicker">Plantitas · Sistema de diseño</div>
+  <div class="title serif">Orgánico editorial</div>
+  <div class="sub">Papel cálido, titulares con <em>serif</em> y verdes de jardín. Cuidar una planta debería sentirse pausado, no como una bandeja de tareas.</div>
+
+  <div class="block">
+    <div class="blabel">Color</div>
+    <div class="swatches">
+      <div class="sw"><div class="cap" style="background:#FAF6EE"></div><div class="meta"><div class="nm">Papel</div><div class="hx">#FAF6EE</div></div></div>
+      <div class="sw"><div class="cap" style="background:#FFFDF9"></div><div class="meta"><div class="nm">Tarjeta</div><div class="hx">#FFFDF9</div></div></div>
+      <div class="sw"><div class="cap" style="background:#2B2621"></div><div class="meta"><div class="nm">Tinta</div><div class="hx">#2B2621</div></div></div>
+      <div class="sw"><div class="cap" style="background:#A79C88"></div><div class="meta"><div class="nm">Tinta apagada</div><div class="hx">#A79C88</div></div></div>
+      <div class="sw"><div class="cap" style="background:#47583A"></div><div class="meta"><div class="nm">Oliva</div><div class="hx">#47583A</div></div></div>
+      <div class="sw"><div class="cap" style="background:#E4EAD3"></div><div class="meta"><div class="nm">Oliva suave</div><div class="hx">#E4EAD3</div></div></div>
+      <div class="sw"><div class="cap" style="background:#BF5B3E"></div><div class="meta"><div class="nm">Terracota</div><div class="hx">#BF5B3E</div></div></div>
+      <div class="sw"><div class="cap" style="background:#F5DFD5"></div><div class="meta"><div class="nm">Terracota suave</div><div class="hx">#F5DFD5</div></div></div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="row">
+      <span class="badge" style="background:#DCE9EF;color:#2F5F73"><i style="background:#3E7C93"></i>Riego</span>
+      <span class="badge" style="background:#E1EAD3;color:#4F6B37"><i style="background:#6B8E4E"></i>Abonado</span>
+      <span class="badge" style="background:#EFE0D2;color:#82552F"><i style="background:#A9703F"></i>Trasplante</span>
+      <span class="badge" style="background:#F5DFD5;color:#A8442A"><i style="background:#BF5B3E"></i>Vencido</span>
+      <span class="badge" style="background:#E1EBD7;color:#3C4A30"><i style="background:#7B9E6B"></i>Hecho</span>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="blabel">Tipografía · Newsreader + Figtree</div>
+    <div class="typerow"><span class="tag">Display / 30 · 500</span><span class="d1">Mis plantitas</span></div>
+    <div class="typerow"><span class="tag">Título / 21 · 500</span><span class="d2">Próximo cuidado</span></div>
+    <div class="typerow"><span class="tag">Serif itálica / 16</span><span class="d3">junto a la ventana del salón</span></div>
+    <div class="typerow"><span class="tag">Cuerpo / 15</span><span class="b1">Toca regar tu Monstera cada siete días.</span></div>
+    <div class="typerow"><span class="tag">Secundario / 13</span><span class="b2">Cada 7 días · 250 ml · 09:00</span></div>
+    <div class="typerow"><span class="tag">Etiqueta / 11 · versales</span><span class="ov">Ubicación</span></div>
+  </div>
+
+  <div class="block">
+    <div class="blabel">Botones</div>
+    <div class="row">
+      <button class="btn btn-primary"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Marcar como hecho</button>
+      <button class="btn btn-tonal"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Registrar cuidado</button>
+      <button class="btn btn-ghost"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Añadir cuidado</button>
+      <button class="btn btn-disabled">Disponible el 12 sept</button>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="blabel">Chips de selección</div>
+    <div class="row">
+      <span class="chip">Baja</span>
+      <span class="chip on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Media</span>
+      <span class="chip">Alta</span>
+      <span class="chip">Pequeña</span>
+      <span class="chip on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Mediana</span>
+    </div>
+  </div>
+
+  <div class="block" style="margin-bottom:0">
+    <div class="blabel">Tarjeta de planta</div>
+    <div class="pcard">
+      <div class="pthumb">M</div>
+      <div>
+        <div class="pname">Monstera deliciosa</div>
+        <div class="pmeta">Salón</div>
+      </div>
+      <div class="pcare">● Riego<br>en 2 días</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":740,"height":1160}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

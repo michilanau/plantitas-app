@@ -26,7 +26,6 @@ data class CareRule private constructor(
     val plantId: PlantId?,
     val everyDays: Int,
     val startDate: Instant,
-    val active: Boolean,
     val notificationTime: LocalTime,
     val notificationsEnabled: Boolean,
     val details: CareDetails
@@ -46,7 +45,7 @@ data class CareRule private constructor(
      * A care logged *before* [startDate] is deliberately ignored: it happened under a schedule
      * this rule doesn't describe (a rule that was deleted and recreated, or a care logged ad hoc
      * before the rule existed), so it must not silently override the start date the user chose.
-     * This is what makes creating — or resuming — a rule "starting today" actually start today.
+     * This is what makes creating a rule "starting today" actually start today.
      */
     fun anchorFor(lastCareAt: Instant?, timeZone: TimeZone): Instant {
         val last = lastCareAt ?: return startDate
@@ -108,9 +107,9 @@ data class CareRule private constructor(
     fun withId(newId: CareRuleId): CareRule = copy(id = newId)
 
     /**
-     * Edits the schedule of an existing rule, preserving its id, its plant and its paused state.
-     * [details] carries the care type, which callers must not change: a rule's type identifies it
-     * within its plant, so switching it is deleting one rule and creating another.
+     * Edits the schedule of an existing rule, preserving its id and its plant. [details] carries
+     * the care type, which callers must not change: a rule's type identifies it within its plant,
+     * so switching it is deleting one rule and creating another.
      */
     fun withSchedule(
         everyDays: Int,
@@ -126,17 +125,6 @@ data class CareRule private constructor(
         details = details
     )
 
-    /** Stops producing tasks and reminders without losing the rule or the plant's care history. */
-    fun paused(): CareRule = copy(active = false)
-
-    /**
-     * Resumes a paused rule as if it had just been created: [startDate] moves to [now], so the
-     * time spent paused never comes back as a pile of missed occurrences, and the first task is
-     * due straight away — unless the care was already logged after [now], which re-anchors it to
-     * the next full cycle like any other completed care.
-     */
-    fun resumedAt(now: Instant): CareRule = copy(active = true, startDate = now)
-
     companion object {
         /**
          * The time of day a reminder fires when the rule doesn't carry one of its own — every
@@ -150,7 +138,6 @@ data class CareRule private constructor(
             plantId: PlantId? = null,
             everyDays: Int,
             startDate: Instant,
-            active: Boolean = true,
             notificationTime: LocalTime = DEFAULT_NOTIFICATION_TIME,
             notificationsEnabled: Boolean = true,
             details: CareDetails
@@ -159,7 +146,6 @@ data class CareRule private constructor(
             plantId = plantId,
             everyDays = everyDays,
             startDate = startDate,
-            active = active,
             notificationTime = notificationTime,
             notificationsEnabled = notificationsEnabled,
             details = details
@@ -175,7 +161,6 @@ data class CareRule private constructor(
             plantId: PlantId,
             everyDays: Long?,
             startDate: Instant,
-            active: Boolean,
             notificationTime: String?,
             notificationsEnabled: Boolean,
             details: CareDetails
@@ -185,7 +170,6 @@ data class CareRule private constructor(
             everyDays = everyDays?.toInt()
                 ?: throw CorruptedRecordException(id.value, "care rule missing everyDays"),
             startDate = startDate,
-            active = active,
             notificationTime = notificationTime?.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it) }
                 ?: DEFAULT_NOTIFICATION_TIME,
             notificationsEnabled = notificationsEnabled,

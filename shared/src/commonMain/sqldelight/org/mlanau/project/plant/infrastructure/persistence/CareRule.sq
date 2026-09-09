@@ -10,7 +10,6 @@ CREATE TABLE careRuleEntity (
     startDate TEXT NOT NULL,
     notificationTime TEXT NOT NULL,
     notificationsEnabled INTEGER NOT NULL DEFAULT 1,
-    active INTEGER NOT NULL DEFAULT 1,
     amountMl INTEGER,
     useFilteredWater INTEGER,
     fertilizerName TEXT,
@@ -35,8 +34,8 @@ selectCareRuleById:
 SELECT * FROM careRuleEntity WHERE id = ?;
 
 insertCareRule:
-INSERT INTO careRuleEntity(plantId, type, everyDays, startDate, notificationTime, notificationsEnabled, active, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO careRuleEntity(plantId, type, everyDays, startDate, notificationTime, notificationsEnabled, amountMl, useFilteredWater, fertilizerName, doseMl, dilutionRatio, newPotSize, substrateType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 lastInsertId:
 SELECT last_insert_rowid();
@@ -45,7 +44,7 @@ SELECT last_insert_rowid();
 -- changing it would be deleting one rule and creating another.
 updateCareRule:
 UPDATE careRuleEntity
-SET everyDays = ?, startDate = ?, notificationTime = ?, notificationsEnabled = ?, active = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
+SET everyDays = ?, startDate = ?, notificationTime = ?, notificationsEnabled = ?, amountMl = ?, useFilteredWater = ?, fertilizerName = ?, doseMl = ?, dilutionRatio = ?, newPotSize = ?, substrateType = ?
 WHERE id = ?;
 
 deleteCareRule:

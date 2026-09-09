@@ -106,6 +106,23 @@
     <string name="weekday_short_saturday">S</string>
     <string name="weekday_short_sunday">D</string>
 
+    <!-- Días de la semana (completos, para la cabecera de inicio) -->
+    <string name="weekday_monday">Lunes</string>
+    <string name="weekday_tuesday">Martes</string>
+    <string name="weekday_wednesday">Miércoles</string>
+    <string name="weekday_thursday">Jueves</string>
+    <string name="weekday_friday">Viernes</string>
+    <string name="weekday_saturday">Sábado</string>
+    <string name="weekday_sunday">Domingo</string>
+
+    <!-- Inicio: resumen semanal de cuidados -->
+    <string name="home_care_summary_clear">No hay cuidados pendientes esta semana</string>
+    <string name="home_care_summary_today">%1$d para hoy</string>
+    <plurals name="home_care_summary_week">
+        <item quantity="one">%1$d planta necesita cuidados esta semana</item>
+        <item quantity="other">%1$d plantas necesitan cuidados esta semana</item>
+    </plurals>
+
     <!-- Care Rules -->
     <string name="care_rules_title">Cuidados</string>
     <string name="care_type_water">Riego</string>
@@ -115,9 +132,6 @@
         <item quantity="one">Cada día</item>
         <item quantity="other">Cada %1$d días</item>
     </plurals>
-    <string name="care_rule_paused">En pausa</string>
-    <string name="care_rule_pause">Pausar</string>
-    <string name="care_rule_resume">Reanudar</string>
     <string name="care_rule_type_taken">Esta planta ya tiene un cuidado de este tipo</string>
     <string name="care_task_not_due">Todavía no toca: solo puedes marcar tareas de hoy o vencidas</string>
     <string name="care_add_rule">Añadir cuidado</string>

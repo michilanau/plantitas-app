@@ -2,17 +2,23 @@ package org.mlanau.project.plant.presentation.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.HomeRepairService
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
@@ -30,6 +36,7 @@ import org.mlanau.project.plant.domain.model.PotSize
 import org.mlanau.project.notification.presentation.NotificationPermissionStatus
 import org.mlanau.project.notification.presentation.rememberNotificationPermissions
 import org.mlanau.project.shared.ui.LocalDateFormatter
+import org.mlanau.project.shared.ui.component.AppBottomSheet
 import plantitas_app.shared.generated.resources.*
 
 @Composable
@@ -58,15 +65,15 @@ fun getCareTypeString(type: CareType): String = when (type) {
 fun CareRuleItem(
     rule: CareRule,
     onClick: () -> Unit,
-    onTogglePaused: () -> Unit,
     onRemove: (() -> Unit)? = null
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
+    Surface(
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.secondaryContainer
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -76,32 +83,15 @@ fun CareRuleItem(
                     is CareDetails.Repot -> Icons.Default.HomeRepairService
                 },
                 contentDescription = null,
-                tint = if (rule.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = getCareTypeString(rule.type), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    text = if (rule.active) {
-                        pluralStringResource(Res.plurals.care_recurrence_periodic, rule.everyDays, rule.everyDays)
-                    } else {
-                        stringResource(Res.string.care_rule_paused)
-                    },
+                    text = pluralStringResource(Res.plurals.care_recurrence_periodic, rule.everyDays, rule.everyDays),
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (rule.active) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.outline
-                    }
-                )
-            }
-            IconButton(onClick = onTogglePaused) {
-                Icon(
-                    imageVector = if (rule.active) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = stringResource(
-                        if (rule.active) Res.string.care_rule_pause else Res.string.care_rule_resume
-                    ),
-                    modifier = Modifier.size(18.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (onRemove != null) {
@@ -117,8 +107,7 @@ fun CareRuleItem(
  * Creates or edits a plant's rule for one kind of care.
  *
  * [takenTypes] are the types this plant already has a rule for. A plant has at most one rule per
- * type, so those are simply not offered, and editing an existing rule shows its type as fixed:
- * switching a rule's type is deleting one rule and creating another, not an edit.
+ * type, so those are simply not offered, and editing an existing rule shows its type as fixed.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -129,8 +118,6 @@ fun CareRuleDialog(
     onDismiss: () -> Unit,
     onConfirm: (CareRule) -> Unit
 ) {
-    // Read before the early return below so the (Android) permission launcher is registered on
-    // every path this composable can take.
     val notificationPermissions = rememberNotificationPermissions()
     val dateFormatter = LocalDateFormatter.current
 
@@ -184,9 +171,6 @@ fun CareRuleDialog(
     val strRepotPotSize = stringResource(Res.string.care_repot_pot_size_label)
     val strConfirmAction = stringResource(if (initialRule == null) Res.string.home_button_add else Res.string.common_save)
 
-    // Recomputed on every recomposition from the current field values (Compose already
-    // recomposes this scope on their changes), so validity — and the specific field to blame —
-    // stay in sync with what's on screen instead of only surfacing at confirm time.
     val ruleResult = runCatchingDomainErrors {
         val selectedHour = hour.toIntOrNull()?.coerceIn(0, 23) ?: 10
         val selectedMinute = minute.toIntOrNull()?.coerceIn(0, 59) ?: 0
@@ -200,8 +184,6 @@ fun CareRuleDialog(
             CareType.REPOT -> CareDetails.Repot.create(newPotSize = newPotSize)
         }
 
-        // Editing preserves the rule's id and its paused state; the type can't change, so the
-        // existing rule is always the one this dialog is editing.
         initialRule?.withSchedule(days, startInstant, notificationTime, notificationsEnabled, details)
             ?: CareRule.create(
                 plantId = plantId,
@@ -277,141 +259,138 @@ fun CareRuleDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (initialRule == null) strAddRule else strEditRule) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(strTypeLabel, style = MaterialTheme.typography.labelLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    selectableTypes.forEach { selectable ->
-                        FilterChip(
-                            selected = type == selectable,
-                            onClick = { type = selectable },
-                            enabled = initialRule == null,
-                            label = { Text(getCareTypeString(selectable)) }
-                        )
-                    }
-                }
-
-                ClickableField(
-                    value = dateFormatter.formatDate(startDate),
-                    label = strStartDateLabel,
-                    icon = Icons.Default.DateRange,
-                    onClick = { showDatePicker = true }
-                )
-
-                ClickableField(
-                    value = dateFormatter.formatTime(
-                        LocalTime(hour.toIntOrNull() ?: 0, minute.toIntOrNull() ?: 0)
-                    ),
-                    label = strTimeLabel,
-                    icon = Icons.Default.Schedule,
-                    onClick = { showTimePicker = true }
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(stringResource(Res.string.care_notifications_enabled), style = MaterialTheme.typography.bodyMedium)
-                    Switch(
-                        checked = notificationsEnabled,
-                        onCheckedChange = { enabled ->
-                            notificationsEnabled = enabled
-                            // Turning the switch on is the moment to ask: the request has a
-                            // reason the user can see. The rule still stores their choice even
-                            // if the system blocks it.
-                            if (enabled && notificationPermissions.status != NotificationPermissionStatus.GRANTED) {
-                                notificationPermissions.request()
-                            }
-                        }
+    AppBottomSheet(
+        onDismiss = onDismiss,
+        title = if (initialRule == null) strAddRule else strEditRule
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(strTypeLabel, style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                selectableTypes.forEach { selectable ->
+                    FilterChip(
+                        selected = type == selectable,
+                        onClick = { type = selectable },
+                        enabled = initialRule == null,
+                        label = { Text(getCareTypeString(selectable)) }
                     )
                 }
-                if (notificationsEnabled && notificationPermissions.status == NotificationPermissionStatus.DENIED) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            stringResource(Res.string.care_notifications_permission_denied),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
-                        )
-                        TextButton(onClick = { notificationPermissions.openAppNotificationSettings() }) {
-                            Text(stringResource(Res.string.care_notifications_open_settings))
-                        }
-                    }
-                }
-
-                OutlinedTextField(
-                    value = everyDays,
-                    onValueChange = { everyDays = it.filter { c -> c.isDigit() } },
-                    label = { Text(strEveryDays) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    isError = ruleError is InvalidRecurrenceException,
-                    supportingText = if (ruleError is InvalidRecurrenceException) {
-                        { Text(strEveryDaysError) }
-                    } else null
-                )
-
-                when (type) {
-                    CareType.WATER -> {
-                        OutlinedTextField(
-                            value = amountMl,
-                            onValueChange = { amountMl = it.filter { c -> c.isDigit() } },
-                            label = { Text(strAmountMl) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            isError = ruleError is NonPositiveAmountException,
-                            supportingText = if (ruleError is NonPositiveAmountException) {
-                                { Text(strAmountError) }
-                            } else null
-                        )
-                    }
-                    CareType.FERTILIZE -> {
-                        OutlinedTextField(
-                            value = fertilizerName,
-                            onValueChange = { fertilizerName = it },
-                            label = { Text(strFertilizerName) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-                        )
-                    }
-                    CareType.REPOT -> {
-                        Text(strRepotPotSize, style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PotSize.entries.forEach { size ->
-                                FilterChip(
-                                    selected = newPotSize == size,
-                                    onClick = { newPotSize = size },
-                                    label = { Text(getPotSizeString(size)) }
-                                )
-                            }
-                        }
-                    }
-                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { ruleResult.getOrNull()?.let(onConfirm) },
-                enabled = ruleResult.isSuccess
+
+            ClickableField(
+                value = dateFormatter.formatDate(startDate),
+                label = strStartDateLabel,
+                icon = Icons.Default.DateRange,
+                onClick = { showDatePicker = true }
+            )
+
+            ClickableField(
+                value = dateFormatter.formatTime(
+                    LocalTime(hour.toIntOrNull() ?: 0, minute.toIntOrNull() ?: 0)
+                ),
+                label = strTimeLabel,
+                icon = Icons.Default.Schedule,
+                onClick = { showTimePicker = true }
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(strConfirmAction)
+                Text(stringResource(Res.string.care_notifications_enabled), style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = { enabled ->
+                        notificationsEnabled = enabled
+                        if (enabled && notificationPermissions.status != NotificationPermissionStatus.GRANTED) {
+                            notificationPermissions.request()
+                        }
+                    }
+                )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(strCancel)
+            if (notificationsEnabled && notificationPermissions.status == NotificationPermissionStatus.DENIED) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(Res.string.care_notifications_permission_denied),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = { notificationPermissions.openAppNotificationSettings() }) {
+                        Text(stringResource(Res.string.care_notifications_open_settings))
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = everyDays,
+                onValueChange = { everyDays = it.filter { c -> c.isDigit() } },
+                label = { Text(strEveryDays) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                isError = ruleError is InvalidRecurrenceException,
+                supportingText = if (ruleError is InvalidRecurrenceException) {
+                    { Text(strEveryDaysError) }
+                } else null
+            )
+
+            when (type) {
+                CareType.WATER -> {
+                    OutlinedTextField(
+                        value = amountMl,
+                        onValueChange = { amountMl = it.filter { c -> c.isDigit() } },
+                        label = { Text(strAmountMl) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        isError = ruleError is NonPositiveAmountException,
+                        supportingText = if (ruleError is NonPositiveAmountException) {
+                            { Text(strAmountError) }
+                        } else null
+                    )
+                }
+                CareType.FERTILIZE -> {
+                    OutlinedTextField(
+                        value = fertilizerName,
+                        onValueChange = { fertilizerName = it },
+                        label = { Text(strFertilizerName) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                    )
+                }
+                CareType.REPOT -> {
+                    Text(strRepotPotSize, style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PotSize.entries.forEach { size ->
+                            FilterChip(
+                                selected = newPotSize == size,
+                                onClick = { newPotSize = size },
+                                label = { Text(getPotSizeString(size)) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(strCancel) }
+                Button(
+                    onClick = { ruleResult.getOrNull()?.let(onConfirm) },
+                    enabled = ruleResult.isSuccess,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(strConfirmAction)
+                }
             }
         }
-    )
+    }
 }
 
 @Composable

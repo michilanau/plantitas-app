@@ -1,6 +1,5 @@
 package org.mlanau.project.plant.presentation.form
 
-import kotlin.time.Clock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -37,7 +36,7 @@ data class PlantFormUiState(
     val imageBytes: ByteArray? = null,
     // The photo has three edit states: untouched, replaced (imageBytes set), or removed.
     val imageCleared: Boolean = false,
-    // Any add / remove / pause / edit of a care rule flips this. Rule changes are drafts held in
+    // Any add / remove / edit of a care rule flips this. Rule changes are drafts held in
     // [careRules] (and [PlantFormViewModel.pendingRuleDeletions]) until the plant is saved, so a
     // field-by-field comparison isn't available the way it is for the plain fields.
     val rulesDirty: Boolean = false
@@ -61,8 +60,7 @@ class PlantFormViewModel(
     private val getCareRules: GetCareRules,
     private val saveCareRule: SaveCareRule,
     private val deleteCareRule: DeleteCareRule,
-    private val imageStorage: ImageStorage,
-    private val clock: Clock = Clock.System
+    private val imageStorage: ImageStorage
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlantFormUiState())
@@ -189,15 +187,6 @@ class PlantFormViewModel(
 
     fun addCareRule(rule: CareRule) {
         _uiState.update { it.copy(careRules = it.careRules + rule, rulesDirty = true) }
-    }
-
-    /**
-     * Pauses or resumes a rule in the draft list. Resuming moves the start date to now, so the
-     * time spent paused never comes back as a pile of missed occurrences.
-     */
-    fun toggleCareRulePaused(rule: CareRule) {
-        val toggled = if (rule.active) rule.paused() else rule.resumedAt(clock.now())
-        updateCareRuleInList(rule, toggled)
     }
 
     fun updateCareRuleInList(oldRule: CareRule, newRule: CareRule) {

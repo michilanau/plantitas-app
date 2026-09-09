@@ -30,13 +30,11 @@ class CareSchedulerTest {
     private fun periodicRule(
         startDate: Instant = start,
         everyDays: Int = 3,
-        active: Boolean = true,
         notificationTime: LocalTime = LocalTime(9, 0)
     ) = CareRule.create(
         plantId = plantId,
         everyDays = everyDays,
         startDate = startDate,
-        active = active,
         notificationTime = notificationTime,
         details = waterDetails
     ).withId(ruleId)
@@ -206,28 +204,6 @@ class CareSchedulerTest {
     }
 
     @Test
-    fun `an inactive rule never produces a pending task, overdue or scheduled`() {
-        val rule = periodicRule(active = false)
-        assertNull(scheduler.nextPending(rule, lastPerformedAt = null, now = Instant.parse("2026-02-01T00:00:00Z")))
-        assertEquals(
-            emptyList(),
-            scheduler.pendingIn(
-                listOf(rule), emptyMap(),
-                from = start, until = Instant.parse("2026-02-01T00:00:00Z"), now = start
-            )
-        )
-    }
-
-    @Test
-    fun `resuming a paused rule owes the care straight away, with no backlog`() {
-        val resumedAt = Instant.parse("2026-06-01T09:00:00Z")
-        val rule = periodicRule().paused().resumedAt(resumedAt)
-        val next = scheduler.nextPending(rule, lastPerformedAt = Instant.parse("2026-01-02T09:00:00Z"), now = resumedAt)
-        assertEquals(resumedAt, next?.dueAt)
-        assertEquals(1, next?.missedCount)
-    }
-
-    @Test
     fun `nextReminderAt is always strictly later than the given instant, even with an overdue task pending`() {
         val rule = periodicRule()
         val now = Instant.parse("2026-01-10T12:00:00Z")
@@ -256,12 +232,6 @@ class CareSchedulerTest {
             start,
             scheduler.nextReminderAt(rule, lastPerformedAt = null, after = start.minus1Day())
         )
-    }
-
-    @Test
-    fun `a paused rule schedules no reminder at all`() {
-        val rule = periodicRule(active = false)
-        assertNull(scheduler.nextReminderAt(rule, lastPerformedAt = null, after = start))
     }
 
     @Test

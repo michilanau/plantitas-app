@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pre-Compose window background, so the launch frame matches the app's paper ground. -->
+    <color name="window_background">#FAF6EE</color>
+    <!-- Notification accent (olive primary). -->
+    <color name="brand_primary">#47583A</color>
+</resources>

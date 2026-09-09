@@ -1,44 +1,46 @@
 package org.mlanau.project.plant.presentation.home
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Yard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.Yard
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.HomeRepairService
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import org.mlanau.project.plant.domain.model.CareTask
-import org.mlanau.project.plant.domain.model.CareType
 import org.mlanau.project.plant.domain.model.Plant
-import org.mlanau.project.plant.domain.model.LightNeed
-import org.mlanau.project.plant.domain.model.PotSize
-import plantitas_app.shared.generated.resources.*
-import coil3.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
 import org.mlanau.project.plant.presentation.component.careColor
-import org.mlanau.project.plant.presentation.component.getCareTypeString
+import org.mlanau.project.plant.presentation.component.getLightNeedString
+import org.mlanau.project.plant.presentation.component.getPotSizeString
+import org.mlanau.project.plant.presentation.component.icon
 import org.mlanau.project.plant.presentation.localizedMessage
+import org.mlanau.project.shared.ui.component.EmptyState
+import org.mlanau.project.shared.ui.component.PlantThumbnail
+import org.mlanau.project.shared.ui.component.ScreenHeader
+import org.mlanau.project.shared.ui.monthName
+import org.mlanau.project.shared.ui.weekdayName
+import plantitas_app.shared.generated.resources.*
 
 @Composable
 fun HomeScreen(
@@ -58,7 +60,6 @@ fun HomeScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HomeContent(
     uiState: HomeUiState,
@@ -78,226 +79,248 @@ fun HomeContent(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.home_title)) },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(Res.string.settings_title)
-                        )
-                    }
-                }
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { onNavigateToPlantForm() },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.home_add_plant_description))
+            if (uiState.plants.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = onNavigateToPlantForm,
+                    shape = RoundedCornerShape(20.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.home_add_plant_description))
+                }
             }
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (uiState.plants.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "🌿",
-                    style = MaterialTheme.typography.displayLarge
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(Res.string.home_welcome),
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(Res.string.home_empty_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = { onNavigateToPlantForm() },
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(Res.string.home_add_plant))
+        Box(
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(uiState.plants) { plant ->
-                    PlantItem(
-                        plant = plant,
-                        nextCare = plant.id?.let { uiState.nextCareByPlant[it] },
-                        onClick = { plant.id?.let { onNavigateToPlantDetail(it.value) } }
+
+                uiState.plants.isEmpty() -> {
+                    EmptyState(
+                        title = stringResource(Res.string.home_welcome),
+                        description = stringResource(Res.string.home_empty_description),
+                        modifier = Modifier.align(Alignment.Center).widthIn(max = 480.dp),
+                        action = {
+                            Button(onClick = onNavigateToPlantForm, shape = MaterialTheme.shapes.large) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(Res.string.home_add_plant))
+                            }
+                        }
                     )
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().widthIn(max = 640.dp),
+                        contentPadding = PaddingValues(bottom = 96.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        item {
+                            ScreenHeader(
+                                title = stringResource(Res.string.home_title),
+                                eyebrow = todayLabel(),
+                                actions = {
+                                    IconButton(onClick = onNavigateToSettings) {
+                                        Icon(
+                                            Icons.Default.Settings,
+                                            contentDescription = stringResource(Res.string.settings_title)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        item {
+                            WeeklySummaryCard(
+                                nextCareByPlant = uiState.nextCareByPlant,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                            )
+                        }
+                        items(uiState.plants) { plant ->
+                            PlantCard(
+                                plant = plant,
+                                nextCare = plant.id?.let { uiState.nextCareByPlant[it] },
+                                onClick = { plant.id?.let { onNavigateToPlantDetail(it.value) } },
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PlantItem(
-    plant: Plant,
-    nextCare: CareTask.Pending?,
-    onClick: () -> Unit
+private fun todayLabel(): String {
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    return "${weekdayName(today.dayOfWeek)} · ${today.day} ${monthName(today.month)}"
+}
+
+@Composable
+private fun WeeklySummaryCard(
+    nextCareByPlant: Map<*, CareTask.Pending>,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    val timeZone = TimeZone.currentSystemDefault()
+    val today = Clock.System.now().toLocalDateTime(timeZone).date
+    val tasks = nextCareByPlant.values
+    val weekCount = tasks.count { today.daysUntil(it.dueAt.toLocalDateTime(timeZone).date) <= 7 }
+    val todayCount = tasks.count { it.isOverdue || it.dueAt.toLocalDateTime(timeZone).date <= today }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.primaryContainer
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                if (plant.imageUrl != null) {
-                    AsyncImage(
-                        model = plant.imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+            if (weekCount == 0) {
+                Text(
+                    text = stringResource(Res.string.home_care_summary_clear),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            } else {
+                Text(
+                    text = weekCount.toString(),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Column {
+                    Text(
+                        text = pluralStringResource(Res.plurals.home_care_summary_week, weekCount, weekCount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                } else {
-                    Box(contentAlignment = Alignment.Center) {
+                    if (todayCount > 0) {
                         Text(
-                            text = "🌿",
-                            style = MaterialTheme.typography.headlineSmall
+                            text = stringResource(Res.string.home_care_summary_today, todayCount),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = plant.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                plant.description?.takeIf { it.isNotBlank() }?.let { description ->
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2
-                    )
-                }
-                
-                if (plant.location?.isNotBlank() == true || plant.lightNeed != null || plant.potSize != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        plant.location?.takeIf { it.isNotBlank() }?.let { location ->
-                            PlantAttribute(
-                                icon = Icons.Default.LocationOn,
-                                text = location
-                            )
-                        }
-                        
-                        plant.lightNeed?.let { light ->
-                            PlantAttribute(
-                                icon = Icons.Default.WbSunny,
-                                text = when(light) {
-                                    LightNeed.LOW -> stringResource(Res.string.light_low)
-                                    LightNeed.MEDIUM -> stringResource(Res.string.light_medium)
-                                    LightNeed.HIGH -> stringResource(Res.string.light_high)
-                                }
-                            )
-                        }
-
-                        plant.potSize?.let { size ->
-                            PlantAttribute(
-                                icon = Icons.Default.Yard,
-                                text = when(size) {
-                                    PotSize.SMALL -> stringResource(Res.string.pot_small)
-                                    PotSize.MEDIUM -> stringResource(Res.string.pot_medium)
-                                    PotSize.LARGE -> stringResource(Res.string.pot_large)
-                                    PotSize.EXTRA_LARGE -> stringResource(Res.string.pot_extra_large)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            nextCare?.let {
-                Spacer(modifier = Modifier.width(12.dp))
-                NextCareIndicator(task = it)
-            }
         }
     }
 }
 
 @Composable
-private fun NextCareIndicator(task: CareTask.Pending) {
-    val isOverdue = task.isOverdue
-    val color = if (isOverdue) MaterialTheme.colorScheme.error else careColor(task.type)
-    val icon = when (task.type) {
-        CareType.WATER -> Icons.Default.WaterDrop
-        CareType.FERTILIZE -> Icons.Default.Science
-        CareType.REPOT -> Icons.Default.HomeRepairService
+private fun PlantCard(
+    plant: Plant,
+    nextCare: CareTask.Pending?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            PlantThumbnail(imageUrl = plant.imageUrl)
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = plant.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val subtitle = plant.location?.takeIf { it.isNotBlank() }
+                    ?: plant.description?.takeIf { it.isNotBlank() }
+                if (subtitle != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        if (plant.location?.isNotBlank() == true) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (plant.lightNeed != null || plant.potSize != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(top = 6.dp)
+                    ) {
+                        plant.lightNeed?.let { AttributeTag(Icons.Default.WbSunny, getLightNeedString(it)) }
+                        plant.potSize?.let { AttributeTag(Icons.Default.Yard, getPotSizeString(it)) }
+                    }
+                }
+            }
+
+            nextCare?.let { NextCareBadge(it) }
+        }
     }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+}
+
+@Composable
+private fun AttributeTag(icon: ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(
-            imageVector = icon,
-            contentDescription = getCareTypeString(task.type),
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(13.dp),
+            tint = MaterialTheme.colorScheme.secondary
+        )
+        Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+    }
+}
+
+@Composable
+private fun NextCareBadge(task: CareTask.Pending) {
+    val color = if (task.isOverdue) MaterialTheme.colorScheme.error else careColor(task.type)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier.widthIn(max = 92.dp)
+    ) {
+        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
+        Icon(
+            imageVector = task.type.icon,
+            contentDescription = null,
             modifier = Modifier.size(18.dp),
             tint = color
         )
         Text(
             text = nextCareLabel(task),
             style = MaterialTheme.typography.labelSmall,
-            color = color
+            color = color,
+            maxLines = 2
         )
     }
 }
@@ -317,26 +340,5 @@ private fun nextCareLabel(task: CareTask.Pending): String {
         }
         days == 1 -> stringResource(Res.string.home_next_care_tomorrow)
         else -> stringResource(Res.string.home_next_care_in_days, days)
-    }
-}
-
-@Composable
-fun PlantAttribute(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = MaterialTheme.colorScheme.secondary
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.secondary
-        )
     }
 }

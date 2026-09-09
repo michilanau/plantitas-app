@@ -15,8 +15,6 @@ import org.mlanau.project.plant.application.GetCareRules
 import org.mlanau.project.plant.application.GetNextPendingCare
 import org.mlanau.project.plant.application.GetPlantCareHistory
 import org.mlanau.project.plant.application.LogAdHocCare
-import org.mlanau.project.plant.application.PauseCareRule
-import org.mlanau.project.plant.application.ResumeCareRule
 import org.mlanau.project.plant.application.SaveCareRule
 import org.mlanau.project.plant.domain.model.CareDetails
 import org.mlanau.project.plant.domain.model.CareRule
@@ -47,8 +45,6 @@ class PlantDetailViewModel(
     private val logAdHocCare: LogAdHocCare,
     private val deleteCareTask: DeleteCareTask,
     private val saveCareRule: SaveCareRule,
-    private val pauseCareRule: PauseCareRule,
-    private val resumeCareRule: ResumeCareRule,
     private val clock: Clock = Clock.System
 ) : ViewModel() {
 
@@ -134,14 +130,6 @@ class PlantDetailViewModel(
     fun onUndoLoggedCare(taskId: CareTaskId) {
         viewModelScope.launch {
             deleteCareTask(taskId).publishErrorIfAny()
-        }
-    }
-
-    fun onToggleRulePaused(rule: CareRule) {
-        val id = rule.id ?: return
-        viewModelScope.launch {
-            val result = if (rule.active) pauseCareRule(id) else resumeCareRule(id)
-            result.publishErrorIfAny()
         }
     }
 
