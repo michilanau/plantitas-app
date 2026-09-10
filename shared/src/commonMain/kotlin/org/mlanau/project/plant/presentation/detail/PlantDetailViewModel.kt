@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.mlanau.project.plant.application.CompleteCareTask
@@ -13,17 +12,15 @@ import org.mlanau.project.plant.application.DeleteCareTask
 import org.mlanau.project.plant.application.FindPlantById
 import org.mlanau.project.plant.application.GetCareRules
 import org.mlanau.project.plant.application.GetNextPendingCare
-import org.mlanau.project.plant.application.GetPlantCareHistory
+import org.mlanau.project.plant.application.GetRecentPlantCareHistory
 import org.mlanau.project.plant.application.LogAdHocCare
 import org.mlanau.project.plant.application.SaveCareRule
 import org.mlanau.project.plant.domain.model.CareDetails
 import org.mlanau.project.plant.domain.model.CareRule
 import org.mlanau.project.plant.domain.model.CareRuleId
 import org.mlanau.project.plant.domain.model.CareTask
-import org.mlanau.project.plant.domain.model.CareTaskId
 import org.mlanau.project.plant.domain.model.Plant
 import org.mlanau.project.plant.domain.model.PlantId
-import org.mlanau.project.plant.presentation.CareToast
 import org.mlanau.project.plant.presentation.UiError
 import org.mlanau.project.plant.presentation.toUiError
 
@@ -32,6 +29,7 @@ data class PlantDetailUiState(
     val nextPending: CareTask.Pending? = null,
     val careRules: List<CareRule> = emptyList(),
     val history: List<CareTask.Done> = emptyList(),
+    val hasMoreHistory: Boolean = false,
     val isLoading: Boolean = false,
     val error: UiError? = null
 )
@@ -40,7 +38,7 @@ class PlantDetailViewModel(
     private val findPlantById: FindPlantById,
     private val getNextPendingCare: GetNextPendingCare,
     private val getCareRules: GetCareRules,
-    private val getPlantCareHistory: GetPlantCareHistory,
+    private val getRecentPlantCareHistory: GetRecentPlantCareHistory,
     private val completeCareTask: CompleteCareTask,
     private val logAdHocCare: LogAdHocCare,
     private val deleteCareTask: DeleteCareTask,
@@ -50,9 +48,6 @@ class PlantDetailViewModel(
 
     private val _uiState = MutableStateFlow(PlantDetailUiState())
     val uiState: StateFlow<PlantDetailUiState> = _uiState.asStateFlow()
-
-    private val _toasts = Channel<CareToast>(Channel.BUFFERED)
-    val toasts = _toasts.receiveAsFlow()
 
     private var loadJob: Job? = null
 
@@ -80,8 +75,15 @@ class PlantDetailViewModel(
                 }
 
                 launch {
-                    getPlantCareHistory(plantId).collect { history ->
-                        _uiState.update { it.copy(history = history) }
+                    // One more than is shown, so the screen knows whether to offer the full history
+                    // without a second query to count it.
+                    getRecentPlantCareHistory(plantId, HISTORY_PREVIEW_SIZE + 1).collect { recent ->
+                        _uiState.update {
+                            it.copy(
+                                history = recent.take(HISTORY_PREVIEW_SIZE),
+                                hasMoreHistory = recent.size > HISTORY_PREVIEW_SIZE
+                            )
+                        }
                     }
                 }
             } else {
@@ -97,7 +99,6 @@ class PlantDetailViewModel(
     fun onMarkDone(pending: CareTask.Pending) {
         viewModelScope.launch {
             completeCareTask(pending)
-                .onSuccess { _toasts.send(CareToast.Logged(it)) }
                 .publishErrorIfAny()
         }
     }
@@ -111,7 +112,6 @@ class PlantDetailViewModel(
                 performedAt = performedAt,
                 note = note
             )
-                .onSuccess { _toasts.send(CareToast.Logged(it)) }
                 .publishErrorIfAny()
         }
     }
@@ -120,16 +120,8 @@ class PlantDetailViewModel(
         viewModelScope.launch {
             done.id?.let { id ->
                 deleteCareTask(id)
-                    .onSuccess { _toasts.send(CareToast.Undone) }
                     .publishErrorIfAny()
             }
-        }
-    }
-
-    /** UNDO of the snackbar shown after [onMarkDone] / [onLogAdHocCare]. */
-    fun onUndoLoggedCare(taskId: CareTaskId) {
-        viewModelScope.launch {
-            deleteCareTask(taskId).publishErrorIfAny()
         }
     }
 
@@ -142,5 +134,10 @@ class PlantDetailViewModel(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    private companion object {
+        /** How many logged cares the detail shows before pointing to the full history. */
+        const val HISTORY_PREVIEW_SIZE = 5
     }
 }

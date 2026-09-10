@@ -9,6 +9,7 @@ import org.mlanau.project.plant.domain.model.PlantId
 
 interface CareTaskRepository {
     fun observeByPlant(plantId: PlantId): Flow<List<CareTask.Done>>
+    fun observeRecentByPlant(plantId: PlantId, limit: Int): Flow<List<CareTask.Done>>
     fun observeInRange(from: Instant, until: Instant): Flow<List<CareTask.Done>>
     suspend fun findById(id: CareTaskId): CareTask.Done?
     suspend fun save(task: CareTask.Done): CareTask.Done

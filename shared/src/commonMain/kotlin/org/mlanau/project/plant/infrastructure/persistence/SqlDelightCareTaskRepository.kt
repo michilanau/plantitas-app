@@ -23,6 +23,12 @@ class SqlDelightCareTaskRepository(database: PlantDb) : CareTaskRepository {
         }
     }
 
+    override fun observeRecentByPlant(plantId: PlantId, limit: Int): Flow<List<CareTask.Done>> {
+        return queries.selectRecentCareTasksByPlantId(plantId.value.toLong(), limit.toLong()).asFlow().mapToList(Dispatchers.IO).map { list ->
+            list.map { it.toDomain() }
+        }
+    }
+
     override fun observeInRange(from: Instant, until: Instant): Flow<List<CareTask.Done>> {
         return queries.selectCareTasksInRange(from.toDbString(), until.toDbString()).asFlow().mapToList(Dispatchers.IO).map { list ->
             list.map { it.toDomain() }

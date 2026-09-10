@@ -1,0 +1,27 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Inicio", "is_interactive": true },
+    { "file": "Detalle.dc.html", "x": 490, "y": 0, "w": 390, "h": 844, "title": "Detalle de planta", "is_interactive": true },
+    { "file": "Calendario.dc.html", "x": 980, "y": 0, "w": 390, "h": 844, "title": "Calendario", "is_interactive": true },
+    { "file": "Formulario.dc.html", "x": 1470, "y": 0, "w": 390, "h": 844, "title": "Nueva planta", "is_interactive": true },
+    { "file": "Ajustes.dc.html", "x": 1960, "y": 0, "w": 390, "h": 844, "title": "Ajustes", "is_interactive": true },
+    { "file": "Sistema.dc.html", "x": 0, "y": 1000, "w": 880, "h": 1300, "title": "Sistema visual" }
+  ],
+  "annotations": [
+    {
+      "id": "como-probarlo",
+      "x": 0,
+      "y": -330,
+      "w": 700,
+      "text": "Las cinco pantallas son la misma app: entra por cualquiera y navega desde ahí.\nFunciona de verdad: toca una planta para abrirla, marca un cuidado como hecho y deshazlo desde el aviso, añade o edita una pauta de riego, crea una planta nueva desde el + de la barra, cambia de mes en el calendario y pon el tema oscuro en Ajustes.\nArriba de cada pantalla tienes tres mandos: por dónde empieza, claro/oscuro y el color de acento."
+    },
+    {
+      "id": "nota-sistema",
+      "x": 940,
+      "y": 1000,
+      "w": 320,
+      "text": "El siguiente cuidado vive dentro de la tarjeta de su planta. No hay ningún panel de resumen del día."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">Plantitas App</string>
-    <string name="home_title">My Plants</string>
-    <string name="home_welcome">Welcome to your digital garden!</string>
-    <string name="home_empty_description">It seems you don't have any plants yet. Start by adding your first one!</string>
-    <string name="home_add_plant">New Plant</string>
+    <string name="home_title">My plants</string>
+    <string name="home_welcome">Your garden is empty</string>
+    <string name="home_empty_description">Add your first plant and I'll remind you when it needs care.</string>
+    <string name="home_add_plant">New plant</string>
     <string name="home_add_plant_description">Add Plant</string>
     <string name="home_plant_name">Name</string>
     <string name="home_plant_description">Description</string>
@@ -13,16 +13,11 @@
     <string name="home_button_add">Add</string>
     <string name="home_button_cancel">Cancel</string>
 
-    <!-- Home: next care per plant -->
-    <string name="home_next_care_today">Today</string>
-    <string name="home_next_care_tomorrow">Tomorrow</string>
-    <string name="home_next_care_in_days">In %1$d days</string>
-
     <!-- Common -->
     <string name="common_back">Back</string>
     <string name="common_delete">Delete</string>
     <string name="common_cancel">Cancel</string>
-    <string name="common_add_image">Add image</string>
+    <string name="common_add_image">Add photo</string>
     <string name="common_optional">(optional)</string>
     <string name="common_close">Close</string>
     <string name="common_save">Save</string>
@@ -45,7 +40,7 @@
     <string name="error_unknown">An unexpected error occurred</string>
 
     <!-- Plant Form -->
-    <string name="plant_form_edit_title">Edit Plant</string>
+    <string name="plant_form_edit_title">Edit plant</string>
     <string name="plant_form_save_changes">Save Changes</string>
     <string name="plant_form_delete_dialog_title">Delete plant</string>
     <string name="plant_form_delete_dialog_message">Are you sure you want to delete '%1$s'?</string>
@@ -82,7 +77,7 @@
 
     <!-- Plant Detail -->
     <string name="plant_detail_title">Plant Detail</string>
-    <string name="plant_detail_next_care">Next Care</string>
+    <string name="plant_detail_next_care">Next care</string>
     <string name="plant_detail_available_on">Available on %1$s</string>
 
     <!-- Navigation -->
@@ -90,7 +85,6 @@
     <string name="nav_calendar">Calendar</string>
 
     <!-- Calendar -->
-    <string name="calendar_title">Care Calendar</string>
     <string name="calendar_unknown_plant">Unknown plant</string>
     <string name="calendar_prev_month">Previous month</string>
     <string name="calendar_next_month">Next month</string>
@@ -115,14 +109,6 @@
     <string name="weekday_saturday">Saturday</string>
     <string name="weekday_sunday">Sunday</string>
 
-    <!-- Home: weekly care summary -->
-    <string name="home_care_summary_clear">No care due this week</string>
-    <string name="home_care_summary_today">%1$d for today</string>
-    <plurals name="home_care_summary_week">
-        <item quantity="one">%1$d plant needs care this week</item>
-        <item quantity="other">%1$d plants need care this week</item>
-    </plurals>
-
     <!-- Care Rules -->
     <string name="care_rules_title">Care</string>
     <string name="care_type_water">Watering</string>
@@ -135,6 +121,7 @@
     <string name="care_rule_type_taken">This plant already has a care of this type</string>
     <string name="care_task_not_due">Not due yet: you can only complete today's or overdue tasks</string>
     <string name="care_add_rule">Add care</string>
+    <string name="care_add_periodic_rule">Add recurring care</string>
     <string name="care_edit_rule">Edit care</string>
     <string name="care_type_label">Care type</string>
     <string name="care_start_date_label">Start date</string>
@@ -153,6 +140,20 @@
     <string name="common_discard">Discard</string>
     <string name="care_action_done">Mark as done</string>
     <string name="care_action_undo">Undo</string>
+    <string name="care_action_water">Water</string>
+    <string name="care_action_fertilize">Fertilize</string>
+    <string name="care_action_repot">Repot</string>
+    <string name="care_due_today">today</string>
+    <string name="care_due_tomorrow">tomorrow</string>
+    <plurals name="care_due_in_days">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
+    <string name="care_rule_no_reminder">no reminder</string>
+    <string name="care_days_unit">days</string>
+    <string name="plant_light_value">%1$s light</string>
+    <string name="calendar_done_at">Done at %1$s</string>
+    <string name="calendar_selected_date">%2$s %1$d</string>
     <string name="care_log_options_title">Log options</string>
 
     <!-- Log care -->
@@ -162,8 +163,6 @@
     <string name="care_log_date_label">What day did you do it?</string>
     <string name="care_log_note_label">Note (optional)</string>
     <string name="care_log_future_error">You can't log a care in the future</string>
-    <string name="care_log_saved">Care logged</string>
-    <string name="care_log_undone">Log undone</string>
 
     <!-- Care status -->
     <plurals name="care_overdue_days">
@@ -172,7 +171,6 @@
     </plurals>
     <string name="care_overdue_today">Due today</string>
     <string name="care_overdue_missed_count">×%1$d</string>
-    <string name="care_overdue_label">Overdue</string>
     <string name="care_verb_water">watering</string>
     <string name="care_verb_fertilize">fertilizing</string>
     <string name="care_verb_repot">repotting</string>
@@ -181,6 +179,7 @@
     <!-- History -->
     <string name="care_history_title">History</string>
     <string name="care_history_empty">No care logged yet</string>
+    <string name="care_history_see_all">See full history</string>
 
     <!-- Months -->
     <string name="month_january">January</string>

@@ -1,0 +1,289 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    .sys, .sys * { box-sizing: border-box; }
+    .sys {
+      width: 880px;
+      min-height: 1300px;
+      padding: 40px;
+      font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--paper);
+      --paper: #FCF3E6;
+      --paper2: #F4E6D1;
+      --card: #FFFFFF;
+      --ink: #221E19;
+      --soft: #7A6D5E;
+      --line: #E8D9C0;
+      --accent: #C9E84B;
+      --brand: #17603C;
+      --water: #2F5FE0;
+      --waterBg: #E3EAFF;
+      --fert: #5A8C1B;
+      --fertBg: #EDF6D6;
+      --repot: #CE5420;
+      --repotBg: #FBE4D8;
+      --overdue: #C7304C;
+      --overdueBg: #FBE0E5;
+    }
+    .sys.dark {
+      --paper: #16140F;
+      --paper2: #221F18;
+      --card: #262218;
+      --ink: #F6EEE1;
+      --soft: #A99C89;
+      --line: #3B342A;
+      --brand: #8FD6A5;
+      --water: #9FB4FF;
+      --waterBg: #23304E;
+      --fert: #B4D65F;
+      --fertBg: #2C3818;
+      --repot: #F0916A;
+      --repotBg: #3E2618;
+      --overdue: #F5849A;
+      --overdueBg: #40202A;
+    }
+    .sys svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; }
+    .sys .dis { font-family: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.025em; margin: 0; }
+    .sys a { color: var(--brand); }
+    .sys a:hover { color: var(--repot); }
+
+    .sys .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding-bottom: 26px; border-bottom: 2px solid var(--line); }
+    .sys .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); margin-bottom: 8px; }
+    .sys .lead { max-width: 340px; color: var(--soft); line-height: 1.55; font-size: 13.5px; }
+
+    .sys .sect { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); margin: 34px 0 14px; }
+    .sys .grid { display: grid; gap: 14px; }
+    .sys .c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .sys .c5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .sys .c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sys .c8 { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+
+    .sys .sw { border-radius: 20px; overflow: hidden; background: var(--card); }
+    .sys .swatch { height: 76px; }
+    .sys .swmeta { padding: 10px 12px 12px; }
+    .sys .swname { font-size: 13px; font-weight: 700; }
+    .sys .swhex { font-size: 11.5px; color: var(--soft); letter-spacing: 0.04em; }
+
+    .sys .card { background: var(--card); border-radius: 26px; padding: 20px; }
+    .sys .pcard { display: flex; align-items: center; gap: 14px; background: var(--card); border: 2px solid transparent; border-radius: 28px; padding: 14px; }
+    .sys .avatar { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #221E19; flex: none; }
+    .sys .pname { font-family: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
+    .sys .pmeta { font-size: 12.5px; color: var(--soft); }
+    .sys .carepill { display: inline-flex; align-items: center; gap: 6px; margin-top: 5px; padding: 5px 11px 5px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+
+    .sys .btn { height: 52px; border-radius: 999px; border: none; font-family: inherit; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; }
+    .sys .btn.primary { background: var(--ink); color: var(--paper); }
+    .sys .btn.accent { background: var(--accent); color: #221E19; }
+    .sys .btn.ghost { background: none; border: 2px solid var(--line); color: var(--ink); }
+    .sys .btn.danger { background: none; border: 2px solid var(--overdue); color: var(--overdue); }
+
+    .sys .chip { height: 42px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--line); background: none; color: var(--ink); font-family: inherit; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+    .sys .chip.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .sys .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .sys .icobox { background: var(--card); border-radius: 18px; height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; color: var(--ink); }
+    .sys .icolabel { font-size: 10.5px; color: var(--soft); font-weight: 600; }
+    .sys .ic16 { width: 16px; height: 16px; }
+    .sys .ic22 { width: 22px; height: 22px; }
+    .sys .ic26 { width: 26px; height: 26px; stroke-width: 1.7; }
+
+    .sys .typerow { display: flex; align-items: baseline; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .sys .typemeta { font-size: 11.5px; color: var(--soft); width: 190px; flex: none; letter-spacing: 0.04em; }
+
+    .sys .input { width: 100%; height: 50px; border-radius: 18px; border: 2px solid var(--line); background: var(--card); padding: 0 16px; font-family: inherit; font-size: 15px; color: var(--ink); display: flex; align-items: center; }
+    .sys .input.focus { border-color: var(--ink); }
+    .sys .switch { width: 52px; height: 32px; border-radius: 999px; background: var(--line); position: relative; }
+    .sys .switch.on { background: var(--brand); }
+    .sys .knob { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--card); }
+    .sys .switch.on .knob { left: 24px; }
+    .sys .strike { text-decoration: line-through; color: var(--soft); }
+    .sys .toast { background: var(--ink); color: var(--paper); border-radius: 20px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px; font-weight: 600; }
+    .sys .toast span.act { color: var(--accent); font-weight: 700; }
+    .sys .tabbar { height: 66px; border-radius: 999px; background: var(--ink); display: flex; align-items: center; gap: 6px; padding: 8px; }
+    .sys .tab { flex: 1; height: 50px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--paper); font-size: 13.5px; font-weight: 700; }
+    .sys .tab.on { background: var(--accent); color: #221E19; }
+    .sys .fabmid { width: 50px; height: 50px; border-radius: 50%; background: var(--accent); color: #221E19; display: flex; align-items: center; justify-content: center; flex: none; }
+    .sys .note { font-size: 12.5px; color: var(--soft); line-height: 1.55; margin-top: 10px; }
+  </style>
+</helmet>
+
+<div class="sys {{themeClass}}">
+
+  <div class="head">
+    <div>
+      <div class="kicker">Plantitas · sistema visual</div>
+      <div class="dis" style="font-size: 46px; line-height: 1.02">Botánico pop</div>
+    </div>
+    <div class="lead">Color saturado sobre papel cálido, formas grandes y redondas, tipografía gruesa. El estado del cuidado siempre viaja con la planta a la que pertenece, nunca en un contador aparte.</div>
+  </div>
+
+  <div class="sect">Paleta base</div>
+  <div class="grid c5">
+    <div class="sw"><div class="swatch" style="background: #FCF3E6"></div><div class="swmeta"><div class="swname">Papel</div><div class="swhex">#FCF3E6</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #F4E6D1"></div><div class="swmeta"><div class="swname">Papel hondo</div><div class="swhex">#F4E6D1</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #221E19"></div><div class="swmeta"><div class="swname">Tinta</div><div class="swhex">#221E19</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #C9E84B"></div><div class="swmeta"><div class="swname">Lima (acento)</div><div class="swhex">#C9E84B</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #17603C"></div><div class="swmeta"><div class="swname">Verde marca</div><div class="swhex">#17603C</div></div></div>
+  </div>
+
+  <div class="sect">Color por cuidado</div>
+  <div class="grid c5">
+    <div class="sw"><div class="swatch" style="background: #2F5FE0"></div><div class="swmeta"><div class="swname">Riego</div><div class="swhex">#2F5FE0 · fondo #E3EAFF</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #5A8C1B"></div><div class="swmeta"><div class="swname">Abonado</div><div class="swhex">#5A8C1B · fondo #EDF6D6</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #CE5420"></div><div class="swmeta"><div class="swname">Trasplante</div><div class="swhex">#CE5420 · fondo #FBE4D8</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #C7304C"></div><div class="swmeta"><div class="swname">Vencido</div><div class="swhex">#C7304C · fondo #FBE0E5</div></div></div>
+    <div class="sw"><div class="swatch" style="background: #17603C"></div><div class="swmeta"><div class="swname">Hecho</div><div class="swhex">#17603C</div></div></div>
+  </div>
+  <div class="note">Los cuatro tonos de cuidado se distinguen también en escala de grises: azul medio, verde oscuro, naranja quemado y frambuesa tienen luminancias distintas.</div>
+
+  <div class="sect">Tipografía</div>
+  <div>
+    <div class="typerow"><div class="typemeta">Bricolage Grotesque 800 · 33/34</div><div class="dis" style="font-size: 33px">Mis plantitas</div></div>
+    <div class="typerow"><div class="typemeta">Bricolage Grotesque 800 · 25/28</div><div class="dis" style="font-size: 25px">Monstera deliciosa</div></div>
+    <div class="typerow"><div class="typemeta">Bricolage Grotesque 700 · 19/24</div><div class="dis" style="font-size: 19px; font-weight: 700">Nombre en la tarjeta</div></div>
+    <div class="typerow"><div class="typemeta">Figtree 600 · 14.5/20</div><div style="font-size: 14.5px; font-weight: 600">Riego · cada 5 días · 09:00</div></div>
+    <div class="typerow"><div class="typemeta">Figtree 400 · 13.5/21</div><div style="font-size: 13.5px">Texto corrido: descripción de la planta, notas del historial y ayudas de los formularios.</div></div>
+    <div class="typerow"><div class="typemeta">Figtree 700 · 11.5 · 0.1em · caja alta</div><div style="font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft)">Próximo cuidado</div></div>
+  </div>
+
+  <div class="sect">Tarjeta de planta · los cuatro estados</div>
+  <div class="grid c2">
+    <div class="pcard">
+      <div class="avatar" style="background: #C9E84B"><svg class="ic26" viewBox="0 0 24 24"><path d="M4.5 19.5C4.5 11 10 5 19.5 4.5 20 14 14 19.5 5.5 19.5H4.5z M5 19C9.5 14.5 13.5 11.5 17.5 9.5"></path></svg></div>
+      <div>
+        <div class="pname">Monstera deliciosa</div>
+        <div class="pmeta">Salón · Luz media</div>
+        <div class="carepill" style="background: var(--waterBg); color: var(--water)">
+          <svg class="ic16" viewBox="0 0 24 24"><path d="M12 3.4c3.7 3.7 6 6.8 6 9.5a6 6 0 0 1-12 0c0-2.7 2.3-5.8 6-9.5z"></path></svg>
+          <span>Regar · en 2 días</span>
+        </div>
+      </div>
+    </div>
+    <div class="pcard">
+      <div class="avatar" style="background: #F6C453"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 21V6.5 M12 21c0-6 2-11.2 5.5-14.5 M12 21c0-6-2-11.2-5.5-14.5"></path></svg></div>
+      <div>
+        <div class="pname">Potos</div>
+        <div class="pmeta">Cocina · Luz baja</div>
+        <div class="carepill" style="background: #5A8C1B; color: #FFFFFF">
+          <svg class="ic16" viewBox="0 0 24 24"><path d="M10 3.2h4 M11 3.2v6l-4 8a2 2 0 0 0 1.8 2.9h6.4A2 2 0 0 0 17 17.2l-4-8v-6"></path></svg>
+          <span>Abonar · hoy</span>
+        </div>
+      </div>
+    </div>
+    <div class="pcard" style="border-color: #C7304C">
+      <div class="avatar" style="background: #7FD1AE"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 21v-7 M12 14.4a5.6 5.6 0 1 1 0-11.2 5.6 5.6 0 0 1 0 11.2z"></path></svg></div>
+      <div>
+        <div class="pname">Ficus lyrata</div>
+        <div class="pmeta">Dormitorio · Luz alta</div>
+        <div class="carepill" style="background: #C7304C; color: #FFFFFF">
+          <svg class="ic16" viewBox="0 0 24 24"><path d="M12 3.4c3.7 3.7 6 6.8 6 9.5a6 6 0 0 1-12 0c0-2.7 2.3-5.8 6-9.5z"></path></svg>
+          <span>Regar · 3 días de retraso</span>
+        </div>
+      </div>
+    </div>
+    <div class="pcard">
+      <div class="avatar" style="background: #F19A7E"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 21V4 M12 13.6c-3.2 0-4.6-1.7-4.6-4.4 M12 15.6c3.2 0 4.6-1.7 4.6-4.9 M9 21h6"></path></svg></div>
+      <div>
+        <div class="pname">Cactus san pedro</div>
+        <div class="pmeta">Balcón · Luz alta</div>
+        <div class="carepill" style="background: var(--paper2); color: var(--soft)">
+          <svg class="ic16" viewBox="0 0 24 24"><path d="M12 3.4c3.7 3.7 6 6.8 6 9.5a6 6 0 0 1-12 0c0-2.7 2.3-5.8 6-9.5z"></path></svg>
+          <span>Sin cuidados programados</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Futuro: píldora teñida. Hoy: píldora sólida del color del cuidado. Vencido: píldora frambuesa sólida y borde en la tarjeta. Sin pauta: gris, sin llamar la atención.</div>
+
+  <div class="sect">Botones y controles</div>
+  <div class="grid c4">
+    <div class="btn primary"><svg class="ic22" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>Marcar como hecho</span></div>
+    <div class="btn accent"><svg class="ic22" viewBox="0 0 24 24"><path d="M12 20.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17z M12 7.6V12l3 2"></path></svg><span>Registrar cuidado</span></div>
+    <div class="btn ghost"><svg class="ic22" viewBox="0 0 24 24"><path d="M12 5.5v13 M5.5 12h13"></path></svg><span>Añadir cuidado</span></div>
+    <div class="btn danger"><span>Eliminar planta</span></div>
+  </div>
+
+  <div class="grid c2" style="margin-top: 14px">
+    <div>
+      <div class="chips">
+        <div class="chip on">Media</div>
+        <div class="chip">Baja</div>
+        <div class="chip">Alta</div>
+        <div class="chip on"><svg class="ic16" viewBox="0 0 24 24"><path d="M12 3.4c3.7 3.7 6 6.8 6 9.5a6 6 0 0 1-12 0c0-2.7 2.3-5.8 6-9.5z"></path></svg><span>Riego</span></div>
+      </div>
+      <div class="input focus" style="margin-top: 12px">Monstera deliciosa</div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 12px">
+        <div class="switch on"><span class="knob"></span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Activar notificaciones</div>
+        <div class="switch" style="margin-left: 12px"><span class="knob"></span></div>
+        <div style="font-size: 13.5px; color: var(--soft)">Desactivadas</div>
+      </div>
+    </div>
+    <div>
+      <div class="tabbar">
+        <div class="tab on"><svg class="ic22" viewBox="0 0 24 24"><path d="M4.5 19.5C4.5 11 10 5 19.5 4.5 20 14 14 19.5 5.5 19.5H4.5z M5 19C9.5 14.5 13.5 11.5 17.5 9.5"></path></svg><span>Plantas</span></div>
+        <div class="fabmid"><svg class="ic22" viewBox="0 0 24 24" style="stroke-width: 2.3"><path d="M12 5.5v13 M5.5 12h13"></path></svg></div>
+        <div class="tab"><svg class="ic22" viewBox="0 0 24 24"><path d="M4.5 7.5h15v12h-15z M8.5 4v4 M15.5 4v4 M4.5 11.5h15"></path></svg><span>Calendario</span></div>
+      </div>
+      <div class="toast" style="margin-top: 14px"><span>Cuidado registrado</span><span class="act">Deshacer</span></div>
+      <div class="card" style="margin-top: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--water)"></div>
+        <div style="flex: 1">
+          <div style="font-size: 14.5px; font-weight: 600" class="strike">Regada</div>
+          <div style="font-size: 12.5px; color: var(--soft)">7 sep · 09:12</div>
+        </div>
+        <svg class="ic22" viewBox="0 0 24 24" style="color: var(--soft)"><path d="M9.5 14.5L5 10l4.5-4.5 M5 10h8.5a5.5 5.5 0 0 1 0 11H10"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="sect">Iconografía · trazo 1.9, retícula de 24</div>
+  <div class="grid c8">
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 3.4c3.7 3.7 6 6.8 6 9.5a6 6 0 0 1-12 0c0-2.7 2.3-5.8 6-9.5z"></path></svg><div class="icolabel">Riego</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M10 3.2h4 M11 3.2v6l-4 8a2 2 0 0 0 1.8 2.9h6.4A2 2 0 0 0 17 17.2l-4-8v-6"></path></svg><div class="icolabel">Abonado</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M4.6 8.6h14.8L17.9 20a1.6 1.6 0 0 1-1.6 1.4H7.7A1.6 1.6 0 0 1 6.1 20L4.6 8.6z M3.6 5.4h16.8v3.2H3.6z"></path></svg><div class="icolabel">Trasplante</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><div class="icolabel">Hecho</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M9.5 14.5L5 10l4.5-4.5 M5 10h8.5a5.5 5.5 0 0 1 0 11H10"></path></svg><div class="icolabel">Deshacer</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 21.5s7-6.6 7-11.5a7 7 0 1 0-14 0c0 4.9 7 11.5 7 11.5z M12 12.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"></path></svg><div class="icolabel">Ubicación</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 7.6a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8z M12 2.4v2.2 M12 19.4v2.2 M2.4 12h2.2 M19.4 12h2.2 M5.2 5.2l1.6 1.6 M17.2 17.2l1.6 1.6 M18.8 5.2l-1.6 1.6 M6.8 17.2l-1.6 1.6"></path></svg><div class="icolabel">Luz</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M18 16.5H6l1.6-2.8V10a4.4 4.4 0 0 1 8.8 0v3.7L18 16.5z M10 19.5a2 2 0 0 0 4 0"></path></svg><div class="icolabel">Aviso</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M4.5 7.5h15v12h-15z M8.5 4v4 M15.5 4v4 M4.5 11.5h15"></path></svg><div class="icolabel">Calendario</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M4 20l4.5-1.2L19.6 7.6a1.7 1.7 0 0 0 0-2.4l-.8-.8a1.7 1.7 0 0 0-2.4 0L5.2 15.5 4 20z"></path></svg><div class="icolabel">Editar</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M4.5 8.5h3.2L9.2 6h5.6l1.5 2.5h3.2v11h-15v-11z M12 17a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4z"></path></svg><div class="icolabel">Foto</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 20.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17z M12 7.6V12l3 2"></path></svg><div class="icolabel">Hora</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M4 7.5h4.5 M12.5 7.5h7.5 M4 16.5h8 M16 16.5h4 M10.5 5.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z M14 14.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"></path></svg><div class="icolabel">Ajustes</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M4.5 19.5C4.5 11 10 5 19.5 4.5 20 14 14 19.5 5.5 19.5H4.5z M5 19C9.5 14.5 13.5 11.5 17.5 9.5"></path></svg><div class="icolabel">Hoja</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 21V4 M12 13.6c-3.2 0-4.6-1.7-4.6-4.4 M12 15.6c3.2 0 4.6-1.7 4.6-4.9 M9 21h6"></path></svg><div class="icolabel">Cactus</div></div>
+    <div class="icobox"><svg class="ic26" viewBox="0 0 24 24"><path d="M12 21v-8 M12 13c-4.2 0-6.8-2.6-6.8-6.2 M12 13c4.2 0 6.8-2.6 6.8-6.2 M12 13c0-4.2-2.1-6.8-4.7-8.3 M12 13c0-4.2 2.1-6.8 4.7-8.3"></path></svg><div class="icolabel">Palmera</div></div>
+  </div>
+
+  <div class="sect">Medidas</div>
+  <div class="grid c4">
+    <div class="card"><div class="dis" style="font-size: 28px">20 px</div><div class="note">Margen lateral único de todas las pantallas.</div></div>
+    <div class="card"><div class="dis" style="font-size: 28px">28 / 20</div><div class="note">Radio de tarjeta y de fila. Botones y chips, radio completo.</div></div>
+    <div class="card"><div class="dis" style="font-size: 28px">54 px</div><div class="note">Alto de acción principal. Ningún objetivo táctil baja de 44.</div></div>
+    <div class="card"><div class="dis" style="font-size: 28px">12 px</div><div class="note">Separación entre tarjetas de la lista; 8 entre chips.</div></div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":880,"height":1300},"dark":{"editor":"boolean","default":false,"section":"Prototipo"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { themeClass: this.props.dark ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

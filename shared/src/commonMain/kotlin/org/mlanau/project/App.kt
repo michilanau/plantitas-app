@@ -1,6 +1,13 @@
 package org.mlanau.project
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -12,32 +19,24 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlanau.project.navigation.*
 import org.mlanau.project.plant.application.CareReminderSync
-import org.mlanau.project.plant.presentation.home.HomeViewModel
-import org.mlanau.project.plant.presentation.calendar.CalendarViewModel
-import org.mlanau.project.plant.presentation.form.PlantFormViewModel
-import org.mlanau.project.plant.presentation.home.HomeScreen
 import org.mlanau.project.plant.presentation.calendar.CalendarScreen
-import org.mlanau.project.plant.presentation.form.PlantFormScreen
+import org.mlanau.project.plant.presentation.calendar.CalendarViewModel
 import org.mlanau.project.plant.presentation.detail.PlantDetailScreen
 import org.mlanau.project.plant.presentation.detail.PlantDetailViewModel
+import org.mlanau.project.plant.presentation.form.PlantFormScreen
+import org.mlanau.project.plant.presentation.form.PlantFormViewModel
+import org.mlanau.project.plant.presentation.home.HomeScreen
+import org.mlanau.project.plant.presentation.home.HomeViewModel
+import org.mlanau.project.plant.presentation.history.PlantHistoryScreen
+import org.mlanau.project.plant.presentation.history.PlantHistoryViewModel
 import org.mlanau.project.settings.domain.ThemeMode
-import org.mlanau.project.settings.presentation.SettingsViewModel
 import org.mlanau.project.settings.presentation.AboutScreen
 import org.mlanau.project.settings.presentation.SettingsScreen
-import androidx.compose.foundation.isSystemInDarkTheme
+import org.mlanau.project.settings.presentation.SettingsViewModel
 import org.mlanau.project.shared.ui.AppLocaleWrapper
 import org.mlanau.project.shared.ui.DateFormatter
 import org.mlanau.project.shared.ui.LocalDateFormatter
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.*
-import org.jetbrains.compose.resources.stringResource
-import plantitas_app.shared.generated.resources.*
 
 @Composable
 fun App() {
@@ -70,34 +69,13 @@ fun App() {
             val isHome = currentDestination?.hasRoute<Home>() == true
             val isCalendar = currentDestination?.hasRoute<Calendar>() == true
 
-            Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
-                bottomBar = {
-                    if (isHome || isCalendar) {
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 0.dp
-                        ) {
-                            NavigationBarItem(
-                                icon = { Icon(Icons.Default.Home, contentDescription = null) },
-                                label = { Text(stringResource(Res.string.nav_plants)) },
-                                selected = isHome,
-                                onClick = { navController.navigateAsTab(Home) }
-                            )
-                            NavigationBarItem(
-                                icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                                label = { Text(stringResource(Res.string.nav_calendar)) },
-                                selected = isCalendar,
-                                onClick = { navController.navigateAsTab(Calendar) }
-                            )
-                        }
-                    }
-                }
-            ) { paddingValues ->
+            // Each destination owns its Scaffold (and so its window insets); the tab bar floats over
+            // the two tab screens instead of taking a slot, which is why they pad their own bottom.
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 NavHost(
                     navController = navController,
                     startDestination = Home,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     composable<Home> {
                         val viewModel = koinViewModel<HomeViewModel>()
@@ -127,7 +105,8 @@ fun App() {
                             viewModel = viewModel,
                             plantId = route.plantId,
                             onBack = { navController.popBackStack() },
-                            onEdit = { plantId -> navController.navigate(PlantForm(plantId)) }
+                            onEdit = { plantId -> navController.navigate(PlantForm(plantId)) },
+                            onSeeAllHistory = { plantId -> navController.navigate(PlantHistory(plantId)) }
                         )
                     }
                     composable<PlantForm> { backStackEntry ->
@@ -140,6 +119,15 @@ fun App() {
                             onDeleted = { navController.popBackStack<Home>(inclusive = false) }
                         )
                     }
+                    composable<PlantHistory> { backStackEntry ->
+                        val route = backStackEntry.toRoute<PlantHistory>()
+                        val viewModel = koinViewModel<PlantHistoryViewModel>()
+                        PlantHistoryScreen(
+                            viewModel = viewModel,
+                            plantId = route.plantId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                     composable<Settings> {
                         SettingsScreen(
                             viewModel = settingsViewModel,
@@ -150,6 +138,17 @@ fun App() {
                     composable<About> {
                         AboutScreen(onBack = { navController.popBackStack() })
                     }
+                }
+
+                if (isHome || isCalendar) {
+                    FloatingTabBar(
+                        isPlantsSelected = isHome,
+                        isCalendarSelected = isCalendar,
+                        onPlantsClick = { navController.navigateAsTab(Home) },
+                        onAddPlantClick = { navController.navigate(PlantForm()) },
+                        onCalendarClick = { navController.navigateAsTab(Calendar) },
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
                 }
             }
         }

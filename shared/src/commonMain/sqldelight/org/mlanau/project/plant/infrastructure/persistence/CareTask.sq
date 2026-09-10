@@ -31,6 +31,9 @@ CREATE INDEX careTask_plant_type_performedAt ON careTaskEntity(plantId, type, pe
 selectCareTasksByPlantId:
 SELECT * FROM careTaskEntity WHERE plantId = ? ORDER BY performedAt DESC;
 
+selectRecentCareTasksByPlantId:
+SELECT * FROM careTaskEntity WHERE plantId = ? ORDER BY performedAt DESC LIMIT ?;
+
 selectCareTasksInRange:
 SELECT * FROM careTaskEntity WHERE performedAt BETWEEN ? AND ?;
 

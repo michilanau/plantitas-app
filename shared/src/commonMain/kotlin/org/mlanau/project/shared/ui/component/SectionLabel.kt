@@ -6,9 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * The small caps olive heading that opens each block of content on a screen ("Próximo cuidado",
- * "Cuidados", "Historial", "Apariencia"). Was an ad-hoc `Text` with `titleMedium` + primary colour
- * repeated across screens.
+ * The small caps heading that opens each block of content on a screen ("Próximo cuidado",
+ * "Cuidados", "Historial", "Apariencia").
  */
 @Composable
 fun SectionLabel(
@@ -17,8 +16,8 @@ fun SectionLabel(
 ) {
     Text(
         text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
     )
 }

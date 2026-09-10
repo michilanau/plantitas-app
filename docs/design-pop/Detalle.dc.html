@@ -1,0 +1,1241 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    .pop, .pop * { box-sizing: border-box; }
+    .pop {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--paper);
+      --paper: #FCF3E6;
+      --paper2: #F4E6D1;
+      --card: #FFFFFF;
+      --ink: #221E19;
+      --soft: #7A6D5E;
+      --line: #E8D9C0;
+      --brand: #17603C;
+      --terra: #E4693B;
+      --water: #2F5FE0;
+      --waterBg: #E3EAFF;
+      --fert: #5A8C1B;
+      --fertBg: #EDF6D6;
+      --repot: #CE5420;
+      --repotBg: #FBE4D8;
+      --overdue: #C7304C;
+      --overdueBg: #FBE0E5;
+      --white: #FFFFFF;
+    }
+    .pop.dark {
+      --paper: #16140F;
+      --paper2: #221F18;
+      --card: #262218;
+      --ink: #F6EEE1;
+      --soft: #A99C89;
+      --line: #3B342A;
+      --brand: #8FD6A5;
+      --terra: #F0916A;
+      --water: #9FB4FF;
+      --waterBg: #23304E;
+      --fert: #B4D65F;
+      --fertBg: #2C3818;
+      --repot: #F0916A;
+      --repotBg: #3E2618;
+      --overdue: #F5849A;
+      --overdueBg: #40202A;
+      --white: #16140F;
+    }
+    .pop svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; }
+    .pop .dis { font-family: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.025em; }
+    .pop a { color: var(--brand); }
+    .pop a:hover { color: var(--terra); }
+
+    .pop .screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+    .pop .body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 132px; }
+    .pop .body.plain { padding-bottom: 36px; }
+
+    .pop .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 26px 20px 14px; }
+    .pop .h1 { font-size: 33px; line-height: 1.05; }
+    .pop .h2 { font-size: 25px; line-height: 1.1; }
+    .pop .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
+
+    .pop .iconbtn { width: 46px; height: 46px; border-radius: 50%; background: var(--paper2); color: var(--ink); display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; flex: none; padding: 0; }
+    .pop .iconbtn.solid { background: var(--ink); color: var(--paper); }
+    .pop .ic16 { width: 16px; height: 16px; }
+    .pop .ic20 { width: 20px; height: 20px; }
+    .pop .ic24 { width: 24px; height: 24px; }
+    .pop .ic30 { width: 30px; height: 30px; stroke-width: 1.6; }
+    .pop .ic96 { width: 96px; height: 96px; stroke-width: 1.1; }
+
+    .pop .list { display: flex; flex-direction: column; gap: 12px; }
+    .pop .pcard { display: flex; align-items: center; gap: 14px; background: var(--card); border: 2px solid transparent; border-radius: 28px; padding: 14px 14px 14px 14px; cursor: pointer; text-align: left; width: 100%; font: inherit; color: inherit; }
+    .pop .avatar { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #221E19; flex: none; }
+    .pop .pcard-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .pop .pname { font-family: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif; font-weight: 700; font-size: 19px; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pop .pmeta { font-size: 12.5px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pop .carepill { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 4px; padding: 5px 11px 5px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+    .pop .chev { color: var(--soft); flex: none; }
+
+    .pop .tabbar { position: absolute; left: 20px; right: 20px; bottom: 22px; height: 66px; border-radius: 999px; background: var(--ink); display: flex; align-items: center; gap: 6px; padding: 8px; }
+    .pop .tab { flex: 1; height: 50px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--paper); font-size: 13.5px; font-weight: 700; cursor: pointer; border: none; background: none; font-family: inherit; }
+    .pop .tab.on { background: var(--accent); color: #221E19; }
+    .pop .fabmid { width: 50px; height: 50px; border-radius: 50%; background: var(--accent); color: #221E19; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; flex: none; padding: 0; }
+
+    .pop .sect { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); margin: 26px 0 10px; }
+    .pop .block { background: var(--card); border-radius: 26px; padding: 18px; }
+    .pop .row { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 20px; padding: 12px 10px 12px 14px; }
+    .pop .rowtitle { font-size: 14.5px; font-weight: 600; }
+    .pop .rowsub { font-size: 12.5px; color: var(--soft); }
+    .pop .grow { flex: 1; min-width: 0; }
+
+    .pop .btn { height: 54px; border-radius: 999px; border: none; font-family: inherit; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer; width: 100%; }
+    .pop .btn.primary { background: var(--ink); color: var(--paper); }
+    .pop .btn.accent { background: var(--accent); color: #221E19; }
+    .pop .btn.ghost { background: none; border: 2px solid var(--line); color: var(--ink); }
+    .pop .btn.danger { background: none; border: 2px solid var(--overdue); color: var(--overdue); }
+    .pop .btn[disabled] { opacity: 0.4; cursor: default; }
+
+    .pop .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pop .chip { height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--line); background: none; color: var(--ink); font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+    .pop .chip.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .pop .chip[disabled] { opacity: 0.35; cursor: default; }
+
+    .pop .label { font-size: 12.5px; font-weight: 600; color: var(--soft); margin-bottom: 7px; }
+    .pop .input { width: 100%; height: 52px; border-radius: 18px; border: 2px solid var(--line); background: var(--card); padding: 0 16px; font-family: inherit; font-size: 15px; color: var(--ink); }
+    .pop textarea.input { height: 92px; padding: 14px 16px; resize: none; line-height: 1.45; }
+    .pop .input:focus { outline: none; border-color: var(--ink); }
+    .pop .err { font-size: 12.5px; color: var(--overdue); font-weight: 600; margin-top: 6px; }
+
+    .pop .hero { height: 186px; border-radius: 32px; display: flex; align-items: center; justify-content: center; color: #221E19; margin-bottom: 18px; }
+    .pop .attrs { display: flex; gap: 8px; }
+    .pop .attr { flex: 1; background: var(--card); border-radius: 20px; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+    .pop .attrk { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); display: flex; align-items: center; gap: 4px; }
+    .pop .attrv { font-size: 13.5px; font-weight: 700; }
+
+    .pop .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+    .pop .wd { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--soft); padding-bottom: 6px; }
+    .pop .day { height: 46px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 14px; font-weight: 600; cursor: pointer; border: 2px solid transparent; background: none; color: var(--ink); font-family: inherit; }
+    .pop .day.sel { background: var(--ink); color: var(--paper); }
+    .pop .day.today { border-color: var(--accent); }
+    .pop .day.blank { cursor: default; }
+    .pop .iconbtn[disabled] { cursor: default; }
+    .pop .dots { display: flex; gap: 3px; height: 6px; }
+    .pop .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    .pop .scrim { position: absolute; inset: 0; background: rgba(20, 16, 10, 0.45); display: flex; align-items: flex-end; }
+    .pop .sheet { width: 100%; max-height: 700px; overflow-y: auto; background: var(--paper); border-radius: 32px 32px 0 0; padding: 12px 20px 28px; }
+    .pop .handle { width: 44px; height: 5px; border-radius: 999px; background: var(--line); margin: 0 auto 14px; }
+
+    .pop .toast { position: absolute; left: 20px; right: 20px; bottom: 100px; background: var(--ink); color: var(--paper); border-radius: 20px; padding: 14px 14px 14px 18px; display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 600; }
+    .pop .toast button { background: none; border: none; color: var(--accent); font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; padding: 8px 4px; }
+    .pop .strike { text-decoration: line-through; color: var(--soft); }
+    .pop .empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 60px 12px; color: var(--soft); }
+    .pop .switch { width: 52px; height: 32px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; border: none; flex: none; }
+    .pop .switch.on { background: var(--brand); }
+    .pop .knob { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--card); }
+    .pop .switch.on .knob { left: 24px; }
+  </style>
+</helmet>
+
+<div class="pop {{themeClass}}" style="--accent: {{accent}}">
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div class="screen">
+      <div class="top">
+        <div>
+          <div class="eyebrow">{{ todayLabel }}</div>
+          <div class="dis h1">Mis plantitas</div>
+        </div>
+        <button class="iconbtn" onClick="{{ goSettings }}">
+          <svg class="ic24" viewBox="0 0 24 24"><path d="M4 7.5h4.5 M12.5 7.5h7.5 M4 16.5h8 M16 16.5h4 M10.5 5.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z M14 14.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"></path></svg>
+        </button>
+      </div>
+      <div class="body">
+        <div class="list">
+          <sc-for list="{{ plants }}" as="p" hint-placeholder-count="4">
+            <button class="pcard" style="border-color: {{ p.cardBorder }}" onClick="{{ p.open }}">
+              <div class="avatar" style="background: {{ p.tint }}">
+                <svg class="ic30" viewBox="0 0 24 24"><path d="{{ p.leaf }}"></path></svg>
+              </div>
+              <div class="pcard-main">
+                <div class="pname">{{ p.name }}</div>
+                <div class="pmeta">{{ p.meta }}</div>
+                <div class="carepill" style="background: {{ p.pillBg }}; color: {{ p.pillColor }}">
+                  <svg class="ic16" viewBox="0 0 24 24"><path d="{{ p.careIcon }}"></path></svg>
+                  <span>{{ p.careText }}</span>
+                </div>
+              </div>
+              <svg class="ic20 chev" viewBox="0 0 24 24"><path d="M9.5 5.5L16 12l-6.5 6.5"></path></svg>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ noPlants }}" hint-placeholder-val="{{ false }}">
+          <div class="empty">
+            <svg class="ic96" viewBox="0 0 24 24" style="color: var(--line)"><path d="M4.5 19.5C4.5 11 10 5 19.5 4.5 20 14 14 19.5 5.5 19.5H4.5z M5 19C9.5 14.5 13.5 11.5 17.5 9.5"></path></svg>
+            <div class="dis h2" style="color: var(--ink)">Tu jardín está vacío</div>
+            <div style="max-width: 250px; line-height: 1.5">Añade tu primera planta y te recuerdo cuándo toca regarla.</div>
+            <button class="btn accent" style="width: auto; padding: 0 26px; margin-top: 8px" onClick="{{ newPlant }}">
+              <svg class="ic20" viewBox="0 0 24 24"><path d="M12 5.5v13 M5.5 12h13"></path></svg>
+              <span>Nueva planta</span>
+            </button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+    <div class="screen">
+      <div class="top">
+        <button class="iconbtn" onClick="{{ goHome }}">
+          <svg class="ic24" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>
+        </button>
+        <button class="iconbtn" onClick="{{ editPlant }}">
+          <svg class="ic20" viewBox="0 0 24 24"><path d="M4 20l4.5-1.2L19.6 7.6a1.7 1.7 0 0 0 0-2.4l-.8-.8a1.7 1.7 0 0 0-2.4 0L5.2 15.5 4 20z"></path></svg>
+        </button>
+      </div>
+      <div class="body plain">
+        <div class="hero" style="background: {{ plant.tint }}">
+          <svg class="ic96" viewBox="0 0 24 24"><path d="{{ plant.leaf }}"></path></svg>
+        </div>
+        <div class="dis h2">{{ plant.name }}</div>
+        <div style="color: var(--soft); font-size: 13px; margin-top: 4px">{{ plant.meta }}</div>
+
+        <div class="attrs" style="margin-top: 16px">
+          <div class="attr">
+            <div class="attrk">
+              <svg class="ic16" viewBox="0 0 24 24"><path d="M12 21.5s7-6.6 7-11.5a7 7 0 1 0-14 0c0 4.9 7 11.5 7 11.5z M12 12.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"></path></svg>
+              <span>Ubicación</span>
+            </div>
+            <div class="attrv">{{ plant.location }}</div>
+          </div>
+          <div class="attr">
+            <div class="attrk">
+              <svg class="ic16" viewBox="0 0 24 24"><path d="M12 7.6a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8z M12 2.4v2.2 M12 19.4v2.2 M2.4 12h2.2 M19.4 12h2.2 M5.2 5.2l1.6 1.6 M17.2 17.2l1.6 1.6 M18.8 5.2l-1.6 1.6 M6.8 17.2l-1.6 1.6"></path></svg>
+              <span>Luz</span>
+            </div>
+            <div class="attrv">{{ plant.light }}</div>
+          </div>
+          <div class="attr">
+            <div class="attrk">
+              <svg class="ic16" viewBox="0 0 24 24"><path d="M4.6 8.6h14.8L17.9 20a1.6 1.6 0 0 1-1.6 1.4H7.7A1.6 1.6 0 0 1 6.1 20L4.6 8.6z M3.6 5.4h16.8v3.2H3.6z"></path></svg>
+              <span>Maceta</span>
+            </div>
+            <div class="attrv">{{ plant.pot }}</div>
+          </div>
+        </div>
+
+        <div class="sect">Próximo cuidado</div>
+        <div class="block" style="background: {{ next.bg }}">
+          <div style="display: flex; align-items: center; gap: 14px">
+            <div class="avatar" style="width: 52px; height: 52px; background: {{ next.chipBg }}; color: {{ next.color }}">
+              <svg class="ic24" viewBox="0 0 24 24"><path d="{{ next.icon }}"></path></svg>
+            </div>
+            <div class="grow">
+              <div class="dis" style="font-size: 20px">{{ next.title }}</div>
+              <div style="font-size: 13px; font-weight: 600; color: {{ next.color }}">{{ next.when }}</div>
+            </div>
+          </div>
+          <button class="btn primary" style="margin-top: 16px" disabled="{{ next.locked }}" onClick="{{ markDone }}">
+            <svg class="ic20" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            <span>Marcar como hecho</span>
+          </button>
+          <sc-if value="{{ next.showAvailable }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 12.5px; color: var(--soft); margin-top: 10px; text-align: center">{{ next.availableOn }}</div>
+          </sc-if>
+        </div>
+
+        <div class="sect">Cuidados</div>
+        <div class="list">
+          <sc-for list="{{ rules }}" as="r" hint-placeholder-count="2">
+            <div class="row" onClick="{{ r.edit }}" style="cursor: pointer">
+              <div class="avatar" style="width: 42px; height: 42px; background: {{ r.bg }}; color: {{ r.color }}">
+                <svg class="ic20" viewBox="0 0 24 24"><path d="{{ r.icon }}"></path></svg>
+              </div>
+              <div class="grow">
+                <div class="rowtitle">{{ r.label }}</div>
+                <div class="rowsub">{{ r.detail }}</div>
+              </div>
+              <div class="iconbtn" style="width: 40px; height: 40px; background: none; color: var(--soft)">
+                <svg class="ic20" viewBox="0 0 24 24"><path d="M4 20l4.5-1.2L19.6 7.6a1.7 1.7 0 0 0 0-2.4l-.8-.8a1.7 1.7 0 0 0-2.4 0L5.2 15.5 4 20z"></path></svg>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ canAddRule }}" hint-placeholder-val="{{ true }}">
+            <button class="btn ghost" onClick="{{ addRule }}">
+            <svg class="ic20" viewBox="0 0 24 24"><path d="M12 5.5v13 M5.5 12h13"></path></svg>
+            <span>Añadir cuidado</span>
+          </button>
+          </sc-if>
+        </div>
+
+        <button class="btn accent" style="margin-top: 14px" onClick="{{ openLog }}">
+          <svg class="ic20" viewBox="0 0 24 24"><path d="M12 20.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17z M12 7.6V12l3 2"></path></svg>
+          <span>Registrar cuidado</span>
+        </button>
+
+        <div class="sect">Historial</div>
+        <div class="list">
+          <sc-for list="{{ history }}" as="h" hint-placeholder-count="3">
+            <div class="row">
+              <div class="dot" style="background: {{ h.color }}; width: 10px; height: 10px; margin-left: 4px"></div>
+              <div class="grow">
+                <div class="rowtitle strike">{{ h.label }}</div>
+                <div class="rowsub">{{ h.when }}</div>
+              </div>
+              <button class="iconbtn" style="width: 40px; height: 40px; background: none; color: var(--soft)" onClick="{{ h.undo }}">
+                <svg class="ic20" viewBox="0 0 24 24"><path d="M9.5 14.5L5 10l4.5-4.5 M5 10h8.5a5.5 5.5 0 0 1 0 11H10"></path></svg>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ noHistory }}" hint-placeholder-val="{{ false }}">
+          <div style="color: var(--soft); font-size: 13.5px">Todavía no hay cuidados registrados.</div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isCalendar }}" hint-placeholder-val="{{ false }}">
+    <div class="screen">
+      <div class="top">
+        <div>
+          <div class="eyebrow">Calendario</div>
+          <div class="dis h1">{{ monthLabel }}</div>
+        </div>
+        <div style="display: flex; gap: 6px">
+          <button class="iconbtn" style="width: 40px; height: 40px" onClick="{{ prevMonth }}">
+            <svg class="ic20" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>
+          </button>
+          <button class="iconbtn" style="width: 40px; height: 40px" onClick="{{ nextMonth }}">
+            <svg class="ic20" viewBox="0 0 24 24"><path d="M9.5 5.5L16 12l-6.5 6.5"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="cal">
+          <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7">
+            <div class="wd">{{ w.n }}</div>
+          </sc-for>
+          <sc-for list="{{ days }}" as="d" hint-placeholder-count="35">
+            <button class="day {{ d.cls }}" onClick="{{ d.pick }}">
+              <span>{{ d.n }}</span>
+              <div class="dots">
+                <sc-for list="{{ d.dots }}" as="k" hint-placeholder-count="2">
+                  <div class="dot" style="background: {{ k.c }}"></div>
+                </sc-for>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+
+        <div class="sect">{{ selectedLabel }}</div>
+        <div class="list">
+          <sc-for list="{{ dayTasks }}" as="t" hint-placeholder-count="3">
+            <div class="row" style="background: {{ t.bg }}">
+              <div class="avatar" style="width: 42px; height: 42px; background: {{ t.chipBg }}; color: {{ t.color }}">
+                <svg class="ic20" viewBox="0 0 24 24"><path d="{{ t.icon }}"></path></svg>
+              </div>
+              <div class="grow">
+                <div class="rowtitle {{ t.titleCls }}">{{ t.title }}</div>
+                <div class="rowsub" style="color: {{ t.subColor }}">{{ t.sub }}</div>
+              </div>
+              <button class="iconbtn" style="width: 42px; height: 42px; background: {{ t.btnBg }}; color: {{ t.btnColor }}" disabled="{{ t.locked }}" onClick="{{ t.toggle }}">
+                <svg class="ic20" viewBox="0 0 24 24"><path d="{{ t.btnIcon }}"></path></svg>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ noDayTasks }}" hint-placeholder-val="{{ false }}">
+          <div style="color: var(--soft); font-size: 13.5px; padding: 6px 2px">No hay cuidados este día.</div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+    <div class="screen">
+      <div class="top" style="align-items: center">
+        <button class="iconbtn" onClick="{{ cancelForm }}">
+          <svg class="ic20" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11 M17.5 6.5l-11 11"></path></svg>
+        </button>
+        <div class="dis" style="font-size: 18px">{{ formTitle }}</div>
+        <button class="chip on" style="border-radius: 999px" onClick="{{ saveForm }}">Guardar</button>
+      </div>
+      <div class="body plain">
+        <button class="hero" style="background: var(--paper2); border: 2px dashed var(--line); width: 100%; height: 150px; flex-direction: column; gap: 8px; color: var(--soft); cursor: pointer; font-family: inherit">
+          <svg class="ic30" viewBox="0 0 24 24"><path d="M4.5 8.5h3.2L9.2 6h5.6l1.5 2.5h3.2v11h-15v-11z M12 17a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4z"></path></svg>
+          <span style="font-size: 13px; font-weight: 600">Añadir foto</span>
+        </button>
+
+        <div style="margin-top: 18px">
+          <div class="label">Nombre</div>
+          <input class="input" value="{{ form.name }}" onChange="{{ setName }}" placeholder="Monstera deliciosa">
+          <sc-if value="{{ form.nameError }}" hint-placeholder-val="{{ false }}">
+            <div class="err">El nombre no puede estar vacío</div>
+          </sc-if>
+        </div>
+
+        <div style="margin-top: 16px">
+          <div class="label">Ubicación</div>
+          <input class="input" value="{{ form.location }}" onChange="{{ setLocation }}" placeholder="Salón">
+        </div>
+
+        <div style="margin-top: 16px">
+          <div class="label">Luz</div>
+          <div class="chips">
+            <sc-for list="{{ lightOptions }}" as="o" hint-placeholder-count="3">
+              <button class="chip {{ o.cls }}" onClick="{{ o.pick }}">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px">
+          <div class="label">Maceta</div>
+          <div class="chips">
+            <sc-for list="{{ potOptions }}" as="o" hint-placeholder-count="4">
+              <button class="chip {{ o.cls }}" onClick="{{ o.pick }}">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px">
+          <div class="label">Descripción</div>
+          <textarea class="input" value="{{ form.desc }}" onChange="{{ setDesc }}" placeholder="Cómo es, dónde la compraste, qué le gusta…"></textarea>
+        </div>
+
+        <div class="sect">Cuidados</div>
+        <div class="list">
+          <sc-for list="{{ formRules }}" as="r" hint-placeholder-count="1">
+            <div class="row">
+              <div class="avatar" style="width: 42px; height: 42px; background: {{ r.bg }}; color: {{ r.color }}">
+                <svg class="ic20" viewBox="0 0 24 24"><path d="{{ r.icon }}"></path></svg>
+              </div>
+              <div class="grow">
+                <div class="rowtitle">{{ r.label }}</div>
+                <div class="rowsub">{{ r.detail }}</div>
+              </div>
+              <button class="iconbtn" style="width: 40px; height: 40px; background: none; color: var(--soft)" onClick="{{ r.remove }}">
+                <svg class="ic20" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11 M17.5 6.5l-11 11"></path></svg>
+              </button>
+            </div>
+          </sc-for>
+          <sc-if value="{{ canAddRule }}" hint-placeholder-val="{{ true }}">
+            <button class="btn ghost" onClick="{{ addRule }}">
+            <svg class="ic20" viewBox="0 0 24 24"><path d="M12 5.5v13 M5.5 12h13"></path></svg>
+            <span>Añadir cuidado</span>
+          </button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ isEditing }}" hint-placeholder-val="{{ false }}">
+          <button class="btn danger" style="margin-top: 26px" onClick="{{ deletePlant }}">Eliminar planta</button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+    <div class="screen">
+      <div class="top" style="align-items: center">
+        <button class="iconbtn" onClick="{{ goHome }}">
+          <svg class="ic24" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>
+        </button>
+        <div class="dis" style="font-size: 18px">Ajustes</div>
+        <div style="width: 46px"></div>
+      </div>
+      <div class="body plain">
+        <div class="sect" style="margin-top: 6px">Apariencia</div>
+        <div class="chips">
+          <sc-for list="{{ themeOptions }}" as="o" hint-placeholder-count="3">
+            <button class="chip {{ o.cls }}" onClick="{{ o.pick }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+
+        <div class="sect">Idioma</div>
+        <div class="chips">
+          <sc-for list="{{ langOptions }}" as="o" hint-placeholder-count="2">
+            <button class="chip {{ o.cls }}" onClick="{{ o.pick }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+
+        <div class="sect">Notificaciones</div>
+        <div class="list">
+          <div class="row" style="padding: 14px">
+            <div class="avatar" style="width: 42px; height: 42px; background: var(--fertBg); color: var(--fert)">
+              <svg class="ic20" viewBox="0 0 24 24"><path d="M18 16.5H6l1.6-2.8V10a4.4 4.4 0 0 1 8.8 0v3.7L18 16.5z M10 19.5a2 2 0 0 0 4 0"></path></svg>
+            </div>
+            <div class="grow">
+              <div class="rowtitle">Recordatorios</div>
+              <div class="rowsub">{{ notifSub }}</div>
+            </div>
+            <button class="switch {{ notifCls }}" onClick="{{ toggleNotif }}"><span class="knob"></span></button>
+          </div>
+          <div class="row" style="padding: 14px">
+            <div class="avatar" style="width: 42px; height: 42px; background: var(--waterBg); color: var(--water)">
+              <svg class="ic20" viewBox="0 0 24 24"><path d="M12 20.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17z M12 7.6V12l3 2"></path></svg>
+            </div>
+            <div class="grow">
+              <div class="rowtitle">Alarmas exactas</div>
+              <div class="rowsub">Concedidas · los avisos llegan a su hora</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sect">Acerca de</div>
+        <div class="block">
+          <div class="dis" style="font-size: 20px">Plantitas</div>
+          <div style="color: var(--soft); font-size: 13.5px; line-height: 1.5; margin-top: 8px">Tu jardín de casa, ordenado. Apunta tus plantas, marca sus cuidados y no vuelvas a olvidarte de regar.</div>
+          <div style="color: var(--soft); font-size: 12.5px; margin-top: 12px">Versión 2.0.0</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+    <div class="tabbar">
+      <button class="tab {{ tabPlantsCls }}" onClick="{{ goHome }}">
+        <svg class="ic20" viewBox="0 0 24 24"><path d="M4.5 19.5C4.5 11 10 5 19.5 4.5 20 14 14 19.5 5.5 19.5H4.5z M5 19C9.5 14.5 13.5 11.5 17.5 9.5"></path></svg>
+        <span>Plantas</span>
+      </button>
+      <button class="fabmid" onClick="{{ newPlant }}">
+        <svg class="ic24" viewBox="0 0 24 24" style="stroke-width: 2.3"><path d="M12 5.5v13 M5.5 12h13"></path></svg>
+      </button>
+      <button class="tab {{ tabCalCls }}" onClick="{{ goCalendar }}">
+        <svg class="ic20" viewBox="0 0 24 24"><path d="M4.5 7.5h15v12h-15z M8.5 4v4 M15.5 4v4 M4.5 11.5h15"></path></svg>
+        <span>Calendario</span>
+      </button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toast.show }}" hint-placeholder-val="{{ false }}">
+    <div class="toast">
+      <span class="grow">{{ toast.text }}</span>
+      <sc-if value="{{ toast.undoable }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ undoToast }}">Deshacer</button>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isLogSheet }}" hint-placeholder-val="{{ false }}">
+    <div class="scrim" onClick="{{ closeSheet }}">
+      <div class="sheet" onClick="{{ stop }}">
+        <div class="handle"></div>
+        <div class="dis h2" style="margin-bottom: 18px">Registrar cuidado</div>
+
+        <div class="label">Tipo de cuidado</div>
+        <div class="chips">
+          <sc-for list="{{ logTypes }}" as="o" hint-placeholder-count="3">
+            <button class="chip {{ o.cls }}" onClick="{{ o.pick }}">
+              <svg class="ic16" viewBox="0 0 24 24"><path d="{{ o.icon }}"></path></svg>
+              <span>{{ o.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div class="label" style="margin-top: 18px">¿Qué día lo hiciste?</div>
+        <div class="chips">
+          <sc-for list="{{ logDays }}" as="o" hint-placeholder-count="3">
+            <button class="chip {{ o.cls }}" onClick="{{ o.pick }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 18px">
+          <div class="label">{{ logExtraLabel }}</div>
+          <input class="input" value="{{ logExtra }}" onChange="{{ setLogExtra }}">
+        </div>
+
+        <div style="margin-top: 16px">
+          <div class="label">Nota (opcional)</div>
+          <input class="input" value="{{ logNote }}" onChange="{{ setLogNote }}" placeholder="La tierra estaba muy seca">
+        </div>
+
+        <button class="btn primary" style="margin-top: 22px" onClick="{{ confirmLog }}">Confirmar</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isRuleSheet }}" hint-placeholder-val="{{ false }}">
+    <div class="scrim" onClick="{{ closeSheet }}">
+      <div class="sheet" onClick="{{ stop }}">
+        <div class="handle"></div>
+        <div class="dis h2" style="margin-bottom: 18px">{{ ruleTitle }}</div>
+
+        <div class="label">Tipo de cuidado</div>
+        <div class="chips">
+          <sc-for list="{{ ruleTypes }}" as="o" hint-placeholder-count="3">
+            <button class="chip {{ o.cls }}" disabled="{{ o.disabled }}" onClick="{{ o.pick }}">
+              <svg class="ic16" viewBox="0 0 24 24"><path d="{{ o.icon }}"></path></svg>
+              <span>{{ o.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ ruleTypeNote.show }}" hint-placeholder-val="{{ false }}">
+          <div class="rowsub" style="margin-top: 8px">{{ ruleTypeNote.text }}</div>
+        </sc-if>
+
+        <div class="label" style="margin-top: 18px">Cada cuántos días</div>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <button class="iconbtn" onClick="{{ ruleLess }}">
+            <svg class="ic20" viewBox="0 0 24 24"><path d="M5.5 12h13"></path></svg>
+          </button>
+          <div class="dis" style="font-size: 30px; min-width: 74px; text-align: center">{{ ruleEvery }}</div>
+          <button class="iconbtn" onClick="{{ ruleMore }}">
+            <svg class="ic20" viewBox="0 0 24 24"><path d="M12 5.5v13 M5.5 12h13"></path></svg>
+          </button>
+          <div style="color: var(--soft); font-size: 13.5px">días</div>
+        </div>
+
+        <div class="label" style="margin-top: 18px">Hora del recordatorio</div>
+        <div class="chips">
+          <sc-for list="{{ ruleTimes }}" as="o" hint-placeholder-count="4">
+            <button class="chip {{ o.cls }}" onClick="{{ o.pick }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+
+        <div class="row" style="margin-top: 18px; padding: 14px; background: var(--card)">
+          <div class="grow">
+            <div class="rowtitle">Activar notificaciones</div>
+            <div class="rowsub">{{ ruleNotifSub }}</div>
+          </div>
+          <button class="switch {{ ruleNotifCls }}" onClick="{{ toggleRuleNotif }}"><span class="knob"></span></button>
+        </div>
+
+        <div style="margin-top: 16px">
+          <div class="label">{{ ruleExtraLabel }}</div>
+          <input class="input" value="{{ ruleExtra }}" onChange="{{ setRuleExtra }}">
+        </div>
+
+        <button class="btn primary" style="margin-top: 22px" onClick="{{ confirmRule }}">Guardar cuidado</button>
+        <sc-if value="{{ ruleIsEdit }}" hint-placeholder-val="{{ false }}">
+          <button class="btn danger" style="margin-top: 10px" onClick="{{ deleteRule }}">Eliminar cuidado</button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844},"start":{"editor":"enum","options":["home","detail","calendar","form","settings"],"default":"detail","section":"Prototipo"},"dark":{"editor":"boolean","default":false,"section":"Prototipo"},"accent":{"editor":"color","default":"#C9E84B","options":["#C9E84B","#F6C453","#7FD1AE","#F19A7E"],"section":"Prototipo"}}'>
+var CARE = {
+  water: {
+    label: 'Riego', verb: 'Regar', done: 'Regada',
+    icon: 'M12 3.4c3.7 3.7 6 6.8 6 9.5a6 6 0 0 1-12 0c0-2.7 2.3-5.8 6-9.5z',
+    color: 'var(--water)', bg: 'var(--waterBg)',
+    extraLabel: 'Cantidad (ml)', extra: '400'
+  },
+  fertilize: {
+    label: 'Abonado', verb: 'Abonar', done: 'Abonada',
+    icon: 'M10 3.2h4 M11 3.2v6l-4 8a2 2 0 0 0 1.8 2.9h6.4A2 2 0 0 0 17 17.2l-4-8v-6',
+    color: 'var(--fert)', bg: 'var(--fertBg)',
+    extraLabel: 'Nombre del fertilizante', extra: 'Abono universal'
+  },
+  repot: {
+    label: 'Trasplante', verb: 'Trasplantar', done: 'Trasplantada',
+    icon: 'M4.6 8.6h14.8L17.9 20a1.6 1.6 0 0 1-1.6 1.4H7.7A1.6 1.6 0 0 1 6.1 20L4.6 8.6z M3.6 5.4h16.8v3.2H3.6z',
+    color: 'var(--repot)', bg: 'var(--repotBg)',
+    extraLabel: 'Nuevo tamaño de maceta', extra: 'Grande'
+  }
+};
+
+var LEAF = {
+  monstera: 'M4.5 19.5C4.5 11 10 5 19.5 4.5 20 14 14 19.5 5.5 19.5H4.5z M5 19C9.5 14.5 13.5 11.5 17.5 9.5',
+  blades: 'M12 21V6.5 M12 21c0-6 2-11.2 5.5-14.5 M12 21c0-6-2-11.2-5.5-14.5',
+  cactus: 'M12 21V4 M12 13.6c-3.2 0-4.6-1.7-4.6-4.4 M12 15.6c3.2 0 4.6-1.7 4.6-4.9 M9 21h6',
+  round: 'M12 21v-7 M12 14.4a5.6 5.6 0 1 1 0-11.2 5.6 5.6 0 0 1 0 11.2z',
+  palm: 'M12 21v-8 M12 13c-4.2 0-6.8-2.6-6.8-6.2 M12 13c4.2 0 6.8-2.6 6.8-6.2 M12 13c0-4.2-2.1-6.8-4.7-8.3 M12 13c0-4.2 2.1-6.8 4.7-8.3'
+};
+
+var TINTS = ['#C9E84B', '#F6C453', '#7FD1AE', '#F19A7E', '#A8C7FF'];
+
+var MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+var TYPES = ['water', 'fertilize', 'repot'];
+
+var TODAY = 10;
+
+function dateLabel(offset) {
+  var d = new Date(2026, 8, TODAY + offset);
+  return d.getDate() + ' de ' + MONTHS[d.getMonth()].toLowerCase();
+}
+
+function freeTypes(rules) {
+  var taken = rules.map(function (r) { return r.type; });
+  return TYPES.filter(function (t) { return taken.indexOf(t) === -1; });
+}
+
+function withRules(plant, rules) {
+  var types = rules.map(function (r) { return r.type; });
+  var next = plant.next;
+  if (next && types.indexOf(next.type) === -1) next = null;
+  if (!next && rules.length) next = { type: rules[0].type, days: 0 };
+  return Object.assign({}, plant, { rules: rules, next: next });
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      screen: props.start || 'home',
+      themeMode: props.dark ? 'dark' : 'light',
+      lang: 'es',
+      notif: true,
+      selectedId: 1,
+      editingId: null,
+      sheet: null,
+      form: this.blankForm(),
+      ruleDraft: null,
+      logDraft: null,
+      toast: null,
+      snapshot: null,
+      calMonth: 8,
+      calYear: 2026,
+      calDay: TODAY,
+      plants: [
+        {
+          id: 1, name: 'Monstera deliciosa', location: 'Salón', light: 'Media', pot: 'Grande',
+          desc: 'La que se comió media estantería. Luz filtrada de la ventana del este.',
+          tint: TINTS[0], leaf: LEAF.monstera,
+          next: { type: 'water', days: 2 },
+          rules: [
+            { type: 'water', every: 5, time: '09:00', notif: true, extra: '400' },
+            { type: 'fertilize', every: 30, time: '10:00', notif: true, extra: 'Abono universal' }
+          ],
+          history: [
+            { type: 'water', when: '7 sep · 09:12', note: '' },
+            { type: 'water', when: '2 sep · 09:05', note: '' },
+            { type: 'fertilize', when: '1 sep · 10:03', note: 'Media dosis' }
+          ]
+        },
+        {
+          id: 2, name: 'Potos', location: 'Cocina', light: 'Baja', pot: 'Mediana',
+          desc: 'Aguanta lo que le eches. O lo que no le eches.',
+          tint: TINTS[1], leaf: LEAF.blades,
+          next: { type: 'fertilize', days: 0 },
+          rules: [{ type: 'fertilize', every: 30, time: '10:00', notif: true, extra: 'Abono verde' }],
+          history: [{ type: 'fertilize', when: '11 ago · 10:20', note: '' }]
+        },
+        {
+          id: 3, name: 'Ficus lyrata', location: 'Dormitorio', light: 'Alta', pot: 'Grande',
+          desc: 'Dramático: si le falta agua lo dice tirando hojas.',
+          tint: TINTS[2], leaf: LEAF.round,
+          next: { type: 'water', days: -3 },
+          rules: [{ type: 'water', every: 7, time: '09:00', notif: true, extra: '600' }],
+          history: [{ type: 'water', when: '31 ago · 09:02', note: '' }]
+        },
+        {
+          id: 4, name: 'Cactus san pedro', location: 'Balcón', light: 'Alta', pot: 'Pequeña',
+          desc: 'Sol directo y olvido: su plan de cuidados ideal.',
+          tint: TINTS[3], leaf: LEAF.cactus,
+          next: { type: 'water', days: 8 },
+          rules: [{ type: 'water', every: 14, time: '12:00', notif: false, extra: '150' }],
+          history: [{ type: 'water', when: '4 sep · 18:40', note: '' }]
+        },
+        {
+          id: 5, name: 'Calathea', location: 'Baño', light: 'Media', pot: 'Mediana',
+          desc: 'Le gusta la humedad del baño y el agua sin cal.',
+          tint: TINTS[4], leaf: LEAF.palm,
+          next: { type: 'water', days: 4 },
+          rules: [
+            { type: 'water', every: 4, time: '09:00', notif: true, extra: '250' },
+            { type: 'repot', every: 365, time: '11:00', notif: true, extra: 'Grande' }
+          ],
+          history: [{ type: 'water', when: 'Hoy · 08:20', note: '' }]
+        }
+      ],
+      calTasks: {
+        2: [{ plantId: 1, plant: 'Monstera deliciosa', type: 'water', time: '09:05', done: true }],
+        4: [{ plantId: 4, plant: 'Cactus san pedro', type: 'water', time: '18:40', done: true }],
+        7: [{ plantId: 1, plant: 'Monstera deliciosa', type: 'water', time: '09:12', done: true }],
+        10: [
+          { plantId: 3, plant: 'Ficus lyrata', type: 'water', time: '09:00', done: false, late: 3 },
+          { plantId: 2, plant: 'Potos', type: 'fertilize', time: '10:00', done: false },
+          { plantId: 5, plant: 'Calathea', type: 'water', time: '08:20', done: true }
+        ],
+        12: [{ plantId: 1, plant: 'Monstera deliciosa', type: 'water', time: '09:00', done: false }],
+        14: [{ plantId: 5, plant: 'Calathea', type: 'water', time: '09:00', done: false }],
+        17: [{ plantId: 1, plant: 'Monstera deliciosa', type: 'water', time: '09:00', done: false }],
+        18: [
+          { plantId: 4, plant: 'Cactus san pedro', type: 'water', time: '12:00', done: false },
+          { plantId: 5, plant: 'Calathea', type: 'water', time: '09:00', done: false }
+        ],
+        22: [
+          { plantId: 1, plant: 'Monstera deliciosa', type: 'water', time: '09:00', done: false },
+          { plantId: 5, plant: 'Calathea', type: 'water', time: '09:00', done: false }
+        ],
+        26: [{ plantId: 5, plant: 'Calathea', type: 'water', time: '09:00', done: false }],
+        27: [{ plantId: 1, plant: 'Monstera deliciosa', type: 'water', time: '09:00', done: false }]
+      }
+    };
+  }
+
+  componentDidUpdate(prev) {
+    if (prev.start !== this.props.start) this.setState({ screen: this.props.start, sheet: null });
+    if (prev.dark !== this.props.dark) this.setState({ themeMode: this.props.dark ? 'dark' : 'light' });
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.toastTimer);
+  }
+
+  blankForm() {
+    return { name: '', location: '', light: null, pot: null, desc: '', rules: [], nameError: false };
+  }
+
+  current() {
+    return this.state.plants.find((p) => p.id === this.state.selectedId) || this.state.plants[0];
+  }
+
+  careText(next) {
+    if (!next) return 'Sin cuidados programados';
+    const c = CARE[next.type];
+    if (next.days < 0) return c.verb + ' · ' + (-next.days) + ' días de retraso';
+    if (next.days === 0) return c.verb + ' · hoy';
+    if (next.days === 1) return c.verb + ' · mañana';
+    return c.verb + ' · en ' + next.days + ' días';
+  }
+
+  pillStyle(next) {
+    if (!next) return { bg: 'var(--paper2)', color: 'var(--soft)', border: 'transparent' };
+    if (next.days < 0) return { bg: 'var(--overdue)', color: '#FFFFFF', border: 'var(--overdue)' };
+    if (next.days === 0) return { bg: CARE[next.type].color, color: '#FFFFFF', border: 'transparent' };
+    return { bg: CARE[next.type].bg, color: CARE[next.type].color, border: 'transparent' };
+  }
+
+  snap() {
+    return { plants: JSON.parse(JSON.stringify(this.state.plants)), calTasks: JSON.parse(JSON.stringify(this.state.calTasks)) };
+  }
+
+  showToast(text, snapshot) {
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: { text: text }, snapshot: snapshot || null });
+    this.toastTimer = setTimeout(() => this.setState({ toast: null, snapshot: null }), 4500);
+  }
+
+  completeNext(plants, plantId) {
+    let prevDays = null;
+    const out = plants.map((p) => {
+      if (p.id !== plantId || !p.next || p.next.days > 0) return p;
+      const rule = p.rules.find((r) => r.type === p.next.type);
+      prevDays = p.next.days;
+      return Object.assign({}, p, {
+        next: { type: p.next.type, days: rule ? rule.every : 7 },
+        history: [{ type: p.next.type, when: 'Hoy · 09:14', note: '' }].concat(p.history)
+      });
+    });
+    return { plants: out, prevDays: prevDays };
+  }
+
+  onMarkDone = () => {
+    const plant = this.current();
+    if (!plant.next || plant.next.days > 0) return;
+    const snapshot = this.snap();
+    const type = plant.next.type;
+    const result = this.completeNext(this.state.plants, plant.id);
+    const calTasks = JSON.parse(JSON.stringify(this.state.calTasks));
+    (calTasks[TODAY] || []).forEach((t) => {
+      if (t.plantId === plant.id && t.type === type && !t.done) {
+        t.prevTime = t.time;
+        t.time = '09:14';
+        t.done = true;
+        t.synced = true;
+        t.prevDays = result.prevDays;
+      }
+    });
+    this.setState({ plants: result.plants, calTasks: calTasks });
+    this.showToast('Cuidado registrado', snapshot);
+  };
+
+  onUndoToast = () => {
+    clearTimeout(this.toastTimer);
+    if (this.state.snapshot) {
+      this.setState({ plants: this.state.snapshot.plants, calTasks: this.state.snapshot.calTasks, toast: null, snapshot: null });
+    } else {
+      this.setState({ toast: null });
+    }
+  };
+
+  renderVals() {
+    const s = this.state;
+    const plant = this.current();
+    const screen = s.screen;
+    const isSept = s.calMonth === 8 && s.calYear === 2026;
+
+    const plants = s.plants.map((p) => {
+      const style = this.pillStyle(p.next);
+      return {
+        name: p.name,
+        meta: [p.location, 'Luz ' + String(p.light).toLowerCase()].filter(Boolean).join(' · '),
+        tint: p.tint,
+        leaf: p.leaf,
+        careText: this.careText(p.next),
+        careIcon: p.next ? CARE[p.next.type].icon : CARE.water.icon,
+        pillBg: style.bg,
+        pillColor: style.color,
+        cardBorder: style.border,
+        open: () => this.setState({ selectedId: p.id, screen: 'detail', toast: null })
+      };
+    });
+
+    const next = plant.next ? {
+      title: CARE[plant.next.type].label,
+      when: this.careText(plant.next).split(' · ')[1],
+      icon: CARE[plant.next.type].icon,
+      color: plant.next.days < 0 ? 'var(--overdue)' : CARE[plant.next.type].color,
+      bg: plant.next.days < 0 ? 'var(--overdueBg)' : 'var(--card)',
+      chipBg: plant.next.days < 0 ? 'var(--overdueBg)' : CARE[plant.next.type].bg,
+      locked: plant.next.days > 0,
+      showAvailable: plant.next.days > 0,
+      availableOn: 'Disponible el ' + dateLabel(plant.next.days)
+    } : {
+      title: 'Sin cuidados', when: 'Añade un cuidado para programarlo', icon: CARE.water.icon,
+      color: 'var(--soft)', bg: 'var(--card)', chipBg: 'var(--paper2)',
+      locked: true, showAvailable: false, availableOn: ''
+    };
+
+    const rules = plant.rules.map((r) => ({
+      label: CARE[r.type].label,
+      detail: 'Cada ' + r.every + ' días · ' + r.time + (r.notif ? '' : ' · sin aviso'),
+      icon: CARE[r.type].icon,
+      color: CARE[r.type].color,
+      bg: CARE[r.type].bg,
+      edit: () => this.setState({ sheet: 'rule', ruleDraft: Object.assign({}, r, { isEdit: true }) })
+    }));
+
+    const history = plant.history.map((h, i) => ({
+      label: CARE[h.type].done + (h.note ? ' · ' + h.note : ''),
+      when: h.when,
+      color: CARE[h.type].color,
+      undo: () => {
+        const snapshot = this.snap();
+        const list = s.plants.map((p) => p.id !== plant.id ? p : Object.assign({}, p, { history: p.history.filter((x, j) => j !== i) }));
+        this.setState({ plants: list });
+        this.showToast('Registro deshecho', snapshot);
+      }
+    }));
+
+    const firstWeekday = (new Date(s.calYear, s.calMonth, 1).getDay() + 6) % 7;
+    const total = new Date(s.calYear, s.calMonth + 1, 0).getDate();
+    const days = [];
+    for (let i = 0; i < firstWeekday; i++) days.push({ n: '', cls: 'blank', dots: [], pick: () => {} });
+    for (let d = 1; d <= total; d++) {
+      const entries = isSept ? (s.calTasks[d] || []) : [];
+      const colors = [];
+      entries.forEach((e) => {
+        const c = e.late && !e.done ? 'var(--overdue)' : CARE[e.type].color;
+        if (colors.indexOf(c) === -1) colors.push(c);
+      });
+      const isToday = isSept && d === TODAY;
+      const isSel = d === s.calDay;
+      days.push({
+        n: String(d),
+        cls: (isSel ? 'sel ' : '') + (isToday ? 'today' : ''),
+        dots: colors.slice(0, 3).map((c) => ({ c: c })),
+        pick: () => this.setState({ calDay: d })
+      });
+    }
+
+    const dayEntries = isSept ? (s.calTasks[s.calDay] || []) : [];
+    const dayTasks = dayEntries.map((t, i) => {
+      const c = CARE[t.type];
+      const late = !!t.late && !t.done;
+      const locked = !t.done && isSept && s.calDay > TODAY;
+      return {
+        title: c.label + ' · ' + t.plant,
+        titleCls: t.done ? 'strike' : '',
+        sub: t.done ? 'Hecho a las ' + t.time : (late ? t.late + ' días de retraso' : (locked ? 'Programado · ' + t.time : t.time)),
+        subColor: late ? 'var(--overdue)' : 'var(--soft)',
+        icon: c.icon,
+        color: late ? 'var(--overdue)' : c.color,
+        chipBg: late ? 'var(--overdueBg)' : c.bg,
+        bg: late ? 'var(--overdueBg)' : 'var(--card)',
+        btnBg: t.done || locked ? 'var(--paper2)' : 'var(--ink)',
+        btnColor: t.done || locked ? 'var(--soft)' : 'var(--paper)',
+        btnIcon: t.done ? 'M9.5 14.5L5 10l4.5-4.5 M5 10h8.5a5.5 5.5 0 0 1 0 11H10' : 'M5 12.5l4.5 4.5L19 7.5',
+        locked: locked,
+        toggle: () => {
+          if (locked) return;
+          const snapshot = this.snap();
+          const calTasks = JSON.parse(JSON.stringify(s.calTasks));
+          const task = calTasks[s.calDay][i];
+          let list = s.plants;
+          if (!task.done) {
+            task.done = true;
+            task.prevTime = task.time;
+            task.time = '09:14';
+            const owner = s.plants.find((x) => x.id === task.plantId);
+            if (s.calDay === TODAY && owner && owner.next && owner.next.type === task.type && owner.next.days <= 0) {
+              const result = this.completeNext(s.plants, owner.id);
+              list = result.plants;
+              task.synced = true;
+              task.prevDays = result.prevDays;
+            }
+          } else {
+            task.done = false;
+            if (task.prevTime) task.time = task.prevTime;
+            if (task.synced) {
+              list = s.plants.map((x) => x.id !== task.plantId ? x : Object.assign({}, x, {
+                next: { type: task.type, days: task.prevDays },
+                history: x.history.slice(1)
+              }));
+              task.synced = false;
+            }
+          }
+          this.setState({ plants: list, calTasks: calTasks });
+          this.showToast(task.done ? 'Cuidado registrado' : 'Registro deshecho', snapshot);
+        }
+      };
+    });
+
+    const mkOptions = (list, value, set) => list.map((o) => ({
+      label: o.label,
+      cls: o.value === value ? 'on' : '',
+      pick: () => set(o.value)
+    }));
+
+    const ruleSource = screen === 'form' ? s.form.rules : plant.rules;
+    const free = freeTypes(ruleSource);
+    const draft = s.ruleDraft || { type: 'water', every: 7, time: '09:00', notif: true, extra: '400', isEdit: false };
+    const log = s.logDraft || { type: 'water', day: 'hoy', extra: CARE.water.extra, note: '' };
+    const ruleTypes = TYPES.map((t) => {
+      const blocked = draft.isEdit ? t !== draft.type : free.indexOf(t) === -1;
+      return {
+        label: CARE[t].label,
+        icon: CARE[t].icon,
+        cls: draft.type === t ? 'on' : '',
+        disabled: blocked,
+        pick: () => { if (!blocked) this.setState({ ruleDraft: Object.assign({}, draft, { type: t, extra: CARE[t].extra }) }); }
+      };
+    });
+
+    return {
+      themeClass: s.themeMode === 'dark' ? 'dark' : '',
+      accent: this.props.accent || '#C9E84B',
+      todayLabel: 'Jueves · 10 septiembre',
+
+      isHome: screen === 'home',
+      isDetail: screen === 'detail',
+      isCalendar: screen === 'calendar',
+      isForm: screen === 'form',
+      isSettings: screen === 'settings',
+      showTabs: screen === 'home' || screen === 'calendar',
+      tabPlantsCls: screen === 'home' ? 'on' : '',
+      tabCalCls: screen === 'calendar' ? 'on' : '',
+
+      plants: plants,
+      noPlants: s.plants.length === 0,
+
+      plant: {
+        name: plant.name,
+        meta: [plant.location, 'Luz ' + String(plant.light).toLowerCase(), 'Maceta ' + String(plant.pot).toLowerCase()].join(' · '),
+        tint: plant.tint,
+        leaf: plant.leaf,
+        location: plant.location,
+        light: plant.light,
+        pot: plant.pot
+      },
+      next: next,
+      rules: rules,
+      history: history,
+      noHistory: history.length === 0,
+
+      monthLabel: MONTHS[s.calMonth] + ' ' + s.calYear,
+      weekdays: [{ n: 'L' }, { n: 'M' }, { n: 'X' }, { n: 'J' }, { n: 'V' }, { n: 'S' }, { n: 'D' }],
+      days: days,
+      selectedLabel: s.calDay + ' de ' + MONTHS[s.calMonth].toLowerCase(),
+      dayTasks: dayTasks,
+      noDayTasks: dayTasks.length === 0,
+
+      formTitle: s.editingId ? 'Editar planta' : 'Nueva planta',
+      isEditing: !!s.editingId,
+      form: s.form,
+      lightOptions: mkOptions(
+        [{ label: 'Baja', value: 'Baja' }, { label: 'Media', value: 'Media' }, { label: 'Alta', value: 'Alta' }],
+        s.form.light,
+        (v) => this.setState({ form: Object.assign({}, s.form, { light: v }) })
+      ),
+      potOptions: mkOptions(
+        [{ label: 'Pequeña', value: 'Pequeña' }, { label: 'Mediana', value: 'Mediana' }, { label: 'Grande', value: 'Grande' }, { label: 'Muy grande', value: 'Muy grande' }],
+        s.form.pot,
+        (v) => this.setState({ form: Object.assign({}, s.form, { pot: v }) })
+      ),
+      formRules: s.form.rules.map((r, i) => ({
+        label: CARE[r.type].label,
+        detail: 'Cada ' + r.every + ' días · ' + r.time,
+        icon: CARE[r.type].icon,
+        color: CARE[r.type].color,
+        bg: CARE[r.type].bg,
+        remove: () => this.setState({ form: Object.assign({}, s.form, { rules: s.form.rules.filter((x, j) => j !== i) }) })
+      })),
+      setName: (e) => this.setState({ form: Object.assign({}, s.form, { name: e.target.value, nameError: false }) }),
+      setLocation: (e) => this.setState({ form: Object.assign({}, s.form, { location: e.target.value }) }),
+      setDesc: (e) => this.setState({ form: Object.assign({}, s.form, { desc: e.target.value }) }),
+      cancelForm: () => this.setState({ screen: s.editingId ? 'detail' : 'home', editingId: null, form: this.blankForm(), sheet: null }),
+      saveForm: () => {
+        if (!s.form.name.trim()) {
+          this.setState({ form: Object.assign({}, s.form, { nameError: true }) });
+          return;
+        }
+        if (s.editingId) {
+          const list = s.plants.map((p) => p.id !== s.editingId ? p : withRules(Object.assign({}, p, {
+            name: s.form.name.trim(), location: s.form.location || p.location, light: s.form.light || p.light,
+            pot: s.form.pot || p.pot, desc: s.form.desc
+          }), s.form.rules));
+          this.setState({ plants: list, screen: 'detail', editingId: null, form: this.blankForm() });
+          this.showToast('Planta actualizada', null);
+        } else {
+          const id = s.plants.length ? Math.max.apply(null, s.plants.map((p) => p.id)) + 1 : 1;
+          const leafKeys = Object.keys(LEAF);
+          const created = withRules({
+            id: id, name: s.form.name.trim(), location: s.form.location || 'Sin ubicación',
+            light: s.form.light || 'Media', pot: s.form.pot || 'Mediana', desc: s.form.desc,
+            tint: TINTS[s.plants.length % TINTS.length], leaf: LEAF[leafKeys[s.plants.length % leafKeys.length]],
+            next: null, rules: [], history: []
+          }, s.form.rules);
+          this.setState({ plants: s.plants.concat([created]), screen: 'home', form: this.blankForm() });
+          this.showToast('Planta añadida', null);
+        }
+      },
+      deletePlant: () => {
+        const snapshot = this.snap();
+        this.setState({ plants: s.plants.filter((p) => p.id !== s.editingId), screen: 'home', editingId: null, form: this.blankForm() });
+        this.showToast('Planta eliminada', snapshot);
+      },
+
+      themeOptions: mkOptions(
+        [{ label: 'Claro', value: 'light' }, { label: 'Oscuro', value: 'dark' }, { label: 'Seguir al sistema', value: 'system' }],
+        s.themeMode,
+        (v) => this.setState({ themeMode: v })
+      ),
+      langOptions: mkOptions(
+        [{ label: 'Español', value: 'es' }, { label: 'English', value: 'en' }],
+        s.lang,
+        (v) => this.setState({ lang: v })
+      ),
+      notifSub: s.notif ? 'Concedidos · te aviso a la hora de cada cuidado' : 'Desactivados · no recibirás avisos',
+      notifCls: s.notif ? 'on' : '',
+      toggleNotif: () => this.setState({ notif: !s.notif }),
+
+      goHome: () => this.setState({ screen: 'home', toast: null }),
+      goCalendar: () => this.setState({ screen: 'calendar', toast: null }),
+      goSettings: () => this.setState({ screen: 'settings', toast: null }),
+      newPlant: () => this.setState({ screen: 'form', editingId: null, form: this.blankForm(), toast: null }),
+      editPlant: () => this.setState({
+        screen: 'form', editingId: plant.id, toast: null,
+        form: { name: plant.name, location: plant.location, light: plant.light, pot: plant.pot, desc: plant.desc, rules: plant.rules, nameError: false }
+      }),
+      markDone: this.onMarkDone,
+      prevMonth: () => {
+        const month = s.calMonth === 0 ? 11 : s.calMonth - 1;
+        const year = s.calMonth === 0 ? s.calYear - 1 : s.calYear;
+        this.setState({ calMonth: month, calYear: year, calDay: month === 8 && year === 2026 ? TODAY : 1 });
+      },
+      nextMonth: () => {
+        const month = s.calMonth === 11 ? 0 : s.calMonth + 1;
+        const year = s.calMonth === 11 ? s.calYear + 1 : s.calYear;
+        this.setState({ calMonth: month, calYear: year, calDay: month === 8 && year === 2026 ? TODAY : 1 });
+      },
+
+      toast: { show: !!s.toast, text: s.toast ? s.toast.text : '', undoable: !!s.snapshot },
+      undoToast: this.onUndoToast,
+
+      isLogSheet: s.sheet === 'log',
+      isRuleSheet: s.sheet === 'rule',
+      closeSheet: () => this.setState({ sheet: null, ruleDraft: null, logDraft: null }),
+      stop: (e) => e.stopPropagation(),
+      openLog: () => this.setState({ sheet: 'log', logDraft: { type: 'water', day: 'hoy', extra: CARE.water.extra, note: '' } }),
+      canAddRule: free.length > 0,
+      addRule: () => {
+        if (!free.length) return;
+        this.setState({ sheet: 'rule', ruleDraft: { type: free[0], every: 7, time: '09:00', notif: true, extra: CARE[free[0]].extra, isEdit: false } });
+      },
+
+      logTypes: TYPES.map((t) => ({
+        label: CARE[t].label,
+        icon: CARE[t].icon,
+        cls: log.type === t ? 'on' : '',
+        pick: () => this.setState({ logDraft: Object.assign({}, log, { type: t, extra: CARE[t].extra }) })
+      })),
+      logDays: ['hoy', 'ayer', 'otro día'].map((d) => ({
+        label: d.charAt(0).toUpperCase() + d.slice(1),
+        cls: log.day === d ? 'on' : '',
+        pick: () => this.setState({ logDraft: Object.assign({}, log, { day: d }) })
+      })),
+      logExtraLabel: CARE[log.type].extraLabel,
+      logExtra: log.extra,
+      logNote: log.note,
+      setLogExtra: (e) => this.setState({ logDraft: Object.assign({}, log, { extra: e.target.value }) }),
+      setLogNote: (e) => this.setState({ logDraft: Object.assign({}, log, { note: e.target.value }) }),
+      confirmLog: () => {
+        const snapshot = this.snap();
+        const when = log.day === 'hoy' ? 'Hoy · 09:14' : (log.day === 'ayer' ? 'Ayer · 19:30' : '5 sep · 12:00');
+        const list = s.plants.map((p) => p.id !== plant.id ? p : Object.assign({}, p, {
+          history: [{ type: log.type, when: when, note: log.note }].concat(p.history)
+        }));
+        this.setState({ plants: list, sheet: null, logDraft: null });
+        this.showToast('Cuidado registrado', snapshot);
+      },
+
+      ruleTitle: draft.isEdit ? 'Editar cuidado' : 'Añadir cuidado',
+      ruleIsEdit: draft.isEdit,
+      ruleTypes: ruleTypes,
+      ruleTypeNote: {
+        show: draft.isEdit || free.length < TYPES.length,
+        text: draft.isEdit
+          ? 'El tipo no se cambia al editar: para otro tipo, añade un cuidado nuevo.'
+          : 'Solo un cuidado de cada tipo por planta: los que ya tiene aparecen desactivados.'
+      },
+      ruleEvery: draft.every,
+      ruleLess: () => this.setState({ ruleDraft: Object.assign({}, draft, { every: Math.max(1, draft.every - 1) }) }),
+      ruleMore: () => this.setState({ ruleDraft: Object.assign({}, draft, { every: draft.every + 1 }) }),
+      ruleTimes: ['08:00', '09:00', '12:00', '20:00'].map((t) => ({
+        label: t,
+        cls: draft.time === t ? 'on' : '',
+        pick: () => this.setState({ ruleDraft: Object.assign({}, draft, { time: t }) })
+      })),
+      ruleNotifCls: draft.notif ? 'on' : '',
+      ruleNotifSub: draft.notif ? 'Te aviso a las ' + draft.time : 'Sin aviso, solo en el calendario',
+      toggleRuleNotif: () => this.setState({ ruleDraft: Object.assign({}, draft, { notif: !draft.notif }) }),
+      ruleExtraLabel: CARE[draft.type].extraLabel,
+      ruleExtra: draft.extra,
+      setRuleExtra: (e) => this.setState({ ruleDraft: Object.assign({}, draft, { extra: e.target.value }) }),
+      confirmRule: () => {
+        if (!draft.isEdit && free.indexOf(draft.type) === -1) return;
+        const clean = { type: draft.type, every: draft.every, time: draft.time, notif: draft.notif, extra: draft.extra };
+        if (screen === 'form') {
+          const rest = s.form.rules.filter((r) => r.type !== clean.type);
+          this.setState({ form: Object.assign({}, s.form, { rules: rest.concat([clean]) }), sheet: null, ruleDraft: null });
+          return;
+        }
+        const list = s.plants.map((p) => {
+          if (p.id !== plant.id) return p;
+          const rest = p.rules.filter((r) => r.type !== clean.type);
+          return withRules(p, rest.concat([clean]));
+        });
+        this.setState({ plants: list, sheet: null, ruleDraft: null });
+        this.showToast('Cuidado guardado', null);
+      },
+      deleteRule: () => {
+        const snapshot = this.snap();
+        const list = s.plants.map((p) => p.id !== plant.id ? p : withRules(p, p.rules.filter((r) => r.type !== draft.type)));
+        this.setState({ plants: list, sheet: null, ruleDraft: null });
+        this.showToast('Cuidado eliminado', snapshot);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

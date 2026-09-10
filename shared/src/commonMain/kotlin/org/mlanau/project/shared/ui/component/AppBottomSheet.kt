@@ -1,12 +1,17 @@
 package org.mlanau.project.shared.ui.component
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -15,7 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import org.mlanau.project.shared.ui.theme.ScreenGutter
 
 /**
  * The app's modal sheet for the longer forms (adding / editing a care rule, logging an ad-hoc
@@ -34,21 +41,31 @@ fun AppBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = MaterialTheme.colorScheme.background,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp, bottom = 14.dp)
+                    .size(width = 44.dp, height = 5.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outline)
+            )
+        }
     ) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 12.dp)
+                .padding(horizontal = ScreenGutter)
+                .padding(bottom = 16.dp)
                 .imePadding()
                 .navigationBarsPadding()
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(bottom = 16.dp)
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 18.dp)
             )
             content()
         }

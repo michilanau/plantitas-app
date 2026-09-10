@@ -16,7 +16,23 @@ fun careColor(type: CareType): Color {
 }
 
 @Composable
+fun careContainerColor(type: CareType): Color {
+    val careColors = LocalCareColors.current
+    return when (type) {
+        CareType.WATER -> careColors.waterContainer
+        CareType.FERTILIZE -> careColors.fertilizeContainer
+        CareType.REPOT -> careColors.repotContainer
+    }
+}
+
+@Composable
 fun overdueColor(): Color = LocalCareColors.current.overdue
 
 @Composable
+fun overdueContainerColor(): Color = LocalCareColors.current.overdueContainer
+
+@Composable
 fun doneColor(): Color = LocalCareColors.current.done
+
+@Composable
+fun onCareAccentColor(): Color = LocalCareColors.current.onAccent
