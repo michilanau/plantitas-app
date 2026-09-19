@@ -14,6 +14,12 @@ import platform.Foundation.NSUserDomainMask
 import platform.Foundation.create
 import platform.Foundation.writeToURL
 
+/**
+ * Saves under a bare file name rather than the full `file://.../Documents/...` URL: the app
+ * container's UUID in that path changes on every reinstall/update, so a URL saved today would be
+ * dangling by the next sideload refresh. [resolve] rebuilds the current URL from the file name on
+ * every read instead of baking a URL into storage.
+ */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 class IosImageStorage : ImageStorage {
 
@@ -32,15 +38,29 @@ class IosImageStorage : ImageStorage {
     }
 
     override suspend fun save(bytes: ByteArray): String {
-        val fileUrl = directory.URLByAppendingPathComponent("${NSUUID().UUIDString()}.jpg")!!
-        bytes.usePinned { pinned ->
-            val data = NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong())
-            data.writeToURL(fileUrl, atomically = true)
+        val fileName = "${NSUUID().UUIDString()}.jpg"
+        val fileUrl = directory.URLByAppendingPathComponent(fileName)!!
+        val data = if (bytes.isEmpty()) {
+            NSData()
+        } else {
+            bytes.usePinned { pinned -> NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong()) }
         }
-        return fileUrl.absoluteString!!
+        data.writeToURL(fileUrl, atomically = true)
+        return fileName
     }
 
-    override suspend fun delete(uri: String) {
-        NSFileManager.defaultManager.removeItemAtURL(NSURL(string = uri), error = null)
+    // A `file:` URI here means this was saved before save() returned a bare file name — keep
+    // resolving those as-is so images from installs already in the wild don't go missing.
+    override fun resolve(reference: String): String =
+        if (reference.startsWith("file:")) reference
+        else directory.URLByAppendingPathComponent(reference)!!.absoluteString!!
+
+    override suspend fun delete(reference: String) {
+        val url = if (reference.startsWith("file:")) {
+            NSURL(string = reference)
+        } else {
+            directory.URLByAppendingPathComponent(reference)
+        }
+        NSFileManager.defaultManager.removeItemAtURL(url!!, error = null)
     }
 }

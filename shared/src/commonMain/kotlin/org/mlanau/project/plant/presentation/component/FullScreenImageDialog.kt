@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import org.mlanau.project.shared.ui.LocalImageResolver
 
 @Composable
 fun FullScreenImageDialog(
@@ -43,7 +44,7 @@ fun FullScreenImageDialog(
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
-                model = imageUrl,
+                model = LocalImageResolver.current(imageUrl),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()

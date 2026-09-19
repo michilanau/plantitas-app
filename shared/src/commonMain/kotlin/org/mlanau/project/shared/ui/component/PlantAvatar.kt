@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import org.jetbrains.compose.resources.painterResource
+import org.mlanau.project.shared.ui.LocalImageResolver
 import org.mlanau.project.shared.ui.theme.PlantTintContent
 import org.mlanau.project.shared.ui.theme.PlantTints
 import plantitas_app.shared.generated.resources.Res
@@ -56,8 +57,9 @@ fun PlantAvatar(
         contentAlignment = Alignment.Center
     ) {
         if (imageUrl != null) {
+            val resolveImage = LocalImageResolver.current
             AsyncImage(
-                model = imageUrl,
+                model = resolveImage(imageUrl),
                 contentDescription = null,
                 modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.Crop

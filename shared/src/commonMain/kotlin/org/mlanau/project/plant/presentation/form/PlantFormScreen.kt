@@ -50,6 +50,7 @@ import org.mlanau.project.shared.ui.component.FieldLabel
 import org.mlanau.project.shared.ui.component.RoundIconButton
 import org.mlanau.project.shared.ui.component.ScreenHeader
 import org.mlanau.project.shared.ui.component.SectionLabel
+import org.mlanau.project.shared.ui.LocalImageResolver
 import org.mlanau.project.shared.ui.theme.ContentMaxWidth
 import org.mlanau.project.shared.ui.theme.ScreenGutter
 import plantitas_app.shared.generated.resources.*
@@ -319,7 +320,10 @@ private fun PhotoPicker(
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.extraLarge
-    val image: Any? = imageBytes ?: imageUrl
+    val resolveImage = LocalImageResolver.current
+    // imageBytes is a freshly picked photo not yet saved through ImageStorage — Coil loads a
+    // ByteArray directly, so only the persisted imageUrl branch needs resolving.
+    val image: Any? = imageBytes ?: imageUrl?.let(resolveImage)
 
     Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
         if (image != null) {

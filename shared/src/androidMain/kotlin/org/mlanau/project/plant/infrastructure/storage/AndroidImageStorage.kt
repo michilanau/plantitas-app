@@ -15,13 +15,19 @@ class AndroidImageStorage(private val context: Context) : ImageStorage {
     }
 
     override suspend fun save(bytes: ByteArray): String = withContext(Dispatchers.IO) {
-        val file = File(directory, "${UUID.randomUUID()}.jpg")
-        file.writeBytes(bytes)
-        file.toURI().toString()
+        val fileName = "${UUID.randomUUID()}.jpg"
+        File(directory, fileName).writeBytes(bytes)
+        fileName
     }
 
-    override suspend fun delete(uri: String) = withContext(Dispatchers.IO) {
-        runCatching { File(URI(uri)).delete() }
+    // A `file:` URI here means this was saved before save() returned a bare file name — keep
+    // resolving those as-is so images from installs already in the wild don't go missing.
+    override fun resolve(reference: String): String =
+        if (reference.startsWith("file:")) reference else File(directory, reference).toURI().toString()
+
+    override suspend fun delete(reference: String) = withContext(Dispatchers.IO) {
+        val file = if (reference.startsWith("file:")) File(URI(reference)) else File(directory, reference)
+        runCatching { file.delete() }
         Unit
     }
 }

@@ -19,6 +19,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlanau.project.navigation.*
 import org.mlanau.project.plant.application.CareReminderSync
+import org.mlanau.project.plant.domain.port.ImageStorage
 import org.mlanau.project.plant.presentation.calendar.CalendarScreen
 import org.mlanau.project.plant.presentation.calendar.CalendarViewModel
 import org.mlanau.project.plant.presentation.detail.PlantDetailScreen
@@ -36,6 +37,7 @@ import org.mlanau.project.settings.presentation.SettingsViewModel
 import org.mlanau.project.shared.ui.AppLocaleWrapper
 import org.mlanau.project.shared.ui.DateFormatter
 import org.mlanau.project.shared.ui.LocalDateFormatter
+import org.mlanau.project.shared.ui.LocalImageResolver
 import org.mlanau.project.shared.ui.theme.PlantitasTheme
 
 @Composable
@@ -60,9 +62,14 @@ fun App() {
     val appScope = rememberCoroutineScope()
     LaunchedEffect(Unit) { careReminderSync.start(appScope) }
 
+    val imageStorage = koinInject<ImageStorage>()
+
     AppLocaleWrapper(languageCode = settingsState.languageCode) {
         val dateFormatter = remember(settingsState.languageCode) { DateFormatter(settingsState.languageCode) }
-        CompositionLocalProvider(LocalDateFormatter provides dateFormatter) {
+        CompositionLocalProvider(
+            LocalDateFormatter provides dateFormatter,
+            LocalImageResolver provides imageStorage::resolve
+        ) {
         PlantitasTheme(darkTheme = darkTheme) {
             val navController = rememberNavController()
             val currentDestination = navController.currentBackStackEntryAsState().value?.destination
