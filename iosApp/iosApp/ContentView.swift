@@ -22,8 +22,11 @@ struct ContentView: View {
             .ignoresSafeArea()
             .preferredColorScheme(isDark ? .dark : .light)
             .onAppear {
+                // Kotlin's (Boolean) -> Unit crosses into Swift as (KotlinBoolean) -> Void, not
+                // (Bool) -> Void: a Kotlin function type boxes primitives since it's a generic
+                // Objective-C interface under the hood.
                 StatusBarAppearance.shared.setListener { dark in
-                    isDark = dark
+                    isDark = dark.boolValue
                 }
             }
     }
