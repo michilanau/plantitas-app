@@ -11,8 +11,20 @@ struct ComposeView: UIViewControllerRepresentable {
 }
 
 struct ContentView: View {
+    // Mirrors org.mlanau.project.shared.ui.theme.StatusBarAppearance, which reflects the app's
+    // effective LIGHT/DARK/SYSTEM setting (resolved in App()). Applying it here via
+    // .preferredColorScheme is what drives the status bar style for the embedded Compose view
+    // controller — see that object's doc for why.
+    @State private var isDark = false
+
     var body: some View {
         ComposeView()
             .ignoresSafeArea()
+            .preferredColorScheme(isDark ? .dark : .light)
+            .onAppear {
+                StatusBarAppearance.shared.setListener { dark in
+                    isDark = dark
+                }
+            }
     }
 }

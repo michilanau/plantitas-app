@@ -1,9 +1,11 @@
 package org.mlanau.project.shared.ui.theme
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 
 @Composable
 actual fun ApplySystemBarAppearance(darkTheme: Boolean) {
-    // The iOS status bar style is driven from ContentView.swift via .preferredColorScheme(...);
-    // there is nothing to set from Compose here yet.
+    // ContentView.swift observes StatusBarAppearance and applies it via .preferredColorScheme —
+    // see that object's doc for why the status bar can't be styled from Compose directly.
+    SideEffect { StatusBarAppearance.update(darkTheme) }
 }
