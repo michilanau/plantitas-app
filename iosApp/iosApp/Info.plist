@@ -9,5 +9,11 @@
 		<key>UIColorName</key>
 		<string>LaunchBackground</string>
 	</dict>
+	<key>CFBundleDisplayName</key>
+	<string>Plantitas</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Plantitas necesita acceso a tus fotos para que puedas elegir la imagen de una planta.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Plantitas necesita acceso a la cámara para que puedas fotografiar una planta.</string>
 </dict>
 </plist>
