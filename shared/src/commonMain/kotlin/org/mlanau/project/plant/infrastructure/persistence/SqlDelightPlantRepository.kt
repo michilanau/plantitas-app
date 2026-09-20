@@ -42,16 +42,20 @@ class SqlDelightPlantRepository(database: PlantDb) : PlantRepository {
             )
             return plant
         } else {
-            queries.insertPlant(
-                name = plant.name,
-                description = plant.description,
-                location = plant.location,
-                lightNeed = plant.lightNeed?.name,
-                potSize = plant.potSize?.name,
-                imageUrl = plant.imageUrl,
-                createdAt = createdAtIso
-            )
-            return plant.withId(PlantId(queries.lastInsertId().executeAsOne().toInt()))
+            // last_insert_rowid() is per connection and the native driver runs SELECTs on a reader
+            // connection, so read it inside the transaction that pins both to the writer.
+            return queries.transactionWithResult {
+                queries.insertPlant(
+                    name = plant.name,
+                    description = plant.description,
+                    location = plant.location,
+                    lightNeed = plant.lightNeed?.name,
+                    potSize = plant.potSize?.name,
+                    imageUrl = plant.imageUrl,
+                    createdAt = createdAtIso
+                )
+                plant.withId(PlantId(queries.lastInsertId().executeAsOne().toInt()))
+            }
         }
     }
 

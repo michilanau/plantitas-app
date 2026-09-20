@@ -1,97 +1,103 @@
 # Instalar Plantitas en un iPhone desde Linux (sin Mac, sin cuenta de pago)
 
 Cada push a `master` (o `workflow_dispatch` manual) hace que GitHub Actions compile un
-`plantitas.ipa` **sin firmar** — ver `.github/workflows/ios.yml`. Este documento cubre la
-otra mitad: cómo llevar ese `.ipa` al iPhone desde un PC Linux, usando el Apple ID gratuito.
+`plantitas.ipa` **sin firmar** — ver `.github/workflows/ios.yml`. Este documento cubre la otra
+mitad: llevar ese `.ipa` al iPhone desde un PC Linux con [iloader](https://github.com/nab138/iloader),
+que lo firma con un Apple ID gratuito y lo instala por USB.
 
-La app instalada así **caduca a los 7 días** (límite de Apple para firmas de desarrollador
-gratuitas, no de esta herramienta). Refrescarla es volver a ejecutar el mismo comando del
-paso 4 — no hace falta repetir nada de los pasos 1-3.
+La app instalada así **caduca a los 7 días** (límite de Apple para firmas gratuitas). Refrescarla
+es repetir los pasos 3-4. Para renovar sin cable, ver *Renovación sin PC* al final.
 
-## Por qué este camino
+## Antes de empezar
 
-[`AltServer-Linux`](https://github.com/jaakkopalvaila/AltServer-Linux) firma y sideloada un
-`.ipa` en un iPhone conectado por USB directamente desde la línea de comandos, sin pasar por
-AltStore/SideStore instalados en el propio teléfono. Eso simplifica mucho el refresco semanal:
-es un solo comando repetible desde el PC, no depende de que el móvil esté en la misma WiFi con
-una app de fondo corriendo.
+- **Usa un Apple ID desechable**, creado solo para esto (gratis, sin tarjeta, con verificación en
+  dos pasos). La contraseña se introduce en una herramienta de terceros; con una cuenta sin datos,
+  lo peor que puede pasar es perder esa cuenta. Cambia su contraseña al terminar.
+- iPhone con **iOS 16 o superior** (es el mínimo de la app).
+- Un cable USB **de datos** (los de solo carga no sirven).
 
-Uso el fork de `jaakkopalvaila` en vez del original de `NyaMisty` porque a día de hoy
-(septiembre de 2026) corrige dos problemas que bloquean el original: el login con Apple ID
-devuelve HTTP 503 contra iOS 26.4+/27, y la firma se rechaza con `AMFI:
-cmsBlobVerifyWithAgilityHash failed`. Si el fork deja de mantenerse, revisar primero si
-`NyaMisty/AltServer-Linux` ha incorporado el fix antes de buscar otra alternativa.
-
-## 1. Conectar el iPhone
+## 1. Preparar el PC (una sola vez)
 
 ```sh
 sudo pacman -S usbmuxd libimobiledevice
 sudo systemctl enable --now usbmuxd
 ```
 
-Conecta el iPhone por USB y acepta "Confiar en este ordenador" en el móvil. Comprueba que se
-ve:
+Conecta el iPhone, desbloquéalo y pulsa **Confiar** en el aviso. Comprueba que se ve:
 
 ```sh
 idevice_id -l          # debe imprimir el UDID del iPhone
-idevicepair pair        # solo la primera vez
 ```
 
-Guarda ese UDID — hace falta en el paso 4.
+Si no imprime nada, mira con `lsusb | grep -i apple`: si tampoco sale, el problema es el
+cable, el puerto o que el teléfono esté bloqueado.
 
-Si `idevice_id -l` no muestra nada, sigue las instrucciones de
-[netmuxd](https://github.com/jkcoxson/netmuxd) (`cargo build --release`) como reemplazo de
-`usbmuxd`: es el camino que documenta el propio AltServer-Linux para USB cuando el usbmuxd del
-sistema no coopera, y es obligatorio si más adelante se quiere refrescar por WiFi en vez de por
-cable. En ese caso, antes del paso 4 hay que exportar
-`USBMUXD_SOCKET_ADDRESS=127.0.0.1:27015` apuntando al netmuxd que arranques.
+## 2. Descargar iloader (una sola vez)
 
-## 2. Servidor Anisette propio
-
-AltServer necesita datos Anisette (la telemetría de dispositivo que Apple exige para iniciar
-sesión) de un servidor compatible. Levantar uno propio con Docker evita depender de uno público
-ajeno:
+Descarga solo desde los sitios oficiales: [GitHub Releases](https://github.com/nab138/iloader/releases)
+o [iloader.app](https://iloader.app).
 
 ```sh
-docker run -d --restart always --name anisette-v3 -p 6969:6969 \
-  --volume anisette-v3_data:/home/Alcoholic/.config/anisette-v3/lib/ \
-  dadoum/anisette-v3-server
+mkdir -p ~/iloader && cd ~/iloader
+curl -LO https://github.com/nab138/iloader/releases/download/v2.3.3/iloader-linux-amd64.AppImage
+echo "a9e841259cfec05065dad31428dd1b27b6c3321f10d310cb0315082836b83b7e  iloader-linux-amd64.AppImage" | sha256sum -c -
+chmod +x iloader-linux-amd64.AppImage
 ```
 
-Déjalo corriendo (el volumen persiste el estado entre reinicios).
+El segundo comando debe responder `La suma coincide`. (El hash es el que publica GitHub para la
+release v2.3.3; si actualizas de versión, usa el hash de esa release.)
 
-## 3. Descargar AltServer-Linux
+Para abrirlo sin instalar `fuse2`:
 
 ```sh
-curl -LO https://github.com/jaakkopalvaila/AltServer-Linux/releases/latest/download/AltServer-x86_64
-chmod +x AltServer-x86_64
+APPIMAGE_EXTRACT_AND_RUN=1 ~/iloader/iloader-linux-amd64.AppImage
 ```
 
-## 4. Instalar el .ipa
+(Alternativa: `sudo pacman -S fuse2` y luego basta con `./iloader-linux-amd64.AppImage`.)
 
-Descarga `plantitas.ipa` del artifact de la última ejecución de
-`.github/workflows/ios.yml` en GitHub Actions (pestaña *Actions* del repo → última run → sección
-*Artifacts*). Luego:
+## 3. Descargar el .ipa
+
+Desde la raíz del repo, baja el de la última compilación correcta:
 
 ```sh
-ALTSERVER_ANISETTE_SERVER=http://127.0.0.1:6969 \
-./AltServer-x86_64 -u <UDID> -a <tu-apple-id> -p <tu-contraseña> plantitas.ipa
+gh run download "$(gh run list -w ios.yml -s success -L1 --json databaseId -q '.[0].databaseId')" \
+  -n plantitas-ipa -D ~/iloader
 ```
 
-(Añade `USBMUXD_SOCKET_ADDRESS=127.0.0.1:27015` delante si has tenido que instalar netmuxd en
-el paso 1.) La contraseña se pasa en texto plano por variable de entorno/argumento — usa un
-Apple ID dedicado a esto si te incomoda escribir el principal en una terminal, y considera un
-gestor de contraseñas de shell (`pass`, o simplemente no dejarlo en el historial:
-`HISTCONTROL=ignorespace` + un espacio inicial) en vez de pegarlo a pelo.
+Los artifacts de GitHub caducan a los 30 días. Si ya no hay, lanza el workflow a mano
+(pestaña *Actions* → *iOS unsigned build* → *Run workflow*) y espera a que termine (~15 min).
 
-Si Apple pide verificación en dos pasos, AltServer lo solicita por consola en ese mismo
-comando — introduce el código que llega al dispositivo de confianza.
+## 4. Instalar con iloader
 
-La app aparece en la pantalla de inicio del iPhone. La primera vez, además, hay que ir a
-**Ajustes → General → VPN y gestión de dispositivos** y confiar explícitamente en el perfil de
-desarrollador asociado a ese Apple ID.
+1. Con el iPhone conectado y desbloqueado, abre iloader.
+2. Inicia sesión con el Apple ID desechable. Si pide verificación en dos pasos, introduce el
+   código que llega al iPhone.
+3. Elige la acción para importar un IPA y selecciona `~/iloader/plantitas.ipa`.
+4. Espera a que termine. La app aparece en la pantalla de inicio.
 
-## Refrescar cada 7 días
+Si algo falla, iloader sugiere soluciones para errores comunes. Los registros están en
+`~/.local/share/me.nabdev.iloader/logs/` (o en el botón *View Logs* de la app, con nivel *Debug*).
 
-Repite solo el comando del paso 4 (con un `.ipa` nuevo si ha habido cambios, o el mismo si no).
-El iPhone debe seguir emparejado y accesible por USB; los pasos 1-3 no hace falta repetirlos.
+## 5. Confiar en el desarrollador (solo la primera vez)
+
+En el iPhone: **Ajustes → General → VPN y gestión de dispositivos** → toca el Apple ID
+desechable → **Confiar**.
+
+Si al abrir la app iOS pide activar el **Modo desarrollador**: **Ajustes → Privacidad y
+seguridad → Modo desarrollador**, actívalo y reinicia el teléfono.
+
+## Renovación cada 7 días
+
+Repite los pasos 3 y 4 (con el iPhone conectado). Los recordatorios de cuidados funcionan con la
+cuenta gratuita: son notificaciones locales, no *push*.
+
+## Renovación sin PC (opcional)
+
+iloader también puede instalar [SideStore](https://github.com/SideStore/SideStore), que renueva la
+firma desde el propio iPhone sin cable. Requiere configuración adicional en el móvil; ver la
+documentación de SideStore.
+
+## Límites de la cuenta gratuita
+
+Máximo 3 apps instaladas a la vez y unos 10 identificadores de app nuevos por semana. Sin
+notificaciones *push* (Plantitas no las usa).

@@ -43,22 +43,26 @@ class SqlDelightCareTaskRepository(database: PlantDb) : CareTaskRepository {
         // Append-only: there's no update path, since editing "when did I actually water it" is
         // done by undoing (deleting) and completing it again, which is also what keeps the anchor
         // recomputation (MAX(performedAt)) simple.
-        queries.insertCareTask(
-            plantId = task.plantId.value.toLong(),
-            careRuleId = task.careRuleId?.value?.toLong(),
-            type = task.care.typeColumn(),
-            performedAt = task.performedAt.toDbString(),
-            scheduledAt = task.scheduledAt?.toDbString(),
-            note = task.note,
-            amountMl = task.care.amountMlColumn(),
-            useFilteredWater = task.care.useFilteredWaterColumn(),
-            fertilizerName = task.care.fertilizerNameColumn(),
-            doseMl = task.care.doseMlColumn(),
-            dilutionRatio = task.care.dilutionRatioColumn(),
-            newPotSize = task.care.newPotSizeColumn(),
-            substrateType = task.care.substrateTypeColumn()
-        )
-        return task.withId(CareTaskId(queries.lastInsertId().executeAsOne().toInt()))
+        // last_insert_rowid() is per connection and the native driver runs SELECTs on a reader
+        // connection, so read it inside the transaction that pins both to the writer.
+        return queries.transactionWithResult {
+            queries.insertCareTask(
+                plantId = task.plantId.value.toLong(),
+                careRuleId = task.careRuleId?.value?.toLong(),
+                type = task.care.typeColumn(),
+                performedAt = task.performedAt.toDbString(),
+                scheduledAt = task.scheduledAt?.toDbString(),
+                note = task.note,
+                amountMl = task.care.amountMlColumn(),
+                useFilteredWater = task.care.useFilteredWaterColumn(),
+                fertilizerName = task.care.fertilizerNameColumn(),
+                doseMl = task.care.doseMlColumn(),
+                dilutionRatio = task.care.dilutionRatioColumn(),
+                newPotSize = task.care.newPotSizeColumn(),
+                substrateType = task.care.substrateTypeColumn()
+            )
+            task.withId(CareTaskId(queries.lastInsertId().executeAsOne().toInt()))
+        }
     }
 
     override suspend fun delete(id: CareTaskId) {

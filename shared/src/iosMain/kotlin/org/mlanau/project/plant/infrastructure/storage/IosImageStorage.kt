@@ -4,6 +4,9 @@ import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 import org.mlanau.project.plant.domain.port.ImageStorage
 import platform.Foundation.NSData
 import platform.Foundation.NSDocumentDirectory
@@ -37,7 +40,7 @@ class IosImageStorage : ImageStorage {
         dir
     }
 
-    override suspend fun save(bytes: ByteArray): String {
+    override suspend fun save(bytes: ByteArray): String = withContext(Dispatchers.IO) {
         val fileName = "${NSUUID().UUIDString()}.jpg"
         val fileUrl = directory.URLByAppendingPathComponent(fileName)!!
         val data = if (bytes.isEmpty()) {
@@ -46,7 +49,7 @@ class IosImageStorage : ImageStorage {
             bytes.usePinned { pinned -> NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong()) }
         }
         data.writeToURL(fileUrl, atomically = true)
-        return fileName
+        fileName
     }
 
     // A `file:` URI here means this was saved before save() returned a bare file name — keep

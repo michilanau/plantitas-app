@@ -60,22 +60,26 @@ class SqlDelightCareRuleRepository(database: PlantDb) : CareRuleRepository {
 
     private fun insert(rule: CareRule): CareRule {
         val plantId = rule.plantId ?: throw MissingPersistedIdException()
-        queries.insertCareRule(
-            plantId = plantId.value.toLong(),
-            type = rule.details.typeColumn(),
-            everyDays = rule.everyDays.toLong(),
-            startDate = rule.startDate.toDbString(),
-            notificationTime = rule.notificationTime.toString(),
-            notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
-            amountMl = rule.details.amountMlColumn(),
-            useFilteredWater = rule.details.useFilteredWaterColumn(),
-            fertilizerName = rule.details.fertilizerNameColumn(),
-            doseMl = rule.details.doseMlColumn(),
-            dilutionRatio = rule.details.dilutionRatioColumn(),
-            newPotSize = rule.details.newPotSizeColumn(),
-            substrateType = rule.details.substrateTypeColumn()
-        )
-        return rule.withId(CareRuleId(queries.lastInsertId().executeAsOne().toInt()))
+        // last_insert_rowid() is per connection and the native driver runs SELECTs on a reader
+        // connection, so read it inside the transaction that pins both to the writer.
+        return queries.transactionWithResult {
+            queries.insertCareRule(
+                plantId = plantId.value.toLong(),
+                type = rule.details.typeColumn(),
+                everyDays = rule.everyDays.toLong(),
+                startDate = rule.startDate.toDbString(),
+                notificationTime = rule.notificationTime.toString(),
+                notificationsEnabled = if (rule.notificationsEnabled) 1L else 0L,
+                amountMl = rule.details.amountMlColumn(),
+                useFilteredWater = rule.details.useFilteredWaterColumn(),
+                fertilizerName = rule.details.fertilizerNameColumn(),
+                doseMl = rule.details.doseMlColumn(),
+                dilutionRatio = rule.details.dilutionRatioColumn(),
+                newPotSize = rule.details.newPotSizeColumn(),
+                substrateType = rule.details.substrateTypeColumn()
+            )
+            rule.withId(CareRuleId(queries.lastInsertId().executeAsOne().toInt()))
+        }
     }
 
     override suspend fun delete(id: CareRuleId) {
