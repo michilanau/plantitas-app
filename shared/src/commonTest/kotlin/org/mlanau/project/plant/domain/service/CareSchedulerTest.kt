@@ -8,6 +8,7 @@ import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import org.mlanau.project.plant.domain.model.CareDetails
 import org.mlanau.project.plant.domain.model.CareRule
@@ -251,6 +252,78 @@ class CareSchedulerTest {
             ),
             tasks.map { it.dueAt }
         )
+    }
+
+    @Test
+    fun `a reminder series opens on the due slot and then nags once a day`() {
+        val rule = periodicRule() // Jan1, 4, 7... at 09:00
+        val series = scheduler.reminderSeries(rule, lastPerformedAt = null, from = start.minus1Day(), count = 4)
+
+        assertEquals(
+            listOf(
+                start,
+                Instant.parse("2026-01-02T09:00:00Z"),
+                Instant.parse("2026-01-03T09:00:00Z"),
+                Instant.parse("2026-01-04T09:00:00Z")
+            ),
+            series.map { it.at }
+        )
+        assertEquals(PendingStatus.SCHEDULED, series.first().task.status)
+        assertTrue(series.drop(1).all { it.task.status == PendingStatus.OVERDUE })
+    }
+
+    @Test
+    fun `each reminder in the series carries the lateness it will have when it fires`() {
+        val rule = periodicRule()
+        val series = scheduler.reminderSeries(rule, lastPerformedAt = null, from = start.minus1Day(), count = 4)
+
+        // dueAt stays pinned to the slot first owed, so the "N days late" each reminder renders
+        // (dueAt until its own instant) grows 0, 1, 2, 3 across the run.
+        assertTrue(series.drop(1).all { it.task.dueAt == start })
+        assertEquals(listOf(0, 1, 2, 3), series.map { start.daysUntil(it.at, tz) })
+    }
+
+    @Test
+    fun `a series for an already overdue rule starts with the daily nag, not the missed slot`() {
+        val rule = periodicRule()
+        val now = Instant.parse("2026-01-05T12:00:00Z") // Jan1 and Jan4 both missed
+        val series = scheduler.reminderSeries(rule, lastPerformedAt = null, from = now, count = 2)
+
+        assertEquals(
+            listOf(Instant.parse("2026-01-06T09:00:00Z"), Instant.parse("2026-01-07T09:00:00Z")),
+            series.map { it.at }
+        )
+        assertTrue(series.all { it.task.status == PendingStatus.OVERDUE })
+        assertEquals(start, series.first().task.dueAt)
+        assertEquals(2, series.first().task.missedCount)
+    }
+
+    @Test
+    fun `a series never runs longer than asked, and asking for none yields none`() {
+        val rule = periodicRule()
+        assertEquals(1, scheduler.reminderSeries(rule, null, start.minus1Day(), count = 1).size)
+        assertEquals(6, scheduler.reminderSeries(rule, null, start.minus1Day(), count = 6).size)
+        assertTrue(scheduler.reminderSeries(rule, null, start.minus1Day(), count = 0).isEmpty())
+    }
+
+    @Test
+    fun `a series is empty when the rule owes nothing at all`() {
+        // Due beyond nextPending's lookahead, so there is no task to remind about.
+        val rule = periodicRule(startDate = Instant.parse("2030-01-01T09:00:00Z"), everyDays = 3)
+        assertTrue(scheduler.reminderSeries(rule, null, from = start, count = 4).isEmpty())
+    }
+
+    @Test
+    fun `the head of a series is exactly what nextPending and nextReminderAt give on their own`() {
+        // The platforms that chain reminders at fire time only ever register this first element,
+        // so it has to stay identical to the single-reminder calculation.
+        val rule = periodicRule()
+        val cases = listOf(start.minus1Day(), Instant.parse("2026-01-05T12:00:00Z"), start)
+        for (now in cases) {
+            val head = scheduler.reminderSeries(rule, null, from = now, count = 3).first()
+            assertEquals(scheduler.nextReminderAt(rule, null, now), head.at)
+            assertEquals(scheduler.nextPending(rule, null, now), head.task)
+        }
     }
 
     private fun Instant.minus1Day(): Instant = this.plus(-1, DateTimeUnit.DAY, tz)

@@ -4,6 +4,7 @@ import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
+import org.mlanau.project.plant.domain.model.CareReminder
 import org.mlanau.project.plant.domain.model.CareRule
 import org.mlanau.project.plant.domain.model.CareRuleId
 import org.mlanau.project.plant.domain.model.CareTask
@@ -81,6 +82,39 @@ class CareScheduler(
         val state = anchorStateFor(rule, lastPerformedAt, timeZone)
         val candidate = rule.firstOccurrenceAfter(state.anchor, state.resolvedThrough, timeZone)
         return if (candidate > after) candidate else rule.reminderSlotAfter(after, timeZone)
+    }
+
+    /**
+     * The next [count] reminders [rule] owes from [from] on, as its chain would produce them one
+     * by one.
+     *
+     * Where the OS wakes the app as a reminder fires, that reminder schedules the following one
+     * and a single scheduled notification is enough. Where it does not — iOS delivers a local
+     * notification without running any of the app's code — the whole run has to be registered up
+     * front, so this replays the chain offline: the instant one reminder fires becomes the `now`
+     * the next is derived from, which is precisely what the waking receiver would have passed in.
+     *
+     * The result is therefore a prefix of the real chain, and its first element is by construction
+     * identical to [nextPending] and [nextReminderAt] taken at [from].
+     */
+    fun reminderSeries(
+        rule: CareRule,
+        lastPerformedAt: Instant?,
+        from: Instant,
+        count: Int,
+        timeZone: TimeZone = timeZoneProvider()
+    ): List<CareReminder> {
+        val series = mutableListOf<CareReminder>()
+        var cursor = from
+        repeat(count) {
+            val task = nextPending(rule, lastPerformedAt, cursor, timeZone) ?: return series
+            val at = nextReminderAt(rule, lastPerformedAt, cursor, timeZone) ?: return series
+            series += CareReminder(task, at)
+            // nextReminderAt is strictly after its argument, so the cursor always advances and the
+            // loop cannot stall on one instant.
+            cursor = at
+        }
+        return series
     }
 
     private fun pendingForRuleInWindow(

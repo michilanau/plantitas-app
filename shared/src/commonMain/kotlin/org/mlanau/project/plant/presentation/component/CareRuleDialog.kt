@@ -86,6 +86,17 @@ fun CareRuleDialog(
     var newPotSize by remember { mutableStateOf((initialRule?.details as? CareDetails.Repot)?.newPotSize ?: PotSize.MEDIUM) }
     var notificationsEnabled by remember { mutableStateOf(initialRule?.notificationsEnabled ?: true) }
 
+    // The switch starts on, so a rule can be created without it ever being touched — and until the
+    // OS has been asked once, iOS shows no notification section in the app's system settings, so
+    // there would be no way left to grant the permission. Ask here, where the user is plainly
+    // asking for reminders. Android never reports NOT_DETERMINED, so its prompt stays tied to the
+    // switch below.
+    LaunchedEffect(notificationsEnabled, notificationPermissions.status) {
+        if (notificationsEnabled && notificationPermissions.status == NotificationPermissionStatus.NOT_DETERMINED) {
+            notificationPermissions.request()
+        }
+    }
+
     val strConfirm = stringResource(Res.string.common_confirm)
     val strCancel = stringResource(Res.string.common_cancel)
     val strFertilizerDefault = stringResource(Res.string.care_fertilizer_default_name)

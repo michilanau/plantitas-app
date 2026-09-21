@@ -1,12 +1,10 @@
 package org.mlanau.project.plant.application
 
-import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import org.jetbrains.compose.resources.getString
 import org.mlanau.project.notification.domain.port.ScheduledNotification
-import org.mlanau.project.plant.domain.model.CareRuleId
-import org.mlanau.project.plant.domain.model.CareTask
+import org.mlanau.project.plant.domain.model.CareReminder
 import org.mlanau.project.plant.domain.model.CareType
 import plantitas_app.shared.generated.resources.Res
 import plantitas_app.shared.generated.resources.notification_fertilize
@@ -18,41 +16,47 @@ import plantitas_app.shared.generated.resources.notification_water
 import plantitas_app.shared.generated.resources.notification_water_overdue
 
 /**
- * The single notification a rule shows at [at].
+ * The notifications that show a rule's [reminders], in the order they will fire.
  *
- * There is exactly one per rule — the id is derived from [CareRuleId], so each new alarm replaces
- * the previous one instead of stacking — which is what lets an overdue task nag daily without the
- * user ever seeing two reminders for the same plant and care.
+ * Their ids all descend from the rule's own, so the series as a whole replaces the previous one
+ * rather than stacking with it, and the first keeps the rule's bare id — the only one a platform
+ * that chains its reminders at fire time ever registers.
  *
- * A task that is merely due says what to do; an overdue one says how long it has been waiting,
- * counted from [CareTask.Pending.dueAt] (the day it was first owed) rather than from the last
- * care, so "N days late" keeps growing for a plant that has never been watered at all.
+ * A reminder that is merely due says what to do; an overdue one says how long it has been waiting,
+ * counted from [org.mlanau.project.plant.domain.model.CareTask.Pending.dueAt] (the day it was
+ * first owed) rather than from the last care, so "N days late" keeps growing for a plant that has
+ * never been watered at all.
  */
-internal suspend fun careReminderNotification(
-    task: CareTask.Pending,
+internal suspend fun careReminderNotifications(
+    reminders: List<CareReminder>,
     plantName: String,
-    at: Instant,
     timeZone: TimeZone
-): ScheduledNotification {
+): List<ScheduledNotification> {
     val title = getString(Res.string.notification_title)
-    val body = if (task.isOverdue) {
-        val daysLate = task.dueAt.daysUntil(at, timeZone)
-        when (task.type) {
-            CareType.WATER -> getString(Res.string.notification_water_overdue, plantName, daysLate)
-            CareType.FERTILIZE -> getString(Res.string.notification_fertilize_overdue, plantName, daysLate)
-            CareType.REPOT -> getString(Res.string.notification_repot_overdue, plantName, daysLate)
-        }
-    } else {
-        when (task.type) {
+    return reminders.mapIndexed { index, reminder ->
+        val task = reminder.task
+        ScheduledNotification(
+            id = careReminderNotificationId(task.careRuleId).inSeries(index),
+            at = reminder.at,
+            title = title,
+            body = reminderBody(reminder, plantName, timeZone)
+        )
+    }
+}
+
+private suspend fun reminderBody(reminder: CareReminder, plantName: String, timeZone: TimeZone): String {
+    val task = reminder.task
+    if (!task.isOverdue) {
+        return when (task.type) {
             CareType.WATER -> getString(Res.string.notification_water, plantName)
             CareType.FERTILIZE -> getString(Res.string.notification_fertilize, plantName)
             CareType.REPOT -> getString(Res.string.notification_repot, plantName)
         }
     }
-    return ScheduledNotification(
-        id = careReminderNotificationId(task.careRuleId),
-        at = at,
-        title = title,
-        body = body
-    )
+    val daysLate = task.dueAt.daysUntil(reminder.at, timeZone)
+    return when (task.type) {
+        CareType.WATER -> getString(Res.string.notification_water_overdue, plantName, daysLate)
+        CareType.FERTILIZE -> getString(Res.string.notification_fertilize_overdue, plantName, daysLate)
+        CareType.REPOT -> getString(Res.string.notification_repot_overdue, plantName, daysLate)
+    }
 }

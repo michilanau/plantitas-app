@@ -15,7 +15,12 @@ import org.mlanau.project.shared.time.TimeZoneProvider
  * fires once and doesn't repeat, so the receiver that showed it calls this to schedule the
  * following one.
  *
- * The instant always comes from [CareScheduler.nextReminderAt], which is strictly in the future,
+ * It schedules a series of exactly one, because only a platform that wakes the app as the alarm
+ * fires ever reaches here — and where the app is woken, one link at a time is by definition
+ * enough. A platform that cannot run code at fire time never calls this; it gets its whole run of
+ * reminders from [CareReminderSync] up front instead.
+ *
+ * The instant always comes from [CareScheduler.reminderSeries], which is strictly in the future,
  * so this call can never re-trigger itself immediately.
  */
 class SyncCareReminder(
@@ -46,13 +51,12 @@ class SyncCareReminder(
         val timeZone = timeZoneProvider()
         val lastCareAt = careTaskRepository.lastCareDate(plantId, rule.type)
 
-        val task = scheduler.nextPending(rule, lastCareAt, now, timeZone)
-        val at = scheduler.nextReminderAt(rule, lastCareAt, now, timeZone)
-        if (task == null || at == null) {
+        val series = scheduler.reminderSeries(rule, lastCareAt, now, count = 1, timeZone = timeZone)
+        if (series.isEmpty()) {
             notifications.cancel(notificationId)
             return
         }
 
-        notifications.schedule(careReminderNotification(task, plant.name, at, timeZone))
+        notifications.schedule(careReminderNotifications(series, plant.name, timeZone))
     }
 }

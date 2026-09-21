@@ -18,19 +18,69 @@ class IosNotificationScheduler : NotificationScheduler {
     // which can react to the user's answer — not fire-and-forget from here.
     private val center = UNUserNotificationCenter.currentNotificationCenter()
 
-    override suspend fun schedule(notification: ScheduledNotification) {
-        // Replace whatever was previously scheduled under this id.
-        center.removePendingNotificationRequestsWithIdentifiers(listOf(notification.id.value))
+    /**
+     * iOS delivers a local notification without running any of the app's code, so a reminder
+     * cannot arm the one after it: the whole run has to be registered while the app is open, and
+     * it keeps firing on its own until the user next opens the app and it is recomputed.
+     *
+     * The run is as long as the app's share of [PENDING_BUDGET] allows. iOS keeps only the 64
+     * soonest pending requests per app and silently drops the rest, so the budget stays under that
+     * with room to spare.
+     */
+    override fun seriesLengthFor(activeRuleCount: Int): Int {
+        if (activeRuleCount <= 0) return 0
+        return (PENDING_BUDGET / activeRuleCount)
+            .coerceIn(1, NotificationScheduler.MAX_SERIES_LENGTH)
+    }
 
-        val content = UNMutableNotificationContent().apply {
-            setTitle(notification.title)
-            setBody(notification.body)
-            setSound(UNNotificationSound.defaultSound)
+    override suspend fun schedule(series: List<ScheduledNotification>) {
+        // The first element carries the series' base id (see NotificationId.inSeries).
+        val base = series.firstOrNull()?.id ?: return
+        removeSeries(base)
+
+        series.forEach { notification ->
+            val content = UNMutableNotificationContent().apply {
+                setTitle(notification.title)
+                setBody(notification.body)
+                setSound(UNNotificationSound.defaultSound)
+                // One id per occurrence means these no longer replace each other in Notification
+                // Center the way a single reminder per rule did. Sharing a thread identifier is
+                // what keeps a rule's run of overdue nags collapsed into one group there instead
+                // of piling up as separate notifications.
+                setThreadIdentifier(base.value)
+            }
+
+            val trigger = UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(
+                dateComponents = notification.at.dateComponents(),
+                repeats = false
+            )
+
+            val request = UNNotificationRequest.requestWithIdentifier(
+                identifier = notification.id.value,
+                content = content,
+                trigger = trigger
+            )
+            center.addNotificationRequest(request, withCompletionHandler = null)
         }
+    }
 
-        val timeZone = TimeZone.currentSystemDefault()
-        val localDateTime = notification.at.toLocalDateTime(timeZone)
-        val dateComponents = NSDateComponents().apply {
+    override fun cancel(id: NotificationId) = removeSeries(id)
+
+    /**
+     * Clears every slot the series could occupy, not just the ones about to be written: a rule
+     * edited to a longer interval yields a shorter run, and the tail of the previous one would
+     * otherwise stay armed. Delivered notifications go too, so reopening the app doesn't leave
+     * superseded nags sitting in Notification Center.
+     */
+    private fun removeSeries(base: NotificationId) {
+        val ids = List(NotificationScheduler.MAX_SERIES_LENGTH) { base.inSeries(it).value }
+        center.removePendingNotificationRequestsWithIdentifiers(ids)
+        center.removeDeliveredNotificationsWithIdentifiers(ids)
+    }
+
+    private fun kotlin.time.Instant.dateComponents(): NSDateComponents {
+        val localDateTime = toLocalDateTime(TimeZone.currentSystemDefault())
+        return NSDateComponents().apply {
             year = localDateTime.year.toLong()
             month = localDateTime.monthNumber.toLong()
             day = localDateTime.day.toLong()
@@ -38,20 +88,9 @@ class IosNotificationScheduler : NotificationScheduler {
             minute = localDateTime.minute.toLong()
             second = localDateTime.second.toLong()
         }
-        val trigger = UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(
-            dateComponents = dateComponents,
-            repeats = false
-        )
-
-        val request = UNNotificationRequest.requestWithIdentifier(
-            identifier = notification.id.value,
-            content = content,
-            trigger = trigger
-        )
-        center.addNotificationRequest(request, withCompletionHandler = null)
     }
 
-    override fun cancel(id: NotificationId) {
-        center.removePendingNotificationRequestsWithIdentifiers(listOf(id.value))
+    private companion object {
+        const val PENDING_BUDGET = 56
     }
 }

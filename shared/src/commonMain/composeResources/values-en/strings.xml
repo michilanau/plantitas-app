@@ -67,6 +67,7 @@
     <string name="settings_notifications_permission">Notification permission</string>
     <string name="settings_notifications_granted">Granted</string>
     <string name="settings_notifications_denied">Not granted · tap to open settings</string>
+    <string name="settings_notifications_not_determined">Not granted · tap to allow them</string>
     <string name="settings_notifications_exact_alarms">Exact alarms</string>
     <string name="settings_notifications_exact_alarms_denied">Reminders may arrive late · tap to allow them</string>
 

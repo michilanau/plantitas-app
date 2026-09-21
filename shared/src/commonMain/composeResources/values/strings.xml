@@ -67,6 +67,7 @@
     <string name="settings_notifications_permission">Permiso de notificaciones</string>
     <string name="settings_notifications_granted">Concedido</string>
     <string name="settings_notifications_denied">No concedido · toca para abrir los ajustes</string>
+    <string name="settings_notifications_not_determined">Sin conceder · toca para permitirlas</string>
     <string name="settings_notifications_exact_alarms">Alarmas exactas</string>
     <string name="settings_notifications_exact_alarms_denied">Los recordatorios pueden llegar con retraso · toca para permitirlas</string>
 

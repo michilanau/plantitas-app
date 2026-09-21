@@ -93,18 +93,25 @@ fun SettingsScreen(
 
                     SettingsSection(stringResource(Res.string.settings_notifications_section)) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            val granted = notificationPermissions.status == NotificationPermissionStatus.GRANTED
+                            val status = notificationPermissions.status
                             SettingsRow(
                                 icon = Res.drawable.ic_bell,
                                 badgeColor = careColors.fertilizeContainer,
                                 badgeContent = careColors.fertilize,
                                 title = stringResource(Res.string.settings_notifications_permission),
-                                value = if (granted) {
-                                    stringResource(Res.string.settings_notifications_granted)
-                                } else {
-                                    stringResource(Res.string.settings_notifications_denied)
+                                value = when (status) {
+                                    NotificationPermissionStatus.GRANTED -> stringResource(Res.string.settings_notifications_granted)
+                                    NotificationPermissionStatus.NOT_DETERMINED -> stringResource(Res.string.settings_notifications_not_determined)
+                                    NotificationPermissionStatus.DENIED -> stringResource(Res.string.settings_notifications_denied)
                                 },
-                                onClick = if (granted) null else ({ notificationPermissions.openAppNotificationSettings() })
+                                // While the OS has never been asked, the app's page in the system
+                                // settings has no notification section yet, so the only way in is
+                                // the system prompt.
+                                onClick = when (status) {
+                                    NotificationPermissionStatus.GRANTED -> null
+                                    NotificationPermissionStatus.NOT_DETERMINED -> ({ notificationPermissions.request() })
+                                    NotificationPermissionStatus.DENIED -> ({ notificationPermissions.openAppNotificationSettings() })
+                                }
                             )
                             if (!notificationPermissions.exactAlarmsAllowed) {
                                 SettingsRow(

@@ -30,7 +30,14 @@ class AndroidNotificationScheduler(
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    override suspend fun schedule(notification: ScheduledNotification) {
+    // Android wakes NotificationReceiver as each alarm fires, and it arms the next one from there,
+    // so only the head of the series is ever registered: the rest of the run would be rewritten by
+    // that receiver anyway, and setting it would just fill AlarmManager with alarms to overwrite.
+    override fun seriesLengthFor(activeRuleCount: Int): Int = 1
+
+    override suspend fun schedule(series: List<ScheduledNotification>) {
+        val notification = series.firstOrNull() ?: return
+
         // Created (and its name/description refreshed to the current app language) here rather than
         // in the receiver: this method is suspending, so it can resolve the localized channel copy,
         // and it always runs before the receiver that would post into the channel.
@@ -72,7 +79,15 @@ class AndroidNotificationScheduler(
         }
     }
 
+    // Only index 0 is ever scheduled here, but the whole range is swept so the contract holds for
+    // an install that has carried alarms over from a build scheduling series of its own.
     override fun cancel(id: NotificationId) {
+        repeat(NotificationScheduler.MAX_SERIES_LENGTH) { index ->
+            cancelOne(id.inSeries(index))
+        }
+    }
+
+    private fun cancelOne(id: NotificationId) {
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
