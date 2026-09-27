@@ -171,7 +171,6 @@
         <item quantity="other">%1$d días de retraso</item>
     </plurals>
     <string name="care_overdue_today">Toca hoy</string>
-    <string name="care_overdue_missed_count">×%1$d</string>
     <string name="care_verb_water">regar</string>
     <string name="care_verb_fertilize">abonar</string>
     <string name="care_verb_repot">trasplantar</string>

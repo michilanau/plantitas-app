@@ -85,20 +85,6 @@ class CareRuleTest {
     }
 
     @Test
-    fun `countOccurrencesIn counts every slot in the backlog`() {
-        val rule = waterRule(everyDays = 3) // Jan10, 13, 16, 19
-        assertEquals(
-            4,
-            rule.countOccurrencesIn(
-                anchor = start,
-                after = null,
-                through = Instant.parse("2026-01-19T09:00:00Z"),
-                timeZone = tz
-            )
-        )
-    }
-
-    @Test
     fun `reminderSlotAfter picks today's reminder time when it hasn't passed yet`() {
         val rule = waterRule()
         assertEquals(

@@ -4,7 +4,6 @@ import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.mlanau.project.plant.domain.exception.FutureCareTaskException
-import org.mlanau.project.plant.domain.exception.InvalidMissedCountException
 import org.mlanau.project.plant.domain.exception.TaskNotDueYetException
 
 sealed interface CareTask {
@@ -29,13 +28,8 @@ sealed interface CareTask {
         val dueAt: Instant,
         override val at: Instant,
         val status: PendingStatus,
-        val lastPerformedAt: Instant?,
-        val missedCount: Int = 1
+        val lastPerformedAt: Instant?
     ) : CareTask {
-        init {
-            if (missedCount < 1) throw InvalidMissedCountException()
-        }
-
         val isOverdue: Boolean get() = status == PendingStatus.OVERDUE
 
         /**

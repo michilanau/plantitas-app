@@ -20,8 +20,8 @@ import org.mlanau.project.shared.time.TimeZoneProvider
  * Two invariants shape everything here:
  *
  * - **A rule owes at most one unfinished task at a time.** Missed occurrences never accumulate as
- *   separate tasks; they collapse into a single overdue one whose [CareTask.Pending.missedCount]
- *   says how many slots it stands for. You water a plant once, however long you forgot it.
+ *   separate tasks; they collapse into a single overdue one. You water a plant once, however long
+ *   you forgot it.
  * - **An overdue task shows up today, not on the day it was missed.** Its
  *   [CareTask.Pending.dueAt] still points at the oldest missed slot (that's what "N days late"
  *   counts from), but its [CareTask.Pending.at] follows the present, so it cannot fall off the
@@ -57,7 +57,7 @@ class CareScheduler(
         val candidate = rule.firstOccurrenceAfter(state.anchor, state.resolvedThrough, timeZone)
 
         return if (candidate <= now) {
-            overdue(rule, ruleId, plantId, candidate, now, state, lastPerformedAt, timeZone)
+            overdue(rule, ruleId, plantId, candidate, now, lastPerformedAt)
         } else {
             if (candidate > now.plus(lookaheadDays, DateTimeUnit.DAY, timeZone)) null
             else scheduled(rule, ruleId, plantId, candidate, lastPerformedAt)
@@ -137,7 +137,7 @@ class CareScheduler(
         // The overdue task is placed on `now`, so it enters any window containing today rather
         // than the (possibly long past) window its missed slot fell in.
         val overdue = if (now in from..until) {
-            listOf(overdue(rule, ruleId, plantId, candidate, now, state, lastPerformedAt, timeZone))
+            listOf(overdue(rule, ruleId, plantId, candidate, now, lastPerformedAt))
         } else {
             emptyList()
         }
@@ -190,9 +190,7 @@ class CareScheduler(
         plantId: PlantId,
         dueAt: Instant,
         now: Instant,
-        state: RuleAnchorState,
-        lastPerformedAt: Instant?,
-        timeZone: TimeZone
+        lastPerformedAt: Instant?
     ) = CareTask.Pending(
         careRuleId = ruleId,
         plantId = plantId,
@@ -200,8 +198,7 @@ class CareScheduler(
         dueAt = dueAt,
         at = now,
         status = PendingStatus.OVERDUE,
-        lastPerformedAt = lastPerformedAt,
-        missedCount = rule.countOccurrencesIn(state.anchor, state.resolvedThrough, now, timeZone)
+        lastPerformedAt = lastPerformedAt
     )
 
     private fun scheduled(
@@ -217,8 +214,7 @@ class CareScheduler(
         dueAt = dueAt,
         at = dueAt,
         status = PendingStatus.SCHEDULED,
-        lastPerformedAt = lastPerformedAt,
-        missedCount = 1
+        lastPerformedAt = lastPerformedAt
     )
 
     private data class RuleAnchorState(val anchor: Instant, val resolvedThrough: Instant?)

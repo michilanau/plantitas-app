@@ -13,7 +13,6 @@ import kotlin.time.Instant
 import org.mlanau.project.plant.domain.exception.BlankFertilizerNameException
 import org.mlanau.project.plant.domain.exception.CorruptedRecordException
 import org.mlanau.project.plant.domain.exception.FutureCareTaskException
-import org.mlanau.project.plant.domain.exception.InvalidMissedCountException
 import org.mlanau.project.plant.domain.exception.NonPositiveAmountException
 
 class CareTaskTest {
@@ -132,17 +131,9 @@ class CareTaskTest {
         }
     }
 
-    @Test
-    fun `Pending rejects a missedCount below one`() {
-        assertFailsWith<InvalidMissedCountException> {
-            pending(dueAt = now, status = PendingStatus.SCHEDULED, missedCount = 0)
-        }
-    }
-
     private fun pending(
         dueAt: Instant,
-        status: PendingStatus,
-        missedCount: Int = 1
+        status: PendingStatus
     ) = CareTask.Pending(
         careRuleId = ruleId,
         plantId = plantId,
@@ -150,8 +141,7 @@ class CareTaskTest {
         dueAt = dueAt,
         at = if (status == PendingStatus.OVERDUE) now else dueAt,
         status = status,
-        lastPerformedAt = null,
-        missedCount = missedCount
+        lastPerformedAt = null
     )
 
     @Test

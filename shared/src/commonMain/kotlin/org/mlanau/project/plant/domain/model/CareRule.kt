@@ -89,13 +89,6 @@ data class CareRule private constructor(
         return candidate
     }
 
-    /** How many occurrences fall in `(after, through]` — the size of the backlog a single overdue task stands for. */
-    fun countOccurrencesIn(anchor: Instant, after: Instant?, through: Instant, timeZone: TimeZone): Int {
-        val first = firstOccurrenceAfter(anchor, after, timeZone)
-        if (first > through) return 0
-        return first.daysUntil(through, timeZone) / everyDays + 1
-    }
-
     /** The instant on or after [after] at which this rule nags, i.e. [notificationTime] on [after]'s day or the next. */
     fun reminderSlotAfter(after: Instant, timeZone: TimeZone): Instant {
         val todaySlot = LocalDateTime(after.toLocalDateTime(timeZone).date, notificationTime).toInstant(timeZone)

@@ -24,7 +24,7 @@ class CareSchedulerTest {
     private val ruleId = CareRuleId(1)
 
     // Every 3 days from Jan 1st, 09:00 — chosen so the by-hand arithmetic in these tests (days
-    // between tasks, missed counts) stays easy to verify.
+    // between tasks) stays easy to verify.
     private val start = Instant.parse("2026-01-01T09:00:00Z")
     private val waterDetails = CareDetails.Water.create(amountMl = 200)
 
@@ -117,18 +117,15 @@ class CareSchedulerTest {
         val next = scheduler.nextPending(rule, lastPerformedAt = null, now = now)
         assertEquals(PendingStatus.OVERDUE, next?.status)
         assertEquals(start, next?.dueAt)
-        assertEquals(4, next?.missedCount)
     }
 
     @Test
-    fun `the collapsed task's due date never changes as more time passes, only its missedCount grows`() {
+    fun `the collapsed task's due date never changes as more time passes`() {
         val rule = periodicRule()
         val atJan10 = scheduler.nextPending(rule, lastPerformedAt = null, now = Instant.parse("2026-01-10T09:00:00Z"))
         val atJan13 = scheduler.nextPending(rule, lastPerformedAt = null, now = Instant.parse("2026-01-13T09:00:00Z"))
         assertEquals(start, atJan10?.dueAt)
         assertEquals(start, atJan13?.dueAt)
-        assertEquals(4, atJan10?.missedCount)
-        assertEquals(5, atJan13?.missedCount)
     }
 
     @Test
@@ -157,7 +154,6 @@ class CareSchedulerTest {
             tasks.map { it.at }
         )
         assertEquals(PendingStatus.OVERDUE, tasks.first().status)
-        assertEquals(4, tasks.first().missedCount)
         assertTrue(tasks.drop(1).all { it.status == PendingStatus.SCHEDULED })
     }
 
@@ -295,7 +291,6 @@ class CareSchedulerTest {
         )
         assertTrue(series.all { it.task.status == PendingStatus.OVERDUE })
         assertEquals(start, series.first().task.dueAt)
-        assertEquals(2, series.first().task.missedCount)
     }
 
     @Test

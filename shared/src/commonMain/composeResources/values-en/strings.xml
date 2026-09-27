@@ -171,7 +171,6 @@
         <item quantity="other">%1$d days late</item>
     </plurals>
     <string name="care_overdue_today">Due today</string>
-    <string name="care_overdue_missed_count">×%1$d</string>
     <string name="care_verb_water">watering</string>
     <string name="care_verb_fertilize">fertilizing</string>
     <string name="care_verb_repot">repotting</string>

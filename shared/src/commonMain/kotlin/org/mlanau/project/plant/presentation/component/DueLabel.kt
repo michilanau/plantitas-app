@@ -13,7 +13,6 @@ import plantitas_app.shared.generated.resources.care_due_in_days
 import plantitas_app.shared.generated.resources.care_due_today
 import plantitas_app.shared.generated.resources.care_due_tomorrow
 import plantitas_app.shared.generated.resources.care_overdue_days
-import plantitas_app.shared.generated.resources.care_overdue_missed_count
 
 /** Calendar days from today to the day [this] is due; zero for today and for anything already late. */
 fun CareTask.Pending.daysUntilDue(timeZone: TimeZone = TimeZone.currentSystemDefault()): Int =
@@ -24,22 +23,17 @@ fun CareTask.Pending.daysUntilDue(timeZone: TimeZone = TimeZone.currentSystemDef
 /**
  * When a pending care is due, in lowercase so it can follow a verb or a care name: "hoy",
  * "mañana", "en 3 días", or — for an overdue one — how late it is, counted from the day it was first
- * owed (the same measure the reminder notification uses) plus the backlog it stands for.
+ * owed (the same measure the reminder notification uses).
  */
 @Composable
 fun dueLabel(task: CareTask.Pending): String {
     val timeZone = TimeZone.currentSystemDefault()
     if (task.isOverdue) {
         val daysLate = task.dueAt.daysUntil(Clock.System.now(), timeZone).coerceAtLeast(0)
-        val lateness = if (daysLate == 0) {
+        return if (daysLate == 0) {
             stringResource(Res.string.care_due_today)
         } else {
             pluralStringResource(Res.plurals.care_overdue_days, daysLate, daysLate)
-        }
-        return if (task.missedCount > 1) {
-            "$lateness  ${stringResource(Res.string.care_overdue_missed_count, task.missedCount)}"
-        } else {
-            lateness
         }
     }
     return when (val days = task.daysUntilDue(timeZone)) {
